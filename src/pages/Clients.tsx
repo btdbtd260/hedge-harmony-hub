@@ -5,9 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { customers as mockCustomers, jobs } from "@/data/mock";
-import { Search, Eye, EyeOff, Plus, X } from "lucide-react";
-import type { Customer } from "@/types";
+import { useCustomers, useJobs, useInsertCustomer, type DbCustomer } from "@/hooks/useSupabaseData";
+import { Search, Eye, EyeOff, Plus } from "lucide-react";
+import { toast } from "sonner";
 
 const statusColor: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -17,45 +17,39 @@ const statusColor: Record<string, string> = {
 };
 
 const Clients = () => {
-  const [customerList, setCustomerList] = useState<Customer[]>(mockCustomers);
+  const { data: customers = [] } = useCustomers();
+  const { data: jobs = [] } = useJobs();
+  const insertCustomer = useInsertCustomer();
+
   const [search, setSearch] = useState("");
   const [showHidden, setShowHidden] = useState(false);
-  const [selectedClient, setSelectedClient] = useState<Customer | null>(null);
+  const [selectedClient, setSelectedClient] = useState<DbCustomer | null>(null);
   const [showAddDialog, setShowAddDialog] = useState(false);
   const [formName, setFormName] = useState("");
   const [formPhone, setFormPhone] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formAddress, setFormAddress] = useState("");
 
-  const filtered = customerList
+  const filtered = customers
     .filter((c) => showHidden || !c.hidden)
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.address.toLowerCase().includes(search.toLowerCase()));
 
   const currentYear = filtered.filter((c) => c.status !== "next_year");
   const nextYear = filtered.filter((c) => c.status === "next_year");
 
-  const handleAdd = () => {
+  const handleAdd = async () => {
     if (!formName.trim()) return;
-    const newClient: Customer = {
-      id: `c-${Date.now()}`,
-      name: formName.trim(),
-      phone: formPhone.trim(),
-      email: formEmail.trim(),
-      address: formAddress.trim(),
-      status: "pending",
-      hidden: false,
-      createdAt: new Date().toISOString().split("T")[0],
-      activeYear: new Date().getFullYear(),
-    };
-    setCustomerList((prev) => [...prev, newClient]);
-    setShowAddDialog(false);
-    setFormName("");
-    setFormPhone("");
-    setFormEmail("");
-    setFormAddress("");
+    try {
+      await insertCustomer.mutateAsync({ name: formName.trim(), phone: formPhone.trim(), email: formEmail.trim(), address: formAddress.trim() });
+      setShowAddDialog(false);
+      setFormName(""); setFormPhone(""); setFormEmail(""); setFormAddress("");
+      toast.success("Client créé");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
   };
 
-  const clientJobs = selectedClient ? jobs.filter((j) => j.clientId === selectedClient.id) : [];
+  const clientJobs = selectedClient ? jobs.filter((j) => j.client_id === selectedClient.id) : [];
 
   return (
     <div className="space-y-6">
@@ -77,23 +71,16 @@ const Clients = () => {
         </Button>
       </div>
 
-      {/* Client List */}
       <Card>
         <CardHeader><CardTitle>Tous les clients ({currentYear.length})</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           {currentYear.length === 0 ? <p className="text-sm text-muted-foreground">Aucun client trouvé.</p> : currentYear.map((c) => (
-            <div
-              key={c.id}
-              className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors"
-              onClick={() => setSelectedClient(c)}
-            >
+            <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedClient(c)}>
               <div>
                 <p className="font-medium">{c.name}</p>
                 <p className="text-sm text-muted-foreground">{c.address}</p>
                 <p className="text-xs text-muted-foreground">{c.phone} · {c.email}</p>
-                <p className="text-xs text-muted-foreground mt-1">
-                  {jobs.filter((j) => j.clientId === c.id).length} job(s)
-                </p>
+                <p className="text-xs text-muted-foreground mt-1">{jobs.filter((j) => j.client_id === c.id).length} job(s)</p>
               </div>
               <Badge className={statusColor[c.status]}>{c.status}</Badge>
             </div>
@@ -101,17 +88,12 @@ const Clients = () => {
         </CardContent>
       </Card>
 
-      {/* Next Year */}
       {nextYear.length > 0 && (
         <Card>
           <CardHeader><CardTitle>Année prochaine ({nextYear.length})</CardTitle></CardHeader>
           <CardContent className="space-y-3">
             {nextYear.map((c) => (
-              <div
-                key={c.id}
-                className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors"
-                onClick={() => setSelectedClient(c)}
-              >
+              <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedClient(c)}>
                 <div>
                   <p className="font-medium">{c.name}</p>
                   <p className="text-sm text-muted-foreground">{c.address}</p>
@@ -123,46 +105,26 @@ const Clients = () => {
         </Card>
       )}
 
-      {/* Client Detail Dialog */}
       <Dialog open={!!selectedClient} onOpenChange={(open) => !open && setSelectedClient(null)}>
         <DialogContent>
           {selectedClient && (
             <>
-              <DialogHeader>
-                <DialogTitle>{selectedClient.name}</DialogTitle>
-              </DialogHeader>
+              <DialogHeader><DialogTitle>{selectedClient.name}</DialogTitle></DialogHeader>
               <div className="space-y-3">
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Téléphone</span>
-                  <span>{selectedClient.phone}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Email</span>
-                  <span>{selectedClient.email}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Adresse</span>
-                  <span>{selectedClient.address}</span>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Statut</span>
-                  <Badge className={statusColor[selectedClient.status]}>{selectedClient.status}</Badge>
-                </div>
-                <div className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">Année active</span>
-                  <span>{selectedClient.activeYear}</span>
-                </div>
-
-                {/* Job history */}
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Téléphone</span><span>{selectedClient.phone}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Email</span><span>{selectedClient.email}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Adresse</span><span>{selectedClient.address}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Statut</span><Badge className={statusColor[selectedClient.status]}>{selectedClient.status}</Badge></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Année active</span><span>{selectedClient.active_year}</span></div>
                 <div className="border-t pt-3">
                   <p className="text-sm font-medium mb-2">Historique des jobs ({clientJobs.length})</p>
                   {clientJobs.length === 0 ? (
                     <p className="text-sm text-muted-foreground">Aucun job.</p>
                   ) : clientJobs.map((j) => (
                     <div key={j.id} className="flex justify-between text-sm p-2 rounded border mb-1">
-                      <span>{j.cutType} · {j.scheduledDate}</span>
+                      <span>{j.cut_type} · {j.scheduled_date}</span>
                       <div className="flex items-center gap-2">
-                        <span>${j.estimatedProfit}</span>
+                        <span>${j.estimated_profit}</span>
                         <Badge className={`text-xs ${statusColor[j.status] || ""}`}>{j.status}</Badge>
                       </div>
                     </div>
@@ -174,31 +136,18 @@ const Clients = () => {
         </DialogContent>
       </Dialog>
 
-      {/* Add Client Dialog */}
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>Nouveau client</DialogTitle></DialogHeader>
           <div className="space-y-3">
-            <div className="space-y-1">
-              <Label>Nom *</Label>
-              <Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Nom complet" />
-            </div>
-            <div className="space-y-1">
-              <Label>Téléphone</Label>
-              <Input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="514-555-0000" />
-            </div>
-            <div className="space-y-1">
-              <Label>Email</Label>
-              <Input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@exemple.com" />
-            </div>
-            <div className="space-y-1">
-              <Label>Adresse</Label>
-              <Input value={formAddress} onChange={(e) => setFormAddress(e.target.value)} placeholder="123 Rue Exemple" />
-            </div>
+            <div className="space-y-1"><Label>Nom *</Label><Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Nom complet" /></div>
+            <div className="space-y-1"><Label>Téléphone</Label><Input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="514-555-0000" /></div>
+            <div className="space-y-1"><Label>Email</Label><Input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@exemple.com" /></div>
+            <div className="space-y-1"><Label>Adresse</Label><Input value={formAddress} onChange={(e) => setFormAddress(e.target.value)} placeholder="123 Rue Exemple" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Annuler</Button>
-            <Button onClick={handleAdd} disabled={!formName.trim()}>Créer</Button>
+            <Button onClick={handleAdd} disabled={!formName.trim() || insertCustomer.isPending}>{insertCustomer.isPending ? "Création…" : "Créer"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
