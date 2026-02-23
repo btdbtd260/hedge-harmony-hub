@@ -5,7 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInsertEstimation } from "@/hooks/useSupabaseData";
+import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInsertEstimation, useInsertJob, useInsertInvoice } from "@/hooks/useSupabaseData";
 import { Calculator, Plus, Trash2, Search, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import type { CutType, HeightMode, EstimationExtra } from "@/types";
@@ -16,6 +16,8 @@ const EstimationPage = () => {
   const { data: params } = useParameters();
   const insertCustomer = useInsertCustomer();
   const insertEstimation = useInsertEstimation();
+  const insertJob = useInsertJob();
+  const insertInvoice = useInsertInvoice();
 
   const [clientId, setClientId] = useState("");
   const [clientSearch, setClientSearch] = useState("");
@@ -90,7 +92,8 @@ const EstimationPage = () => {
   const handleCreateEstimation = async () => {
     if (!clientId) return;
     try {
-      await insertEstimation.mutateAsync({
+      // 1. Create estimation
+      const estimation = await insertEstimation.mutateAsync({
         client_id: clientId,
         cut_type: cutType,
         facade_length: numFacade,
@@ -108,7 +111,38 @@ const EstimationPage = () => {
         bushes_count: numBushes,
         total_price: totalPrice,
       });
-      toast.success("Estimation créée");
+
+      // 2. Auto-create job
+      const job = await insertJob.mutateAsync({
+        client_id: clientId,
+        estimation_id: estimation.id,
+        cut_type: cutType,
+        status: "pending",
+        estimated_profit: totalPrice,
+        measurement_snapshot: {
+          facade_length: numFacade,
+          left_length: numLeft,
+          right_length: numRight,
+          back_length: numBack,
+          height_mode: heightMode,
+          height_global: numHeightGlobal,
+          height_facade: numHeightFacade,
+          height_left: numHeightLeft,
+          height_right: numHeightRight,
+          height_back: numHeightBack,
+          width: numWidth,
+        },
+      });
+
+      // 3. Auto-create draft invoice (unpaid)
+      await insertInvoice.mutateAsync({
+        client_id: clientId,
+        job_id: job.id,
+        amount: totalPrice,
+        status: "unpaid",
+      });
+
+      toast.success("Estimation créée → Job + Facture générés automatiquement");
       // Reset form
       setClientId(""); setFacadeLength(""); setLeftLength(""); setRightLength(""); setBackLength("");
       setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");

@@ -201,6 +201,43 @@ export function useInsertEstimation() {
   });
 }
 
+// ─── JOBS (insert / update) ───
+export function useInsertJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (j: TablesInsert<"jobs">) => {
+      const { data, error } = await supabase.from("jobs").insert(j).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs"] }),
+  });
+}
+
+export function useUpdateJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string } & Partial<TablesInsert<"jobs">>) => {
+      const { error } = await supabase.from("jobs").update(updates).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs"] }),
+  });
+}
+
+// ─── INVOICES (insert) ───
+export function useInsertInvoice() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (inv: TablesInsert<"invoices">) => {
+      const { data, error } = await supabase.from("invoices").insert(inv).select().single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
+  });
+}
+
 // ─── PARAMETERS ───
 export function useParameters() {
   return useQuery({
