@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useInvoices, useUpdateInvoice, useCustomers, useJobs, getClientNameFromList, type DbInvoice } from "@/hooks/useSupabaseData";
@@ -22,6 +23,9 @@ const Invoices = () => {
 
   const [search, setSearch] = useState("");
   const [selectedInvoice, setSelectedInvoice] = useState<DbInvoice | null>(null);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailAddress, setEmailAddress] = useState("");
+  const [emailInvoice, setEmailInvoice] = useState<DbInvoice | null>(null);
 
   const filtered = invoices.filter((i) =>
     getClientNameFromList(customers, i.client_id).toLowerCase().includes(search.toLowerCase())
@@ -38,8 +42,36 @@ const Invoices = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const sendByEmail = (inv: DbInvoice) => toast.success(`Facture envoyée par email à ${getClientNameFromList(customers, inv.client_id)}`);
-  const downloadPdf = () => toast.success("Téléchargement du PDF…");
+  const openEmailDialog = (inv: DbInvoice) => {
+    const client = customers.find((c) => c.id === inv.client_id);
+    setEmailInvoice(inv);
+    setEmailAddress(client?.email ?? "");
+    setShowEmailDialog(true);
+  };
+
+  const sendByEmail = () => {
+    if (!emailAddress.trim() || !emailInvoice) return;
+    toast.success(`Facture envoyée par email à ${emailAddress}`);
+    setShowEmailDialog(false);
+    setEmailAddress("");
+    setEmailInvoice(null);
+  };
+
+  const downloadPdf = (inv: DbInvoice) => {
+    // Generate a simple text-based PDF download
+    const clientName = getClientNameFromList(customers, inv.client_id);
+    const content = `Facture\n\nClient: ${clientName}\nMontant: $${inv.amount}\nStatut: ${inv.status}\nDate émission: ${inv.issued_at}\n${inv.paid_at ? `Date paiement: ${inv.paid_at}` : ""}`;
+    const blob = new Blob([content], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `facture-${clientName.replace(/\s+/g, "_")}-${inv.issued_at?.split("T")[0] ?? "date"}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+    toast.success("Facture téléchargée");
+  };
 
   const job = selectedInvoice ? jobs.find((j) => j.id === selectedInvoice.job_id) : null;
 
@@ -100,11 +132,32 @@ const Invoices = () => {
               </div>
               <DialogFooter className="flex gap-2 flex-wrap">
                 {selectedInvoice.status === "unpaid" && <Button onClick={() => markAsPaid(selectedInvoice.id)}><CheckCircle className="h-4 w-4 mr-1" /> Marquer payée</Button>}
-                <Button variant="outline" onClick={() => sendByEmail(selectedInvoice)}><Mail className="h-4 w-4 mr-1" /> Envoyer email</Button>
-                <Button variant="outline" onClick={downloadPdf}><FileDown className="h-4 w-4 mr-1" /> PDF</Button>
+                <Button variant="outline" onClick={() => openEmailDialog(selectedInvoice)}><Mail className="h-4 w-4 mr-1" /> Envoyer email</Button>
+                <Button variant="outline" onClick={() => downloadPdf(selectedInvoice)}><FileDown className="h-4 w-4 mr-1" /> PDF</Button>
               </DialogFooter>
             </>
           )}
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Envoyer la facture par email</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Adresse courriel *</Label>
+              <Input type="email" value={emailAddress} onChange={(e) => setEmailAddress(e.target.value)} placeholder="email@exemple.com" />
+            </div>
+            {emailInvoice && (
+              <p className="text-sm text-muted-foreground">
+                Facture de ${emailInvoice.amount} pour {getClientNameFromList(customers, emailInvoice.client_id)}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>Annuler</Button>
+            <Button onClick={sendByEmail} disabled={!emailAddress.trim()}><Mail className="h-4 w-4 mr-1" /> Envoyer</Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

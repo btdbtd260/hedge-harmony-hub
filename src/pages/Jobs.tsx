@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { useJobs, useCustomers, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
-import { Search, Calendar } from "lucide-react";
+import { useJobs, useCustomers, useUpdateJob, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
+import { Search, Calendar, XCircle } from "lucide-react";
+import { toast } from "sonner";
 
 const statusColor: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -18,6 +19,7 @@ const statusColor: Record<string, string> = {
 const Jobs = () => {
   const { data: jobs = [] } = useJobs();
   const { data: customers = [] } = useCustomers();
+  const updateJob = useUpdateJob();
   const [search, setSearch] = useState("");
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedJob, setSelectedJob] = useState<DbJob | null>(null);
@@ -35,6 +37,14 @@ const Jobs = () => {
   const allNonPending = filtered.filter((j) => j.status !== "pending");
 
   const snap = selectedJob?.measurement_snapshot as any;
+
+  const handleRemovePending = async (e: React.MouseEvent, jobId: string) => {
+    e.stopPropagation();
+    try {
+      await updateJob.mutateAsync({ id: jobId, status: "hidden" });
+      toast.success("Job retiré");
+    } catch (err: any) { toast.error(err.message); }
+  };
 
   return (
     <div className="space-y-6">
@@ -87,7 +97,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Jobs en attente ({pendingJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {pendingJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job pending.</p> : pendingJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onRemovePending={handleRemovePending} />
               ))}
             </CardContent>
           </Card>
@@ -129,7 +139,7 @@ const Jobs = () => {
   );
 };
 
-function JobRow({ job, clientName, onClick }: { job: DbJob; clientName: string; onClick: () => void }) {
+function JobRow({ job, clientName, onClick, onRemovePending }: { job: DbJob; clientName: string; onClick: () => void; onRemovePending?: (e: React.MouseEvent, id: string) => void }) {
   return (
     <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={onClick}>
       <div className="space-y-1">
@@ -142,6 +152,9 @@ function JobRow({ job, clientName, onClick }: { job: DbJob; clientName: string; 
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold">${job.estimated_profit}</span>
         <Badge className={statusColor[job.status]}>{job.status}</Badge>
+        {job.status === "pending" && onRemovePending && (
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => onRemovePending(e, job.id)} title="Retirer ce job"><XCircle className="h-4 w-4 text-destructive" /></Button>
+        )}
       </div>
     </div>
   );

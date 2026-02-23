@@ -5,7 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useParameters, useUpdateParameters } from "@/hooks/useSupabaseData";
-import { Calculator, FileText, Bell, DollarSign, Save, Upload } from "lucide-react";
+import { Calculator, FileText, Bell, Save, Upload } from "lucide-react";
 import { toast } from "sonner";
 
 const Settings = () => {
@@ -51,11 +51,10 @@ const Settings = () => {
       </div>
 
       <Tabs defaultValue="estimation">
-        <TabsList className="grid grid-cols-4 w-full max-w-lg">
+        <TabsList className="grid grid-cols-3 w-full max-w-lg">
           <TabsTrigger value="estimation"><Calculator className="h-4 w-4 mr-1" /> Estimation</TabsTrigger>
           <TabsTrigger value="template"><FileText className="h-4 w-4 mr-1" /> Template</TabsTrigger>
           <TabsTrigger value="reminder"><Bell className="h-4 w-4 mr-1" /> Rappels</TabsTrigger>
-          <TabsTrigger value="finance"><DollarSign className="h-4 w-4 mr-1" /> Finance</TabsTrigger>
         </TabsList>
 
         <TabsContent value="estimation" className="mt-4 space-y-4">
@@ -68,14 +67,14 @@ const Settings = () => {
                 <div className="space-y-2"><Label>Prix par bush</Label><Input type="number" value={form.bush_price ?? ""} onChange={(e) => updateField("bush_price", Number(e.target.value))} /></div>
               </div>
               <div className="border-t pt-4">
-                <h3 className="text-sm font-medium mb-3">Multiplicateur hauteur</h3>
+                <h3 className="text-sm font-medium mb-3">Hauteur</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Seuil (pieds)</Label><Input type="number" value={form.height_multiplier_threshold ?? ""} onChange={(e) => updateField("height_multiplier_threshold", Number(e.target.value))} /></div>
                   <div className="space-y-2"><Label>Multiplicateur</Label><Input type="number" step="0.1" value={form.height_multiplier ?? ""} onChange={(e) => updateField("height_multiplier", Number(e.target.value))} /></div>
                 </div>
               </div>
               <div className="border-t pt-4">
-                <h3 className="text-sm font-medium mb-3">Multiplicateur largeur</h3>
+                <h3 className="text-sm font-medium mb-3">Largeur</h3>
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2"><Label>Seuil (pieds)</Label><Input type="number" value={form.width_multiplier_threshold ?? ""} onChange={(e) => updateField("width_multiplier_threshold", Number(e.target.value))} /></div>
                   <div className="space-y-2"><Label>Multiplicateur</Label><Input type="number" step="0.1" value={form.width_multiplier ?? ""} onChange={(e) => updateField("width_multiplier", Number(e.target.value))} /></div>
@@ -132,15 +131,6 @@ const Settings = () => {
                 <div className="space-y-2"><Label>Intervalle maintenance (jours)</Label><Input type="number" value={form.maintenance_interval_days ?? ""} onChange={(e) => updateField("maintenance_interval_days", Number(e.target.value))} /></div>
                 <div className="space-y-2"><Label>Heure notification</Label><Input value={form.reminder_notification_time ?? ""} onChange={(e) => updateField("reminder_notification_time", e.target.value)} /></div>
               </div>
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="finance" className="mt-4 space-y-4">
-          <Card>
-            <CardHeader><CardTitle>Règles finance</CardTitle></CardHeader>
-            <CardContent className="space-y-4">
-              <div className="space-y-2"><Label>Règle split profit/dépense (%)</Label><Input type="number" value={form.split_rule_profit_expense ?? ""} onChange={(e) => updateField("split_rule_profit_expense", Number(e.target.value))} /></div>
             </CardContent>
           </Card>
         </TabsContent>

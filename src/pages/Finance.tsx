@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useInvoices, useExpenses, useInsertExpense } from "@/hooks/useSupabaseData";
-import { DollarSign, TrendingUp, TrendingDown, BarChart3, Plus, Camera, FileText } from "lucide-react";
+import { DollarSign, TrendingUp, TrendingDown, BarChart3, Plus, Camera, FileText, Fuel } from "lucide-react";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
 import { toast } from "sonner";
 import type { ExpenseCategory } from "@/types";
@@ -32,10 +32,20 @@ const Finance = () => {
 
   const now = new Date();
 
+  const getWeekRange = () => {
+    const end = new Date(now);
+    const start = new Date(now);
+    start.setDate(start.getDate() - 6);
+    return { start, end };
+  };
+
   const filterByDate = (dateStr: string) => {
     const d = new Date(dateStr);
     if (filter === "daily") return d.toISOString().split("T")[0] === now.toISOString().split("T")[0];
-    if (filter === "weekly") { const weekAgo = new Date(now); weekAgo.setDate(weekAgo.getDate() - 7); return d >= weekAgo && d <= now; }
+    if (filter === "weekly") {
+      const { start, end } = getWeekRange();
+      return d >= new Date(start.toISOString().split("T")[0]) && d <= end;
+    }
     return d.getFullYear() === now.getFullYear();
   };
 
@@ -51,6 +61,15 @@ const Finance = () => {
   const categoryLabels: Record<string, string> = { gas: "Essence", insurance: "Assurance", equipment: "Équipement", other: "Autre" };
   const categoryTotals = filteredExpenses.reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + e.amount; return acc; }, {} as Record<string, number>);
 
+  const formatDateRange = () => {
+    if (filter === "daily") return now.toLocaleDateString("fr-CA");
+    if (filter === "weekly") {
+      const { start, end } = getWeekRange();
+      return `${start.toLocaleDateString("fr-CA")} au ${end.toLocaleDateString("fr-CA")}`;
+    }
+    return `1 jan. ${now.getFullYear()} au ${now.toLocaleDateString("fr-CA")}`;
+  };
+
   const handleAddManual = async () => {
     if (!expDesc.trim() || !expAmount) return;
     try {
@@ -58,6 +77,16 @@ const Finance = () => {
       setShowAddExpense(false); setExpDesc(""); setExpAmount("");
       toast.success("Dépense ajoutée");
     } catch (e: any) { toast.error(e.message); }
+  };
+
+  const handleQuickExpense = async (category: ExpenseCategory, description: string) => {
+    setExpCategory(category);
+    setExpDesc(description);
+    setExpDate(new Date().toISOString().split("T")[0]);
+    setExpAmount("");
+    setAddMode("manual");
+    setOcrPreview(null);
+    setShowAddExpense(true);
   };
 
   const handleOcrUpload = (file: File) => {
@@ -93,8 +122,17 @@ const Finance = () => {
               <SelectItem value="yearly">Annuel</SelectItem>
             </SelectContent>
           </Select>
-          <Button onClick={() => { setShowAddExpense(true); setAddMode("manual"); setOcrPreview(null); }}><Plus className="h-4 w-4 mr-1" /> Dépense</Button>
+          <Button onClick={() => { setShowAddExpense(true); setAddMode("manual"); setOcrPreview(null); setExpDesc(""); setExpAmount(""); setExpCategory("other"); }}><Plus className="h-4 w-4 mr-1" /> Dépense</Button>
         </div>
+      </div>
+
+      <p className="text-sm text-muted-foreground">Période : {formatDateRange()}</p>
+
+      {/* Quick expense buttons */}
+      <div className="flex gap-2 flex-wrap">
+        <Button variant="outline" size="sm" onClick={() => handleQuickExpense("gas", "Essence")}><Fuel className="h-4 w-4 mr-1" /> Essence</Button>
+        <Button variant="outline" size="sm" onClick={() => handleQuickExpense("equipment", "Équipement")}>Équipement</Button>
+        <Button variant="outline" size="sm" onClick={() => handleQuickExpense("insurance", "Assurance")}>Assurance</Button>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

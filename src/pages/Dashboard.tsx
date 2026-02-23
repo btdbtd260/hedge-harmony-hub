@@ -24,9 +24,13 @@ const Dashboard = () => {
     .filter((j) => j.status === "scheduled" && j.scheduled_date && j.scheduled_date >= today)
     .sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""))
     .slice(0, 5);
-  const unpaidInvoices = invoices.filter((i) => i.status === "unpaid");
   const totalRevenue = invoices.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
-  const activeReminders = reminders.filter((r) => !r.is_completed).length;
+
+  // Only count reminders due within next 7 days
+  const inOneWeek = new Date();
+  inOneWeek.setDate(inOneWeek.getDate() + 7);
+  const inOneWeekStr = inOneWeek.toISOString().split("T")[0];
+  const activeReminders = reminders.filter((r) => !r.is_completed && r.due_date <= inOneWeekStr).length;
 
   return (
     <div className="space-y-6">
@@ -67,23 +71,6 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
-
-      {unpaidInvoices.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5" /> Factures impayées</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {unpaidInvoices.map((inv) => (
-              <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg border">
-                <div>
-                  <p className="font-medium">{getClientNameFromList(customers, inv.client_id)}</p>
-                  <p className="text-sm text-muted-foreground">Émise le {inv.issued_at}</p>
-                </div>
-                <p className="font-semibold">${inv.amount}</p>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
 
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" /> Jobs aujourd'hui</CardTitle></CardHeader>
