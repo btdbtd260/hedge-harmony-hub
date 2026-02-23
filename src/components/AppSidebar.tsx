@@ -1,9 +1,13 @@
 import {
   LayoutDashboard,
-  Calendar,
   Users,
+  Calculator,
+  Briefcase,
   FileText,
-  HardHat,
+  DollarSign,
+  UserCog,
+  Bell,
+  Settings,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -17,26 +21,34 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
+import { reminders } from "@/data/mock";
+import { Badge } from "@/components/ui/badge";
 
 const navItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Jobs", url: "/jobs", icon: Calendar },
-  { title: "Customers", url: "/customers", icon: Users },
-  { title: "Quotes & Invoices", url: "/quotes", icon: FileText },
-  { title: "Crew", url: "/crew", icon: HardHat },
+  { title: "Clients", url: "/clients", icon: Users },
+  { title: "Estimation", url: "/estimation", icon: Calculator },
+  { title: "Jobs", url: "/jobs", icon: Briefcase },
+  { title: "Facturation", url: "/invoices", icon: FileText },
+  { title: "Finance", url: "/finance", icon: DollarSign },
+  { title: "Employés", url: "/employees", icon: UserCog },
+  { title: "Rappels", url: "/reminders", icon: Bell },
+  { title: "Paramètres", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
+  const activeReminders = reminders.filter((r) => !r.isCompleted).length;
+
   return (
     <Sidebar>
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground text-sm font-bold">HT</span>
+            <span className="text-primary-foreground text-sm font-bold">HP</span>
           </div>
           <div>
             <h2 className="text-sm font-semibold text-sidebar-foreground">HedgePro</h2>
-            <p className="text-xs text-muted-foreground">Management</p>
+            <p className="text-xs text-muted-foreground">Gestion</p>
           </div>
         </div>
       </SidebarHeader>
@@ -55,7 +67,12 @@ export function AppSidebar() {
                       activeClassName="bg-sidebar-accent text-primary font-medium"
                     >
                       <item.icon className="h-4 w-4" />
-                      <span>{item.title}</span>
+                      <span className="flex-1">{item.title}</span>
+                      {item.title === "Rappels" && activeReminders > 0 && (
+                        <Badge variant="destructive" className="h-5 min-w-5 text-xs flex items-center justify-center">
+                          {activeReminders}
+                        </Badge>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
