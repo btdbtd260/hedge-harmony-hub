@@ -14,7 +14,416 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      customers: {
+        Row: {
+          active_year: number
+          address: string
+          created_at: string
+          email: string
+          hidden: boolean
+          id: string
+          name: string
+          phone: string
+          status: string
+        }
+        Insert: {
+          active_year?: number
+          address?: string
+          created_at?: string
+          email?: string
+          hidden?: boolean
+          id?: string
+          name: string
+          phone?: string
+          status?: string
+        }
+        Update: {
+          active_year?: number
+          address?: string
+          created_at?: string
+          email?: string
+          hidden?: boolean
+          id?: string
+          name?: string
+          phone?: string
+          status?: string
+        }
+        Relationships: []
+      }
+      employee_jobs: {
+        Row: {
+          calculated_pay: number
+          employee_id: string
+          hours_worked: number
+          id: string
+          job_id: string
+        }
+        Insert: {
+          calculated_pay?: number
+          employee_id: string
+          hours_worked?: number
+          id?: string
+          job_id: string
+        }
+        Update: {
+          calculated_pay?: number
+          employee_id?: string
+          hours_worked?: number
+          id?: string
+          job_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "employee_jobs_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "employee_jobs_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      employees: {
+        Row: {
+          active: boolean
+          hourly_rate: number
+          id: string
+          name: string
+        }
+        Insert: {
+          active?: boolean
+          hourly_rate?: number
+          id?: string
+          name: string
+        }
+        Update: {
+          active?: boolean
+          hourly_rate?: number
+          id?: string
+          name?: string
+        }
+        Relationships: []
+      }
+      estimations: {
+        Row: {
+          back_length: number
+          bushes_count: number
+          client_id: string
+          created_at: string
+          cut_type: string
+          extras: Json
+          facade_length: number
+          height_back: number
+          height_facade: number
+          height_global: number
+          height_left: number
+          height_mode: string
+          height_right: number
+          id: string
+          left_length: number
+          pdf_url: string | null
+          right_length: number
+          total_price: number
+          width: number
+        }
+        Insert: {
+          back_length?: number
+          bushes_count?: number
+          client_id: string
+          created_at?: string
+          cut_type?: string
+          extras?: Json
+          facade_length?: number
+          height_back?: number
+          height_facade?: number
+          height_global?: number
+          height_left?: number
+          height_mode?: string
+          height_right?: number
+          id?: string
+          left_length?: number
+          pdf_url?: string | null
+          right_length?: number
+          total_price?: number
+          width?: number
+        }
+        Update: {
+          back_length?: number
+          bushes_count?: number
+          client_id?: string
+          created_at?: string
+          cut_type?: string
+          extras?: Json
+          facade_length?: number
+          height_back?: number
+          height_facade?: number
+          height_global?: number
+          height_left?: number
+          height_mode?: string
+          height_right?: number
+          id?: string
+          left_length?: number
+          pdf_url?: string | null
+          right_length?: number
+          total_price?: number
+          width?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "estimations_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      expenses: {
+        Row: {
+          amount: number
+          category: string
+          created_at: string
+          date: string
+          description: string
+          id: string
+          receipt_photo_url: string | null
+        }
+        Insert: {
+          amount?: number
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          receipt_photo_url?: string | null
+        }
+        Update: {
+          amount?: number
+          category?: string
+          created_at?: string
+          date?: string
+          description?: string
+          id?: string
+          receipt_photo_url?: string | null
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          amount: number
+          client_id: string
+          id: string
+          issued_at: string
+          job_id: string
+          paid_at: string | null
+          pdf_url: string | null
+          status: string
+        }
+        Insert: {
+          amount?: number
+          client_id: string
+          id?: string
+          issued_at?: string
+          job_id: string
+          paid_at?: string | null
+          pdf_url?: string | null
+          status?: string
+        }
+        Update: {
+          amount?: number
+          client_id?: string
+          id?: string
+          issued_at?: string
+          job_id?: string
+          paid_at?: string | null
+          pdf_url?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "invoices_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "jobs"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      jobs: {
+        Row: {
+          after_photos: string[]
+          before_photos: string[]
+          client_id: string
+          created_at: string
+          cut_type: string
+          end_time: string | null
+          estimated_profit: number
+          estimation_id: string | null
+          id: string
+          measurement_snapshot: Json
+          real_profit: number | null
+          scheduled_date: string | null
+          start_time: string | null
+          status: string
+          total_duration_minutes: number | null
+        }
+        Insert: {
+          after_photos?: string[]
+          before_photos?: string[]
+          client_id: string
+          created_at?: string
+          cut_type?: string
+          end_time?: string | null
+          estimated_profit?: number
+          estimation_id?: string | null
+          id?: string
+          measurement_snapshot?: Json
+          real_profit?: number | null
+          scheduled_date?: string | null
+          start_time?: string | null
+          status?: string
+          total_duration_minutes?: number | null
+        }
+        Update: {
+          after_photos?: string[]
+          before_photos?: string[]
+          client_id?: string
+          created_at?: string
+          cut_type?: string
+          end_time?: string | null
+          estimated_profit?: number
+          estimation_id?: string | null
+          id?: string
+          measurement_snapshot?: Json
+          real_profit?: number | null
+          scheduled_date?: string | null
+          start_time?: string | null
+          status?: string
+          total_duration_minutes?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "jobs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "customers"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "jobs_estimation_id_fkey"
+            columns: ["estimation_id"]
+            isOneToOne: false
+            referencedRelation: "estimations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      parameters: {
+        Row: {
+          bush_price: number
+          company_address: string
+          company_email: string
+          company_name: string
+          company_phone: string
+          height_multiplier: number
+          height_multiplier_threshold: number
+          id: string
+          maintenance_interval_days: number
+          price_per_foot_levelling: number
+          price_per_foot_trim: number
+          reminder_notification_time: string
+          social_links: Json
+          split_rule_profit_expense: number
+          updated_at: string
+          width_multiplier: number
+          width_multiplier_threshold: number
+        }
+        Insert: {
+          bush_price?: number
+          company_address?: string
+          company_email?: string
+          company_name?: string
+          company_phone?: string
+          height_multiplier?: number
+          height_multiplier_threshold?: number
+          id?: string
+          maintenance_interval_days?: number
+          price_per_foot_levelling?: number
+          price_per_foot_trim?: number
+          reminder_notification_time?: string
+          social_links?: Json
+          split_rule_profit_expense?: number
+          updated_at?: string
+          width_multiplier?: number
+          width_multiplier_threshold?: number
+        }
+        Update: {
+          bush_price?: number
+          company_address?: string
+          company_email?: string
+          company_name?: string
+          company_phone?: string
+          height_multiplier?: number
+          height_multiplier_threshold?: number
+          id?: string
+          maintenance_interval_days?: number
+          price_per_foot_levelling?: number
+          price_per_foot_trim?: number
+          reminder_notification_time?: string
+          social_links?: Json
+          split_rule_profit_expense?: number
+          updated_at?: string
+          width_multiplier?: number
+          width_multiplier_threshold?: number
+        }
+        Relationships: []
+      }
+      reminders: {
+        Row: {
+          created_at: string
+          description: string
+          due_date: string
+          id: string
+          is_completed: boolean
+          notification_sent: boolean
+          reference_id: string | null
+          type: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string
+          due_date: string
+          id?: string
+          is_completed?: boolean
+          notification_sent?: boolean
+          reference_id?: string | null
+          type?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string
+          due_date?: string
+          id?: string
+          is_completed?: boolean
+          notification_sent?: boolean
+          reference_id?: string | null
+          type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
