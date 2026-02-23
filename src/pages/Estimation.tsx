@@ -10,6 +10,13 @@ import { Calculator, Plus, Trash2, Search, UserPlus } from "lucide-react";
 import { toast } from "sonner";
 import type { CutType, HeightMode, EstimationExtra } from "@/types";
 
+interface BushItem {
+  id: string;
+  description: string;
+  count: number;
+  price: number;
+}
+
 const EstimationPage = () => {
   const { data: customers = [] } = useCustomers();
   const { data: estimations = [] } = useEstimations();
@@ -41,9 +48,8 @@ const EstimationPage = () => {
   const [heightBack, setHeightBack] = useState("");
   const [width, setWidth] = useState("");
   const [extras, setExtras] = useState<EstimationExtra[]>([]);
-  const [bushes, setBushes] = useState("");
+  const [bushItems, setBushItems] = useState<BushItem[]>([]);
 
-  // Defaults from parameters
   const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3 };
 
   const numFacade = Number(facadeLength) || 0;
@@ -56,7 +62,6 @@ const EstimationPage = () => {
   const numHeightRight = Number(heightRight) || 0;
   const numHeightBack = Number(heightBack) || 0;
   const numWidth = Number(width) || 2;
-  const numBushes = Number(bushes) || 0;
 
   const totalLinearFeet = numFacade + numLeft + numRight + numBack;
   const pricePerFoot = cutType === "trim" ? p.price_per_foot_trim : p.price_per_foot_levelling;
@@ -66,13 +71,18 @@ const EstimationPage = () => {
   if (effectiveHeight >= p.height_multiplier_threshold) basePrice *= p.height_multiplier;
   if (numWidth >= p.width_multiplier_threshold) basePrice *= p.width_multiplier;
 
-  const bushesPrice = numBushes * p.bush_price;
+  const bushesTotal = bushItems.reduce((sum, b) => sum + b.count * b.price, 0);
+  const totalBushesCount = bushItems.reduce((sum, b) => sum + b.count, 0);
   const extrasPrice = extras.reduce((sum, e) => sum + e.price, 0);
-  const totalPrice = basePrice + bushesPrice + extrasPrice;
+  const totalPrice = basePrice + bushesTotal + extrasPrice;
 
   const addExtra = () => setExtras([...extras, { id: `ext-${Date.now()}`, description: "", price: 0 }]);
   const removeExtra = (id: string) => setExtras(extras.filter((e) => e.id !== id));
   const updateExtra = (id: string, field: "description" | "price", value: string | number) => setExtras(extras.map((e) => e.id === id ? { ...e, [field]: value } : e));
+
+  const addBush = () => setBushItems([...bushItems, { id: `bush-${Date.now()}`, description: "", count: 1, price: p.bush_price }]);
+  const removeBush = (id: string) => setBushItems(bushItems.filter((b) => b.id !== id));
+  const updateBush = (id: string, field: keyof BushItem, value: string | number) => setBushItems(bushItems.map((b) => b.id === id ? { ...b, [field]: value } : b));
 
   const filteredClients = customers.filter((c) => !c.hidden).filter((c) => c.name.toLowerCase().includes(clientSearch.toLowerCase()));
   const selectedClient = customers.find((c) => c.id === clientId);
@@ -92,7 +102,6 @@ const EstimationPage = () => {
   const handleCreateEstimation = async () => {
     if (!clientId) return;
     try {
-      // 1. Create estimation
       const estimation = await insertEstimation.mutateAsync({
         client_id: clientId,
         cut_type: cutType,
@@ -107,12 +116,11 @@ const EstimationPage = () => {
         height_right: numHeightRight,
         height_back: numHeightBack,
         width: numWidth,
-        extras: JSON.parse(JSON.stringify(extras)),
-        bushes_count: numBushes,
+        extras: JSON.parse(JSON.stringify([...extras, ...bushItems.map((b) => ({ id: b.id, description: `Bush: ${b.description || "Bush"}`, price: b.count * b.price }))])),
+        bushes_count: totalBushesCount,
         total_price: totalPrice,
       });
 
-      // 2. Auto-create job
       const job = await insertJob.mutateAsync({
         client_id: clientId,
         estimation_id: estimation.id,
@@ -120,33 +128,18 @@ const EstimationPage = () => {
         status: "pending",
         estimated_profit: totalPrice,
         measurement_snapshot: {
-          facade_length: numFacade,
-          left_length: numLeft,
-          right_length: numRight,
-          back_length: numBack,
-          height_mode: heightMode,
-          height_global: numHeightGlobal,
-          height_facade: numHeightFacade,
-          height_left: numHeightLeft,
-          height_right: numHeightRight,
-          height_back: numHeightBack,
-          width: numWidth,
+          facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
+          height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
+          height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack, width: numWidth,
         },
       });
 
-      // 3. Auto-create draft invoice (unpaid)
-      await insertInvoice.mutateAsync({
-        client_id: clientId,
-        job_id: job.id,
-        amount: totalPrice,
-        status: "unpaid",
-      });
+      await insertInvoice.mutateAsync({ client_id: clientId, job_id: job.id, amount: totalPrice, status: "unpaid" });
 
       toast.success("Estimation créée → Job + Facture générés automatiquement");
-      // Reset form
       setClientId(""); setFacadeLength(""); setLeftLength(""); setRightLength(""); setBackLength("");
       setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
-      setWidth(""); setBushes(""); setExtras([]);
+      setWidth(""); setBushItems([]); setExtras([]);
     } catch (e: any) { toast.error(e.message); }
   };
 
@@ -218,8 +211,21 @@ const EstimationPage = () => {
               </div>
 
               <div className="space-y-2"><Label>Largeur (pieds)</Label><Input type="number" min={0} placeholder="2" value={width} onChange={(e) => setWidth(e.target.value)} /></div>
-              <div className="space-y-2"><Label>Bushes</Label><Input type="number" min={0} placeholder="0" value={bushes} onChange={(e) => setBushes(e.target.value)} /></div>
 
+              {/* Bushes List */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between"><Label>Bushes</Label><Button variant="outline" size="sm" onClick={addBush}><Plus className="h-3 w-3 mr-1" /> Ajouter</Button></div>
+                {bushItems.map((bush) => (
+                  <div key={bush.id} className="flex gap-2 items-center">
+                    <Input placeholder="Description" value={bush.description} onChange={(e) => updateBush(bush.id, "description", e.target.value)} className="flex-1" />
+                    <Input type="number" min={1} placeholder="Qté" value={bush.count || ""} onChange={(e) => updateBush(bush.id, "count", Number(e.target.value))} className="w-20" />
+                    <Input type="number" min={0} placeholder="Prix" value={bush.price || ""} onChange={(e) => updateBush(bush.id, "price", Number(e.target.value))} className="w-24" />
+                    <Button variant="ghost" size="icon" onClick={() => removeBush(bush.id)}><Trash2 className="h-4 w-4 text-destructive" /></Button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Extras */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between"><Label>Extras</Label><Button variant="outline" size="sm" onClick={addExtra}><Plus className="h-3 w-3 mr-1" /> Ajouter</Button></div>
                 {extras.map((extra) => (
@@ -241,7 +247,7 @@ const EstimationPage = () => {
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Pieds linéaires</span><span>{totalLinearFeet} pi</span></div>
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Prix/pied ({cutType})</span><span>${pricePerFoot}</span></div>
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Base</span><span>${basePrice.toFixed(2)}</span></div>
-              {numBushes > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Bushes ({numBushes} × ${p.bush_price})</span><span>${bushesPrice}</span></div>}
+              {bushesTotal > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Bushes ({totalBushesCount})</span><span>${bushesTotal.toFixed(2)}</span></div>}
               {extrasPrice > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Extras</span><span>${extrasPrice}</span></div>}
               {effectiveHeight >= p.height_multiplier_threshold && <div className="flex justify-between text-sm text-amber-600"><span>Mult. hauteur (×{p.height_multiplier})</span><span>Appliqué</span></div>}
               {numWidth >= p.width_multiplier_threshold && <div className="flex justify-between text-sm text-amber-600"><span>Mult. largeur (×{p.width_multiplier})</span><span>Appliqué</span></div>}

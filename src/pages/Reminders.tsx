@@ -30,7 +30,12 @@ const Reminders = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const activeReminders = reminders.filter((r) => !r.is_completed);
+  // Only show reminders due within next 7 days
+  const inOneWeek = new Date();
+  inOneWeek.setDate(inOneWeek.getDate() + 7);
+  const inOneWeekStr = inOneWeek.toISOString().split("T")[0];
+
+  const activeReminders = reminders.filter((r) => !r.is_completed && r.due_date <= inOneWeekStr);
   const clientReminders = activeReminders.filter((r) => r.type === "client");
   const maintenanceReminders = activeReminders.filter((r) => r.type === "maintenance");
 
@@ -62,7 +67,7 @@ const Reminders = () => {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold text-foreground">Rappels</h1>
-          <p className="text-muted-foreground">Suivez vos rappels clients et maintenance</p>
+          <p className="text-muted-foreground">Suivez vos rappels clients et maintenance (7 prochains jours)</p>
         </div>
         <div className="flex items-center gap-2">
           {activeReminders.length > 0 && <Badge variant="destructive" className="text-sm px-3 py-1"><Bell className="h-4 w-4 mr-1" /> {activeReminders.length} actif(s)</Badge>}
@@ -73,11 +78,11 @@ const Reminders = () => {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" /> Rappels clients</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {clientReminders.length === 0 ? <p className="text-sm text-muted-foreground">Aucun rappel client actif.</p> : clientReminders.map((r) => (
-            <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border">
+          {clientReminders.length === 0 ? <p className="text-sm text-muted-foreground">Aucun rappel client dans les 7 prochains jours.</p> : clientReminders.map((r) => (
+            <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border border-red-200 bg-red-50">
               <div>
-                <p className="font-medium">{r.description}</p>
-                <p className="text-xs text-muted-foreground">{r.reference_id ? getClientNameFromList(customers, r.reference_id) : ""} · Échéance: {r.due_date}</p>
+                <p className="font-medium text-red-700">{r.description}</p>
+                <p className="text-xs text-red-500">{r.reference_id ? getClientNameFromList(customers, r.reference_id) : ""} · Échéance: {r.due_date}</p>
               </div>
               <Button size="sm" variant="outline" onClick={() => markDone(r.id)}><CheckCircle className="h-3 w-3 mr-1" /> Fait</Button>
             </div>
@@ -88,11 +93,11 @@ const Reminders = () => {
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Wrench className="h-5 w-5" /> Maintenance</CardTitle></CardHeader>
         <CardContent className="space-y-3">
-          {maintenanceReminders.length === 0 ? <p className="text-sm text-muted-foreground">Aucun rappel de maintenance actif.</p> : maintenanceReminders.map((r) => (
-            <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border">
+          {maintenanceReminders.length === 0 ? <p className="text-sm text-muted-foreground">Aucun rappel de maintenance dans les 7 prochains jours.</p> : maintenanceReminders.map((r) => (
+            <div key={r.id} className="flex items-center justify-between p-3 rounded-lg border border-yellow-200 bg-yellow-50">
               <div>
-                <p className="font-medium">{r.description}</p>
-                <p className="text-xs text-muted-foreground">Échéance: {r.due_date}</p>
+                <p className="font-medium text-yellow-700">{r.description}</p>
+                <p className="text-xs text-yellow-500">Échéance: {r.due_date}</p>
               </div>
               <Button size="sm" variant="outline" onClick={() => markDone(r.id)}><CheckCircle className="h-3 w-3 mr-1" /> Fait</Button>
             </div>

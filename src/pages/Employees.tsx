@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useEmployees, useEmployeeJobs, useJobs, useCustomers, useInsertEmployee, useUpdateEmployee, getClientNameFromList } from "@/hooks/useSupabaseData";
-import { Plus, Pencil } from "lucide-react";
+import { Plus, Pencil, UserX } from "lucide-react";
 import { toast } from "sonner";
 
 const Employees = () => {
@@ -22,6 +22,7 @@ const Employees = () => {
   const [formName, setFormName] = useState("");
   const [formRate, setFormRate] = useState("");
   const [formActive, setFormActive] = useState(true);
+  const [showInactive, setShowInactive] = useState(false);
 
   const openAdd = () => { setEditingId(null); setFormName(""); setFormRate(""); setFormActive(true); setShowDialog(true); };
   const openEdit = (emp: { id: string; name: string; hourly_rate: number; active: boolean }) => {
@@ -41,6 +42,15 @@ const Employees = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const handleRemove = async (id: string) => {
+    try {
+      await updateEmployee.mutateAsync({ id, active: false });
+      toast.success("Employé retiré");
+    } catch (e: any) { toast.error(e.message); }
+  };
+
+  const displayedEmployees = showInactive ? employees : employees.filter((e) => e.active);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -48,11 +58,16 @@ const Employees = () => {
           <h1 className="text-2xl font-bold text-foreground">Employés</h1>
           <p className="text-muted-foreground">Gestion de l'équipe et calcul des paies</p>
         </div>
-        <Button onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> Ajouter</Button>
+        <div className="flex gap-2">
+          <Button variant={showInactive ? "default" : "outline"} size="sm" onClick={() => setShowInactive(!showInactive)}>
+            {showInactive ? "Masquer inactifs" : "Voir inactifs"}
+          </Button>
+          <Button onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> Ajouter</Button>
+        </div>
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {employees.map((emp) => {
+        {displayedEmployees.map((emp) => {
           const empJobs = employeeJobs.filter((ej) => ej.employee_id === emp.id);
           const totalHours = empJobs.reduce((s, ej) => s + ej.hours_worked, 0);
           const totalPay = empJobs.reduce((s, ej) => s + ej.calculated_pay, 0);
@@ -62,9 +77,12 @@ const Employees = () => {
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
                   <CardTitle className="text-lg">{emp.name}</CardTitle>
-                  <div className="flex items-center gap-2">
+                  <div className="flex items-center gap-1">
                     <Badge variant={emp.active ? "default" : "secondary"}>{emp.active ? "Actif" : "Inactif"}</Badge>
                     <Button variant="ghost" size="icon" onClick={() => openEdit(emp)}><Pencil className="h-4 w-4" /></Button>
+                    {emp.active && (
+                      <Button variant="ghost" size="icon" onClick={() => handleRemove(emp.id)} title="Retirer l'employé"><UserX className="h-4 w-4 text-destructive" /></Button>
+                    )}
                   </div>
                 </div>
               </CardHeader>

@@ -21,7 +21,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { reminders } from "@/data/mock";
+import { useReminders } from "@/hooks/useSupabaseData";
 import { Badge } from "@/components/ui/badge";
 
 const navItems = [
@@ -37,7 +37,13 @@ const navItems = [
 ];
 
 export function AppSidebar() {
-  const activeReminders = reminders.filter((r) => !r.isCompleted).length;
+  const { data: reminders = [] } = useReminders();
+
+  // Only count reminders due within next 7 days
+  const inOneWeek = new Date();
+  inOneWeek.setDate(inOneWeek.getDate() + 7);
+  const inOneWeekStr = inOneWeek.toISOString().split("T")[0];
+  const activeReminders = reminders.filter((r) => !r.is_completed && r.due_date <= inOneWeekStr).length;
 
   return (
     <Sidebar>
