@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users, FileText, Plus, Clock, DollarSign, Briefcase, Bell } from "lucide-react";
-import { customers, jobs, invoices, reminders, getClientName } from "@/data/mock";
+import { useCustomers, useJobs, useInvoices, useReminders, getClientNameFromList } from "@/hooks/useSupabaseData";
 import { useNavigate } from "react-router-dom";
 
 const statusColor: Record<string, string> = {
@@ -13,16 +13,20 @@ const statusColor: Record<string, string> = {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { data: customers = [] } = useCustomers();
+  const { data: jobs = [] } = useJobs();
+  const { data: invoices = [] } = useInvoices();
+  const { data: reminders = [] } = useReminders();
 
   const today = new Date().toISOString().split("T")[0];
-  const todayJobs = jobs.filter((j) => j.scheduledDate === today);
+  const todayJobs = jobs.filter((j) => j.scheduled_date === today);
   const upcomingJobs = jobs
-    .filter((j) => j.status === "scheduled" && j.scheduledDate >= today)
-    .sort((a, b) => a.scheduledDate.localeCompare(b.scheduledDate))
+    .filter((j) => j.status === "scheduled" && j.scheduled_date && j.scheduled_date >= today)
+    .sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""))
     .slice(0, 5);
   const unpaidInvoices = invoices.filter((i) => i.status === "unpaid");
   const totalRevenue = invoices.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
-  const activeReminders = reminders.filter((r) => !r.isCompleted).length;
+  const activeReminders = reminders.filter((r) => !r.is_completed).length;
 
   return (
     <div className="space-y-6">
@@ -37,7 +41,6 @@ const Dashboard = () => {
         </div>
       </div>
 
-      {/* Stats */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <Card>
           <CardContent className="p-4 flex items-center gap-4">
@@ -65,7 +68,6 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      {/* Factures impayées */}
       {unpaidInvoices.length > 0 && (
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><DollarSign className="h-5 w-5" /> Factures impayées</CardTitle></CardHeader>
@@ -73,8 +75,8 @@ const Dashboard = () => {
             {unpaidInvoices.map((inv) => (
               <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg border">
                 <div>
-                  <p className="font-medium">{getClientName(inv.clientId)}</p>
-                  <p className="text-sm text-muted-foreground">Émise le {inv.issuedAt}</p>
+                  <p className="font-medium">{getClientNameFromList(customers, inv.client_id)}</p>
+                  <p className="text-sm text-muted-foreground">Émise le {inv.issued_at}</p>
                 </div>
                 <p className="font-semibold">${inv.amount}</p>
               </div>
@@ -83,7 +85,6 @@ const Dashboard = () => {
         </Card>
       )}
 
-      {/* Today's Jobs */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" /> Jobs aujourd'hui</CardTitle></CardHeader>
         <CardContent>
@@ -94,8 +95,8 @@ const Dashboard = () => {
               {todayJobs.map((job) => (
                 <div key={job.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
-                    <p className="font-medium">{getClientName(job.clientId)}</p>
-                    <p className="text-sm text-muted-foreground">{job.cutType}</p>
+                    <p className="font-medium">{getClientNameFromList(customers, job.client_id)}</p>
+                    <p className="text-sm text-muted-foreground">{job.cut_type}</p>
                   </div>
                   <Badge className={statusColor[job.status]}>{job.status}</Badge>
                 </div>
@@ -105,7 +106,6 @@ const Dashboard = () => {
         </CardContent>
       </Card>
 
-      {/* Upcoming */}
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Prochains jobs</CardTitle></CardHeader>
         <CardContent>
@@ -116,8 +116,8 @@ const Dashboard = () => {
               {upcomingJobs.map((job) => (
                 <div key={job.id} className="flex items-center justify-between p-3 rounded-lg border">
                   <div>
-                    <p className="font-medium">{getClientName(job.clientId)}</p>
-                    <p className="text-sm text-muted-foreground">{job.scheduledDate} · {job.cutType}</p>
+                    <p className="font-medium">{getClientNameFromList(customers, job.client_id)}</p>
+                    <p className="text-sm text-muted-foreground">{job.scheduled_date} · {job.cut_type}</p>
                   </div>
                   <Badge variant="outline">{job.status}</Badge>
                 </div>
