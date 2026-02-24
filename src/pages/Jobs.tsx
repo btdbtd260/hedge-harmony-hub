@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useJobs, useCustomers, useUpdateJob, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { Search, Calendar, XCircle } from "lucide-react";
 import { toast } from "sonner";
@@ -46,6 +47,16 @@ const Jobs = () => {
     } catch (err: any) { toast.error(err.message); }
   };
 
+  const handleStatusChange = async (jobId: string, newStatus: string) => {
+    try {
+      await updateJob.mutateAsync({ id: jobId, status: newStatus });
+      toast.success(`Statut changé → ${newStatus}`);
+      if (selectedJob?.id === jobId) {
+        setSelectedJob((prev) => prev ? { ...prev, status: newStatus } : null);
+      }
+    } catch (err: any) { toast.error(err.message); }
+  };
+
   return (
     <div className="space-y-6">
       <div>
@@ -75,7 +86,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Tous les jobs ({allNonPending.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {allNonPending.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job trouvé.</p> : allNonPending.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} />
               ))}
             </CardContent>
           </Card>
@@ -86,7 +97,7 @@ const Jobs = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Prochains jobs</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {upcoming.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job à venir.</p> : upcoming.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} />
               ))}
             </CardContent>
           </Card>
@@ -97,7 +108,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Jobs en attente ({pendingJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {pendingJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job pending.</p> : pendingJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onRemovePending={handleRemovePending} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onRemovePending={handleRemovePending} onStatusChange={handleStatusChange} />
               ))}
             </CardContent>
           </Card>
@@ -110,7 +121,17 @@ const Jobs = () => {
             <>
               <DialogHeader><DialogTitle>Job — {getClientNameFromList(customers, selectedJob.client_id)}</DialogTitle></DialogHeader>
               <div className="space-y-3">
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Statut</span><Badge className={statusColor[selectedJob.status]}>{selectedJob.status}</Badge></div>
+                <div className="flex justify-between items-center text-sm">
+                  <span className="text-muted-foreground">Statut</span>
+                  <Select value={selectedJob.status} onValueChange={(val) => handleStatusChange(selectedJob.id, val)}>
+                    <SelectTrigger className="w-36 h-8"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="pending">Pending</SelectItem>
+                      <SelectItem value="scheduled">Scheduled</SelectItem>
+                      <SelectItem value="completed">Completed</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Type de coupe</span><span>{selectedJob.cut_type}</span></div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date planifiée</span><span>{selectedJob.scheduled_date}</span></div>
                 {selectedJob.start_time && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Début</span><span>{selectedJob.start_time}</span></div>}
@@ -139,7 +160,7 @@ const Jobs = () => {
   );
 };
 
-function JobRow({ job, clientName, onClick, onRemovePending }: { job: DbJob; clientName: string; onClick: () => void; onRemovePending?: (e: React.MouseEvent, id: string) => void }) {
+function JobRow({ job, clientName, onClick, onRemovePending, onStatusChange }: { job: DbJob; clientName: string; onClick: () => void; onRemovePending?: (e: React.MouseEvent, id: string) => void; onStatusChange?: (id: string, status: string) => void }) {
   return (
     <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={onClick}>
       <div className="space-y-1">
@@ -151,7 +172,16 @@ function JobRow({ job, clientName, onClick, onRemovePending }: { job: DbJob; cli
       </div>
       <div className="flex items-center gap-2">
         <span className="text-sm font-semibold">${job.estimated_profit}</span>
-        <Badge className={statusColor[job.status]}>{job.status}</Badge>
+        <div onClick={(e) => e.stopPropagation()}>
+          <Select value={job.status} onValueChange={(val) => onStatusChange?.(job.id, val)}>
+            <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectContent>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="scheduled">Scheduled</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
         {job.status === "pending" && onRemovePending && (
           <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => onRemovePending(e, job.id)} title="Retirer ce job"><XCircle className="h-4 w-4 text-destructive" /></Button>
         )}
