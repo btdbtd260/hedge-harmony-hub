@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatDateQC } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -266,7 +267,7 @@ const EstimationPage = () => {
                 return (
                   <div key={est.id} className="p-2 rounded border text-sm">
                     <div className="flex justify-between"><span className="font-medium">{client?.name ?? "Inconnu"}</span><span className="font-semibold">${est.total_price}</span></div>
-                    <p className="text-xs text-muted-foreground">{est.cut_type} · {est.created_at}</p>
+                    <p className="text-xs text-muted-foreground">{est.cut_type} · {formatDateQC(est.created_at)}</p>
                   </div>
                 );
               })}

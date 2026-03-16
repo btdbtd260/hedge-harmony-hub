@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatDateQC } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -103,7 +104,7 @@ const Invoices = () => {
                     <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedInvoice(inv)}>
                       <div>
                         <p className="font-medium">{getClientNameFromList(customers, inv.client_id)}</p>
-                        <p className="text-xs text-muted-foreground">Émise {inv.issued_at}{inv.paid_at ? ` · Payée ${inv.paid_at}` : ""}</p>
+                        <p className="text-xs text-muted-foreground">Émise {formatDateQC(inv.issued_at)}{inv.paid_at ? ` · Payée ${formatDateQC(inv.paid_at)}` : ""}</p>
                       </div>
                       <div className="text-right space-y-1">
                         <p className="font-semibold">${inv.amount}</p>
@@ -126,8 +127,8 @@ const Invoices = () => {
               <div className="space-y-3">
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Montant</span><span className="font-semibold">${selectedInvoice.amount}</span></div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Statut</span><Badge className={invoiceStatusColor[selectedInvoice.status]}>{selectedInvoice.status}</Badge></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date émission</span><span>{selectedInvoice.issued_at}</span></div>
-                {selectedInvoice.paid_at && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date paiement</span><span>{selectedInvoice.paid_at}</span></div>}
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date émission</span><span>{formatDateQC(selectedInvoice.issued_at)}</span></div>
+                {selectedInvoice.paid_at && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date paiement</span><span>{formatDateQC(selectedInvoice.paid_at)}</span></div>}
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Job lié</span><span>{job ? `${job.cut_type} · ${job.scheduled_date}` : selectedInvoice.job_id}</span></div>
               </div>
               <DialogFooter className="flex gap-2 flex-wrap">

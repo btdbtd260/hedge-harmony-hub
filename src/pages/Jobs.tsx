@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { formatDateQC } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -134,7 +135,7 @@ const Jobs = () => {
                   </Select>
                 </div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Type de coupe</span><span>{selectedJob.cut_type}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date planifiée</span><span>{selectedJob.scheduled_date}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date planifiée</span><span>{formatDateQC(selectedJob.scheduled_date)}</span></div>
                 {selectedJob.start_time && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Début</span><span>{selectedJob.start_time}</span></div>}
                 {selectedJob.end_time && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Fin</span><span>{selectedJob.end_time}</span></div>}
                 {selectedJob.total_duration_minutes && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Durée</span><span>{selectedJob.total_duration_minutes} min</span></div>}
@@ -167,7 +168,7 @@ function JobRow({ job, clientName, onClick, onRemovePending, onStatusChange }: {
       <div className="space-y-1">
         <p className="font-medium">{clientName}</p>
         <div className="flex gap-2 text-xs text-muted-foreground">
-          <span>{job.scheduled_date}</span><span>·</span><span>{job.cut_type}</span>
+          <span>{formatDateQC(job.scheduled_date)}</span><span>·</span><span>{job.cut_type}</span>
           {job.total_duration_minutes && <><span>·</span><span>{job.total_duration_minutes} min</span></>}
         </div>
       </div>
