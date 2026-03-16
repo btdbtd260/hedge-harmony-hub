@@ -186,7 +186,7 @@ const Jobs = () => {
   );
 };
 
-function JobRow({ job, clientName, onClick, onRemovePending, onStatusChange }: { job: DbJob; clientName: string; onClick: () => void; onRemovePending?: (e: React.MouseEvent, id: string) => void; onStatusChange?: (id: string, status: string) => void }) {
+function JobRow({ job, clientName, onClick, onRemove, onStatusChange }: { job: DbJob; clientName: string; onClick: () => void; onRemove?: (e: React.MouseEvent, id: string, name: string) => void; onStatusChange?: (id: string, status: string) => void }) {
   return (
     <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={onClick}>
       <div className="space-y-1">
@@ -208,8 +208,8 @@ function JobRow({ job, clientName, onClick, onRemovePending, onStatusChange }: {
             </SelectContent>
           </Select>
         </div>
-        {job.status === "pending" && onRemovePending && (
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => onRemovePending(e, job.id)} title="Retirer ce job"><XCircle className="h-4 w-4 text-destructive" /></Button>
+        {onRemove && (
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => onRemove(e, job.id, clientName)} title="Retirer ce job"><XCircle className="h-4 w-4 text-destructive" /></Button>
         )}
       </div>
     </div>
