@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useJobs, useCustomers, useUpdateJob, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { Search, Calendar, XCircle } from "lucide-react";
@@ -25,6 +26,7 @@ const Jobs = () => {
   const [search, setSearch] = useState("");
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedJob, setSelectedJob] = useState<DbJob | null>(null);
+  const [jobToRemove, setJobToRemove] = useState<{ id: string; name: string } | null>(null);
 
   const filtered = jobs
     .filter((j) => j.status !== "hidden")
@@ -41,12 +43,19 @@ const Jobs = () => {
 
   const snap = selectedJob?.measurement_snapshot as any;
 
-  const handleRemovePending = async (e: React.MouseEvent, jobId: string) => {
+  const handleRemoveClick = (e: React.MouseEvent, jobId: string, clientName: string) => {
     e.stopPropagation();
+    setJobToRemove({ id: jobId, name: clientName });
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!jobToRemove) return;
     try {
-      await updateJob.mutateAsync({ id: jobId, status: "hidden" });
+      await updateJob.mutateAsync({ id: jobToRemove.id, status: "hidden" });
       toast.success("Job retiré");
+      if (selectedJob?.id === jobToRemove.id) setSelectedJob(null);
     } catch (err: any) { toast.error(err.message); }
+    setJobToRemove(null);
   };
 
   const handleStatusChange = async (jobId: string, newStatus: string) => {
@@ -88,7 +97,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Tous les jobs ({allJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {allJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job trouvé.</p> : allJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
               ))}
             </CardContent>
           </Card>
@@ -99,7 +108,7 @@ const Jobs = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Prochains jobs</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {upcoming.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job à venir.</p> : upcoming.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
               ))}
             </CardContent>
           </Card>
@@ -110,7 +119,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Jobs en attente ({pendingJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {pendingJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job pending.</p> : pendingJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onRemovePending={handleRemovePending} onStatusChange={handleStatusChange} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
               ))}
             </CardContent>
           </Card>
@@ -158,11 +167,26 @@ const Jobs = () => {
           )}
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!jobToRemove} onOpenChange={(open) => !open && setJobToRemove(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Retirer ce job ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Le job de «{jobToRemove?.name}» sera masqué. Il ne sera pas supprimé définitivement.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleConfirmRemove} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Retirer</AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
 
-function JobRow({ job, clientName, onClick, onRemovePending, onStatusChange }: { job: DbJob; clientName: string; onClick: () => void; onRemovePending?: (e: React.MouseEvent, id: string) => void; onStatusChange?: (id: string, status: string) => void }) {
+function JobRow({ job, clientName, onClick, onRemove, onStatusChange }: { job: DbJob; clientName: string; onClick: () => void; onRemove?: (e: React.MouseEvent, id: string, name: string) => void; onStatusChange?: (id: string, status: string) => void }) {
   return (
     <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={onClick}>
       <div className="space-y-1">
@@ -184,8 +208,8 @@ function JobRow({ job, clientName, onClick, onRemovePending, onStatusChange }: {
             </SelectContent>
           </Select>
         </div>
-        {job.status === "pending" && onRemovePending && (
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => onRemovePending(e, job.id)} title="Retirer ce job"><XCircle className="h-4 w-4 text-destructive" /></Button>
+        {onRemove && (
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => onRemove(e, job.id, clientName)} title="Retirer ce job"><XCircle className="h-4 w-4 text-destructive" /></Button>
         )}
       </div>
     </div>
