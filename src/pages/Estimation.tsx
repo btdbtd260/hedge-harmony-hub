@@ -267,7 +267,7 @@ const EstimationPage = () => {
                 return (
                   <div key={est.id} className="p-2 rounded border text-sm">
                     <div className="flex justify-between"><span className="font-medium">{client?.name ?? "Inconnu"}</span><span className="font-semibold">${est.total_price}</span></div>
-                    <p className="text-xs text-muted-foreground">{est.cut_type} · {est.created_at}</p>
+                    <p className="text-xs text-muted-foreground">{est.cut_type} · {formatDateQC(est.created_at)}</p>
                   </div>
                 );
               })}

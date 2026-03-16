@@ -127,8 +127,8 @@ const Invoices = () => {
               <div className="space-y-3">
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Montant</span><span className="font-semibold">${selectedInvoice.amount}</span></div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Statut</span><Badge className={invoiceStatusColor[selectedInvoice.status]}>{selectedInvoice.status}</Badge></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date émission</span><span>{selectedInvoice.issued_at}</span></div>
-                {selectedInvoice.paid_at && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date paiement</span><span>{selectedInvoice.paid_at}</span></div>}
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date émission</span><span>{formatDateQC(selectedInvoice.issued_at)}</span></div>
+                {selectedInvoice.paid_at && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date paiement</span><span>{formatDateQC(selectedInvoice.paid_at)}</span></div>}
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Job lié</span><span>{job ? `${job.cut_type} · ${job.scheduled_date}` : selectedInvoice.job_id}</span></div>
               </div>
               <DialogFooter className="flex gap-2 flex-wrap">

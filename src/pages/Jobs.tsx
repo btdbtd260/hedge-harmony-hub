@@ -168,7 +168,7 @@ function JobRow({ job, clientName, onClick, onRemovePending, onStatusChange }: {
       <div className="space-y-1">
         <p className="font-medium">{clientName}</p>
         <div className="flex gap-2 text-xs text-muted-foreground">
-          <span>{job.scheduled_date}</span><span>·</span><span>{job.cut_type}</span>
+          <span>{formatDateQC(job.scheduled_date)}</span><span>·</span><span>{job.cut_type}</span>
           {job.total_duration_minutes && <><span>·</span><span>{job.total_duration_minutes} min</span></>}
         </div>
       </div>

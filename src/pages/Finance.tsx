@@ -159,7 +159,7 @@ const Finance = () => {
         <CardContent className="space-y-3">
           {filteredInvoices.length === 0 ? <p className="text-sm text-muted-foreground">Aucune facture payée pour cette période.</p> : filteredInvoices.map((inv) => (
             <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg border">
-              <div><p className="font-medium">{inv.id.slice(0, 8)}…</p><p className="text-xs text-muted-foreground">{inv.paid_at ? new Date(inv.paid_at).toLocaleDateString("fr-CA") : inv.issued_at ? new Date(inv.issued_at).toLocaleDateString("fr-CA") : "—"}</p></div>
+              <div><p className="font-medium">{getClientNameFromList(customers, inv.client_id)}</p><p className="text-xs text-muted-foreground">{formatDateQC(inv.paid_at || inv.issued_at)}</p></div>
               <p className="font-semibold text-emerald-600">+${inv.amount.toFixed(2)}</p>
             </div>
           ))}
