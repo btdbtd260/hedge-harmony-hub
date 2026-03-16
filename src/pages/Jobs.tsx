@@ -26,7 +26,8 @@ const Jobs = () => {
   const [selectedJob, setSelectedJob] = useState<DbJob | null>(null);
 
   const filtered = jobs
-    .filter((j) => !hideCompleted || (j.status !== "completed" && j.status !== "hidden"))
+    .filter((j) => j.status !== "hidden")
+    .filter((j) => !hideCompleted || j.status !== "completed")
     .filter((j) => getClientNameFromList(customers, j.client_id).toLowerCase().includes(search.toLowerCase()));
 
   const today = new Date().toISOString().split("T")[0];
@@ -35,7 +36,7 @@ const Jobs = () => {
     .sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""));
 
   const pendingJobs = filtered.filter((j) => j.status === "pending");
-  const allNonPending = filtered.filter((j) => j.status !== "pending");
+  const allJobs = filtered;
 
   const snap = selectedJob?.measurement_snapshot as any;
 
