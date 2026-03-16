@@ -97,7 +97,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Tous les jobs ({allJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {allJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job trouvé.</p> : allJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
               ))}
             </CardContent>
           </Card>
