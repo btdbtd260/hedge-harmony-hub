@@ -43,12 +43,19 @@ const Jobs = () => {
 
   const snap = selectedJob?.measurement_snapshot as any;
 
-  const handleRemovePending = async (e: React.MouseEvent, jobId: string) => {
+  const handleRemoveClick = (e: React.MouseEvent, jobId: string, clientName: string) => {
     e.stopPropagation();
+    setJobToRemove({ id: jobId, name: clientName });
+  };
+
+  const handleConfirmRemove = async () => {
+    if (!jobToRemove) return;
     try {
-      await updateJob.mutateAsync({ id: jobId, status: "hidden" });
+      await updateJob.mutateAsync({ id: jobToRemove.id, status: "hidden" });
       toast.success("Job retiré");
+      if (selectedJob?.id === jobToRemove.id) setSelectedJob(null);
     } catch (err: any) { toast.error(err.message); }
+    setJobToRemove(null);
   };
 
   const handleStatusChange = async (jobId: string, newStatus: string) => {
