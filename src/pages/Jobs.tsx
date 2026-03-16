@@ -119,7 +119,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Jobs en attente ({pendingJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {pendingJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job pending.</p> : pendingJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onRemovePending={handleRemovePending} onStatusChange={handleStatusChange} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
               ))}
             </CardContent>
           </Card>
