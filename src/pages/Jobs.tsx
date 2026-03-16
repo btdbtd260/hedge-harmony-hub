@@ -84,9 +84,9 @@ const Jobs = () => {
 
         <TabsContent value="all" className="mt-4">
           <Card>
-            <CardHeader><CardTitle>Tous les jobs ({allNonPending.length})</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Tous les jobs ({allJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
-              {allNonPending.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job trouvé.</p> : allNonPending.map((job) => (
+              {allJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job trouvé.</p> : allJobs.map((job) => (
                 <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} />
               ))}
             </CardContent>
