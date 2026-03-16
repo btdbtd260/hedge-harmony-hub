@@ -26,6 +26,7 @@ const Jobs = () => {
   const [search, setSearch] = useState("");
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedJob, setSelectedJob] = useState<DbJob | null>(null);
+  const [jobToRemove, setJobToRemove] = useState<{ id: string; name: string } | null>(null);
 
   const filtered = jobs
     .filter((j) => j.status !== "hidden")
