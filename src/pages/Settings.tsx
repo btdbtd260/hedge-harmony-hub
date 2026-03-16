@@ -22,6 +22,17 @@ const Settings = () => {
 
   const updateField = (key: string, value: any) => setForm((prev) => ({ ...prev, [key]: value }));
 
+  const numValue = (key: string) => {
+    const v = form[key];
+    if (v === undefined || v === null) return "";
+    return String(v);
+  };
+
+  const handleNumChange = (key: string, val: string) => {
+    if (val === "") updateField(key, null);
+    else updateField(key, Number(val));
+  };
+
   const handleSave = async () => {
     if (!form.id) return;
     try {
@@ -62,22 +73,22 @@ const Settings = () => {
             <CardHeader><CardTitle>Prix et multiplicateurs</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Prix par pied (Trim)</Label><Input type="number" step="0.5" value={form.price_per_foot_trim ?? ""} onChange={(e) => updateField("price_per_foot_trim", Number(e.target.value))} /></div>
-                <div className="space-y-2"><Label>Prix par pied (Levelling)</Label><Input type="number" step="0.5" value={form.price_per_foot_levelling ?? ""} onChange={(e) => updateField("price_per_foot_levelling", Number(e.target.value))} /></div>
-                <div className="space-y-2"><Label>Prix par bush</Label><Input type="number" value={form.bush_price ?? ""} onChange={(e) => updateField("bush_price", Number(e.target.value))} /></div>
+                <div className="space-y-2"><Label>Prix par pied (Trim)</Label><Input type="number" step="0.5" placeholder="0" value={numValue("price_per_foot_trim")} onChange={(e) => handleNumChange("price_per_foot_trim", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Prix par pied (Levelling)</Label><Input type="number" step="0.5" placeholder="0" value={numValue("price_per_foot_levelling")} onChange={(e) => handleNumChange("price_per_foot_levelling", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Prix par bush</Label><Input type="number" placeholder="0" value={numValue("bush_price")} onChange={(e) => handleNumChange("bush_price", e.target.value)} /></div>
               </div>
               <div className="border-t pt-4">
                 <h3 className="text-sm font-medium mb-3">Hauteur</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Seuil (pieds)</Label><Input type="number" value={form.height_multiplier_threshold ?? ""} onChange={(e) => updateField("height_multiplier_threshold", Number(e.target.value))} /></div>
-                  <div className="space-y-2"><Label>Multiplicateur</Label><Input type="number" step="0.1" value={form.height_multiplier ?? ""} onChange={(e) => updateField("height_multiplier", Number(e.target.value))} /></div>
+                  <div className="space-y-2"><Label>Seuil (pieds)</Label><Input type="number" placeholder="0" value={numValue("height_multiplier_threshold")} onChange={(e) => handleNumChange("height_multiplier_threshold", e.target.value)} /></div>
+                  <div className="space-y-2"><Label>Multiplicateur</Label><Input type="number" step="0.1" placeholder="0" value={numValue("height_multiplier")} onChange={(e) => handleNumChange("height_multiplier", e.target.value)} /></div>
                 </div>
               </div>
               <div className="border-t pt-4">
                 <h3 className="text-sm font-medium mb-3">Largeur</h3>
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2"><Label>Seuil (pieds)</Label><Input type="number" value={form.width_multiplier_threshold ?? ""} onChange={(e) => updateField("width_multiplier_threshold", Number(e.target.value))} /></div>
-                  <div className="space-y-2"><Label>Multiplicateur</Label><Input type="number" step="0.1" value={form.width_multiplier ?? ""} onChange={(e) => updateField("width_multiplier", Number(e.target.value))} /></div>
+                  <div className="space-y-2"><Label>Seuil (pieds)</Label><Input type="number" placeholder="0" value={numValue("width_multiplier_threshold")} onChange={(e) => handleNumChange("width_multiplier_threshold", e.target.value)} /></div>
+                  <div className="space-y-2"><Label>Multiplicateur</Label><Input type="number" step="0.1" placeholder="0" value={numValue("width_multiplier")} onChange={(e) => handleNumChange("width_multiplier", e.target.value)} /></div>
                 </div>
               </div>
             </CardContent>
@@ -128,8 +139,8 @@ const Settings = () => {
             <CardHeader><CardTitle>Configuration rappels</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Intervalle maintenance (jours)</Label><Input type="number" value={form.maintenance_interval_days ?? ""} onChange={(e) => updateField("maintenance_interval_days", Number(e.target.value))} /></div>
-                <div className="space-y-2"><Label>Heure notification</Label><Input value={form.reminder_notification_time ?? ""} onChange={(e) => updateField("reminder_notification_time", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Intervalle maintenance (jours)</Label><Input type="number" placeholder="0" value={numValue("maintenance_interval_days")} onChange={(e) => handleNumChange("maintenance_interval_days", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Heure notification</Label><Input placeholder="08:00" value={form.reminder_notification_time ?? ""} onChange={(e) => updateField("reminder_notification_time", e.target.value)} /></div>
               </div>
             </CardContent>
           </Card>
