@@ -19,6 +19,7 @@ type FilterMode = "daily" | "weekly" | "yearly";
 const Finance = () => {
   const { data: invoices = [] } = useInvoices();
   const { data: expenseList = [] } = useExpenses();
+  const { data: customers = [] } = useCustomers();
   const insertExpense = useInsertExpense();
 
   const [filter, setFilter] = useState<FilterMode>("yearly");
