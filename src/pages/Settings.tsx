@@ -22,6 +22,17 @@ const Settings = () => {
 
   const updateField = (key: string, value: any) => setForm((prev) => ({ ...prev, [key]: value }));
 
+  const numValue = (key: string) => {
+    const v = form[key];
+    if (v === undefined || v === null) return "";
+    return String(v);
+  };
+
+  const handleNumChange = (key: string, val: string) => {
+    if (val === "") updateField(key, null);
+    else updateField(key, Number(val));
+  };
+
   const handleSave = async () => {
     if (!form.id) return;
     try {
