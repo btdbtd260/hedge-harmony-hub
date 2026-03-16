@@ -104,7 +104,7 @@ const Invoices = () => {
                     <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedInvoice(inv)}>
                       <div>
                         <p className="font-medium">{getClientNameFromList(customers, inv.client_id)}</p>
-                        <p className="text-xs text-muted-foreground">Émise {inv.issued_at}{inv.paid_at ? ` · Payée ${inv.paid_at}` : ""}</p>
+                        <p className="text-xs text-muted-foreground">Émise {formatDateQC(inv.issued_at)}{inv.paid_at ? ` · Payée ${formatDateQC(inv.paid_at)}` : ""}</p>
                       </div>
                       <div className="text-right space-y-1">
                         <p className="font-semibold">${inv.amount}</p>
