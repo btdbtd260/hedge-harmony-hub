@@ -139,8 +139,8 @@ const Settings = () => {
             <CardHeader><CardTitle>Configuration rappels</CardTitle></CardHeader>
             <CardContent className="space-y-4">
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Intervalle maintenance (jours)</Label><Input type="number" value={form.maintenance_interval_days ?? ""} onChange={(e) => updateField("maintenance_interval_days", Number(e.target.value))} /></div>
-                <div className="space-y-2"><Label>Heure notification</Label><Input value={form.reminder_notification_time ?? ""} onChange={(e) => updateField("reminder_notification_time", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Intervalle maintenance (jours)</Label><Input type="number" placeholder="0" value={numValue("maintenance_interval_days")} onChange={(e) => handleNumChange("maintenance_interval_days", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Heure notification</Label><Input placeholder="08:00" value={form.reminder_notification_time ?? ""} onChange={(e) => updateField("reminder_notification_time", e.target.value)} /></div>
               </div>
             </CardContent>
           </Card>
