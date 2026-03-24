@@ -53,7 +53,7 @@ export function AppSidebar() {
             <span className="text-primary-foreground text-sm font-bold">HP</span>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-sidebar-foreground">HedgePro</h2>
+            <h2 className="text-sm font-semibold text-sidebar-foreground">Haie ACF</h2>
             <p className="text-xs text-muted-foreground">Gestion</p>
           </div>
         </div>
