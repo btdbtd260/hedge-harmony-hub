@@ -367,6 +367,49 @@ const EstimationPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Confirmation Dialog */}
+      <Dialog open={showConfirmation} onOpenChange={(open) => { if (!open) handleCloseConfirmation(); }}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-primary">
+              <Calculator className="h-5 w-5" /> Estimation créée avec succès!
+            </DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="rounded-lg border bg-muted/30 p-4 space-y-2">
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Client</span>
+                <span className="font-medium">{selectedClient?.name ?? "—"}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Type</span>
+                <span className="font-medium">{cutType === "levelling" ? "Nivelage" : "Taille"}</span>
+              </div>
+              <div className="flex justify-between text-sm">
+                <span className="text-muted-foreground">Pieds linéaires</span>
+                <span className="font-medium">{totalLinearFeet} pi</span>
+              </div>
+              <div className="border-t pt-2 flex justify-between font-bold text-lg">
+                <span>Total</span>
+                <span className="text-primary">${totalPrice.toFixed(2)}</span>
+              </div>
+            </div>
+            <p className="text-sm text-muted-foreground">Un job et une facture brouillon ont été créés automatiquement.</p>
+            <div className="flex flex-col gap-2">
+              <Button className="w-full" onClick={() => { handleDownloadPdf(); }}>
+                <Download className="h-4 w-4 mr-2" /> Télécharger le PDF
+              </Button>
+              <Button variant="outline" className="w-full" onClick={() => { setShowConfirmation(false); handleOpenEmailDialog(); }}>
+                <Mail className="h-4 w-4 mr-2" /> Envoyer par email
+              </Button>
+              <Button variant="ghost" className="w-full" onClick={handleCloseConfirmation}>
+                Fermer
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
