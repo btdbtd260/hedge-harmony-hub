@@ -163,6 +163,7 @@ const EstimationPage = () => {
         back_left_length: numBackLeft, back_right_length: numBackRight,
         height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
         height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack,
+        height_back_left: numHeightBackLeft, height_back_right: numHeightBackRight,
         width: numWidth,
         extras: JSON.parse(JSON.stringify([...extras, ...bushItems.map((b) => ({ id: b.id, description: `Bush: ${b.description || "Bush"}`, price: b.count * b.price }))])),
         bushes_count: totalBushesCount, total_price: totalPrice,
