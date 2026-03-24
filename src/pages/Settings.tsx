@@ -7,14 +7,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useParameters, useUpdateParameters } from "@/hooks/useSupabaseData";
 import { Calculator, FileText, Bell, Save, Upload } from "lucide-react";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 const Settings = () => {
   const { data: dbParams, isLoading } = useParameters();
   const updateParams = useUpdateParameters();
 
   const [form, setForm] = useState<Record<string, any>>({});
-  const [estimationPdf, setEstimationPdf] = useState<string | null>(null);
-  const [invoicePdf, setInvoicePdf] = useState<string | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   useEffect(() => {
     if (dbParams) setForm({ ...dbParams });
