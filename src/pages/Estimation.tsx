@@ -44,6 +44,8 @@ const EstimationPage = () => {
   const [leftLength, setLeftLength] = useState("");
   const [rightLength, setRightLength] = useState("");
   const [backLength, setBackLength] = useState("");
+  const [backLeftLength, setBackLeftLength] = useState("");
+  const [backRightLength, setBackRightLength] = useState("");
   const [heightMode, setHeightMode] = useState<HeightMode>("global");
   const [heightGlobal, setHeightGlobal] = useState("");
   const [heightFacade, setHeightFacade] = useState("");
