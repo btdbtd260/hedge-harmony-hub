@@ -171,10 +171,15 @@ const EstimationPage = () => {
       await insertInvoice.mutateAsync({ client_id: clientId, job_id: job.id, amount: totalPrice, status: "unpaid" });
 
       toast.success("Estimation créée → Job + Facture générés automatiquement");
-      setClientId(""); setFacadeLength(""); setLeftLength(""); setRightLength(""); setBackLength("");
-      setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
-      setWidth(""); setBushItems([]); setExtras([]);
+      setShowConfirmation(true);
     } catch (e: any) { toast.error(e.message); }
+  };
+
+  const handleCloseConfirmation = () => {
+    setShowConfirmation(false);
+    setClientId(""); setFacadeLength(""); setLeftLength(""); setRightLength(""); setBackLength("");
+    setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
+    setWidth(""); setBushItems([]); setExtras([]);
   };
 
   return (
