@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { useCustomers, useJobs, useInsertCustomer, type DbCustomer } from "@/hooks/useSupabaseData";
-import { Search, Eye, EyeOff, Plus } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useCustomers, useJobs, useInsertCustomer, useHideCustomer, type DbCustomer } from "@/hooks/useSupabaseData";
+import { Search, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const statusColor: Record<string, string> = {
@@ -20,6 +21,7 @@ const Clients = () => {
   const { data: customers = [] } = useCustomers();
   const { data: jobs = [] } = useJobs();
   const insertCustomer = useInsertCustomer();
+  const hideCustomer = useHideCustomer();
 
   const [search, setSearch] = useState("");
   const [showHidden, setShowHidden] = useState(false);
@@ -29,6 +31,7 @@ const Clients = () => {
   const [formPhone, setFormPhone] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formAddress, setFormAddress] = useState("");
+  const [clientToDelete, setClientToDelete] = useState<DbCustomer | null>(null);
 
   const filtered = customers
     .filter((c) => showHidden || !c.hidden)
@@ -44,6 +47,17 @@ const Clients = () => {
       setShowAddDialog(false);
       setFormName(""); setFormPhone(""); setFormEmail(""); setFormAddress("");
       toast.success("Client créé");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleHideClient = async () => {
+    if (!clientToDelete) return;
+    try {
+      await hideCustomer.mutateAsync(clientToDelete.id);
+      setClientToDelete(null);
+      toast.success("Client masqué");
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -82,7 +96,12 @@ const Clients = () => {
                 <p className="text-xs text-muted-foreground">{c.phone} · {c.email}</p>
                 <p className="text-xs text-muted-foreground mt-1">{jobs.filter((j) => j.client_id === c.id).length} job(s)</p>
               </div>
-              <Badge className={statusColor[c.status]}>{c.status}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge className={statusColor[c.status]}>{c.status}</Badge>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); setClientToDelete(c); }}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
         </CardContent>
@@ -151,6 +170,23 @@ const Clients = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Masquer ce client ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Le client <strong>{clientToDelete?.name}</strong> sera masqué de la liste. Vous pourrez toujours le retrouver via « Voir masqués ». Cette action ne supprime aucune donnée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleHideClient} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Masquer le client
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
