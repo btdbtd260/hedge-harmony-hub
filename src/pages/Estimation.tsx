@@ -75,7 +75,7 @@ const EstimationPage = () => {
   const numHeightBack = Number(heightBack) || 0;
   const numWidth = Number(width) || 2;
 
-  const totalLinearFeet = numFacade + numLeft + numRight + numBack;
+  const totalLinearFeet = numFacade + numLeft + numRight + numBack + numBackLeft + numBackRight;
   const pricePerFoot = cutType === "trim" ? p.price_per_foot_trim : p.price_per_foot_levelling;
   let basePrice = totalLinearFeet * pricePerFoot;
 
