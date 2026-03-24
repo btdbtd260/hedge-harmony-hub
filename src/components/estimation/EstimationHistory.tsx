@@ -3,8 +3,11 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { useCustomers, useParameters, type DbEstimation, type DbCustomer } from "@/hooks/useSupabaseData";
-import { FileText, Download } from "lucide-react";
+import { FileText, Download, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { downloadEstimationPdf, getEstimationNumber, type EstimationPdfData } from "@/lib/generateEstimationPdf";
 import { useState } from "react";
@@ -17,6 +20,10 @@ interface Props {
 
 export default function EstimationHistory({ estimations, customers, params }: Props) {
   const [selected, setSelected] = useState<DbEstimation | null>(null);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailEstimation, setEmailEstimation] = useState<{ est: DbEstimation; idx: number } | null>(null);
 
   const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3 };
 
@@ -65,6 +72,24 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
     toast.success("PDF estimation téléchargé");
   };
 
+  const handleOpenEmail = (est: DbEstimation, idx: number) => {
+    const client = customers.find(c => c.id === est.client_id) ?? null;
+    setEmailEstimation({ est, idx });
+    setEmailTo(client?.email || "");
+    setEmailMessage(`Bonjour${client ? ` ${client.name}` : ""},\n\nVeuillez trouver ci-joint notre estimation pour les travaux de coupe de haies.\n\nTotal estimé : ${Number(est.total_price).toFixed(2)} $\n\nN'hésitez pas à nous contacter pour toute question.\n\nCordialement,`);
+    setShowEmailDialog(true);
+  };
+
+  const handleSendEmail = () => {
+    if (!emailTo.trim()) { toast.error("Veuillez entrer une adresse email"); return; }
+    const clientName = emailEstimation ? customers.find(c => c.id === emailEstimation.est.client_id)?.name || "Client" : "Client";
+    const subject = encodeURIComponent(`Estimation - ${clientName}`);
+    const body = encodeURIComponent(emailMessage);
+    window.open(`mailto:${emailTo}?subject=${subject}&body=${body}`, "_blank");
+    toast.success(`Email préparé pour ${emailTo}`);
+    setShowEmailDialog(false);
+  };
+
   return (
     <>
       <Card>
@@ -87,9 +112,14 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
                   </div>
                   <div className="flex items-center justify-between">
                     <p className="text-xs text-muted-foreground">{est.cut_type} · {formatDateQC(est.created_at)}</p>
-                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleDownload(est, idx); }}>
-                      <Download className="h-3 w-3" />
-                    </Button>
+                    <div className="flex gap-1">
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleOpenEmail(est, idx); }}>
+                        <Mail className="h-3 w-3" />
+                      </Button>
+                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={(e) => { e.stopPropagation(); handleDownload(est, idx); }}>
+                        <Download className="h-3 w-3" />
+                      </Button>
+                    </div>
                   </div>
                 </div>
               );
@@ -152,10 +182,42 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
                   <Button className="flex-1" onClick={() => { handleDownload(selected, estIdx); }}>
                     <Download className="h-4 w-4 mr-2" /> Télécharger PDF
                   </Button>
+                  <Button variant="outline" className="flex-1" onClick={() => { setSelected(null); handleOpenEmail(selected, estIdx); }}>
+                    <Mail className="h-4 w-4 mr-2" /> Envoyer par email
+                  </Button>
                 </div>
               </div>
             );
           })()}
+        </DialogContent>
+      </Dialog>
+
+      {/* Email Dialog */}
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Envoyer l'estimation par email</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Destinataire *</Label>
+              <Input type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} placeholder="email@exemple.com" />
+            </div>
+            <div className="space-y-1">
+              <Label>Message</Label>
+              <Textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)} rows={6} />
+            </div>
+            <p className="text-xs text-muted-foreground">L'email s'ouvrira dans votre application de messagerie. Pensez à joindre le PDF téléchargé.</p>
+          </div>
+          <DialogFooter>
+            {emailEstimation && (
+              <Button variant="outline" onClick={() => { handleDownload(emailEstimation.est, emailEstimation.idx); }}>
+                <Download className="h-4 w-4 mr-2" /> Télécharger PDF
+              </Button>
+            )}
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>Annuler</Button>
+            <Button onClick={handleSendEmail} disabled={!emailTo.trim()}>
+              <Mail className="h-4 w-4 mr-2" /> Envoyer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </>
