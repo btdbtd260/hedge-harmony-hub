@@ -193,6 +193,7 @@ const EstimationPage = () => {
     setClientId(""); setFacadeLength(""); setLeftLength(""); setRightLength(""); setBackLength("");
     setBackLeftLength(""); setBackRightLength("");
     setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
+    setHeightBackLeft(""); setHeightBackRight("");
     setWidth(""); setBushItems([]); setExtras([]);
   };
 
