@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useCustomers, useJobs, useInsertCustomer, useHideCustomer, type DbCustomer } from "@/hooks/useSupabaseData";
-import { Search, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
+import { useCustomers, useJobs, useInsertCustomer, useHideCustomer, useRestoreCustomer, type DbCustomer } from "@/hooks/useSupabaseData";
+import { Search, Eye, EyeOff, Plus, Trash2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
 
 const statusColor: Record<string, string> = {
@@ -22,6 +22,7 @@ const Clients = () => {
   const { data: jobs = [] } = useJobs();
   const insertCustomer = useInsertCustomer();
   const hideCustomer = useHideCustomer();
+  const restoreCustomer = useRestoreCustomer();
 
   const [search, setSearch] = useState("");
   const [showHidden, setShowHidden] = useState(false);
@@ -57,7 +58,17 @@ const Clients = () => {
     try {
       await hideCustomer.mutateAsync(clientToDelete.id);
       setClientToDelete(null);
+      setSelectedClient(null);
       toast.success("Client masqué");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
+  const handleRestoreClient = async (client: DbCustomer) => {
+    try {
+      await restoreCustomer.mutateAsync(client.id);
+      toast.success("Client restauré");
     } catch (e: any) {
       toast.error(e.message);
     }
@@ -98,9 +109,11 @@ const Clients = () => {
               </div>
               <div className="flex items-center gap-2">
                 <Badge className={statusColor[c.status]}>{c.status}</Badge>
-                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); setClientToDelete(c); }}>
-                  <Trash2 className="h-4 w-4" />
-                </Button>
+                {c.hidden && (
+                  <Button variant="outline" size="sm" className="h-8 text-xs" onClick={(e) => { e.stopPropagation(); handleRestoreClient(c); }}>
+                    <RotateCcw className="h-3 w-3 mr-1" /> Restaurer
+                  </Button>
+                )}
               </div>
             </div>
           ))}
@@ -148,6 +161,17 @@ const Clients = () => {
                       </div>
                     </div>
                   ))}
+                </div>
+                <div className="border-t pt-3">
+                  {!selectedClient.hidden ? (
+                    <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setClientToDelete(selectedClient)}>
+                      <Trash2 className="h-4 w-4 mr-1" /> Masquer ce client
+                    </Button>
+                  ) : (
+                    <Button variant="outline" size="sm" onClick={() => { handleRestoreClient(selectedClient); setSelectedClient(null); }}>
+                      <RotateCcw className="h-4 w-4 mr-1" /> Restaurer ce client
+                    </Button>
+                  )}
                 </div>
               </div>
             </>
