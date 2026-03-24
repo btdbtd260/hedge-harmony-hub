@@ -130,10 +130,12 @@ export function generateEstimationPdf(data: EstimationPdfData): jsPDF {
   if (heightMode === "global") {
     measureRows.push(["Hauteur (globale)", `${heightGlobal} pi`]);
   } else {
-    measureRows.push(["Hauteur façade", `${heightFacade} pi`]);
-    measureRows.push(["Hauteur gauche", `${heightLeft} pi`]);
-    measureRows.push(["Hauteur droite", `${heightRight} pi`]);
-    measureRows.push(["Hauteur arrière", `${heightBack} pi`]);
+    measureRows.push(["Hauteur — Avant gauche", `${heightLeft} pi`]);
+    measureRows.push(["Hauteur — Façade", `${heightFacade} pi`]);
+    measureRows.push(["Hauteur — Avant droite", `${heightRight} pi`]);
+    measureRows.push(["Hauteur — Arrière gauche", `${heightBackLeft} pi`]);
+    measureRows.push(["Hauteur — Fond", `${heightBack} pi`]);
+    measureRows.push(["Hauteur — Arrière droite", `${heightBackRight} pi`]);
   }
   measureRows.push(["Largeur", `${width} pi`]);
 
