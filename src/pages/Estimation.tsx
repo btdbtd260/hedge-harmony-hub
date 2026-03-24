@@ -44,6 +44,8 @@ const EstimationPage = () => {
   const [leftLength, setLeftLength] = useState("");
   const [rightLength, setRightLength] = useState("");
   const [backLength, setBackLength] = useState("");
+  const [backLeftLength, setBackLeftLength] = useState("");
+  const [backRightLength, setBackRightLength] = useState("");
   const [heightMode, setHeightMode] = useState<HeightMode>("global");
   const [heightGlobal, setHeightGlobal] = useState("");
   const [heightFacade, setHeightFacade] = useState("");
@@ -64,6 +66,8 @@ const EstimationPage = () => {
   const numLeft = Number(leftLength) || 0;
   const numRight = Number(rightLength) || 0;
   const numBack = Number(backLength) || 0;
+  const numBackLeft = Number(backLeftLength) || 0;
+  const numBackRight = Number(backRightLength) || 0;
   const numHeightGlobal = Number(heightGlobal) || 4;
   const numHeightFacade = Number(heightFacade) || 0;
   const numHeightLeft = Number(heightLeft) || 0;
@@ -71,7 +75,7 @@ const EstimationPage = () => {
   const numHeightBack = Number(heightBack) || 0;
   const numWidth = Number(width) || 2;
 
-  const totalLinearFeet = numFacade + numLeft + numRight + numBack;
+  const totalLinearFeet = numFacade + numLeft + numRight + numBack + numBackLeft + numBackRight;
   const pricePerFoot = cutType === "trim" ? p.price_per_foot_trim : p.price_per_foot_levelling;
   let basePrice = totalLinearFeet * pricePerFoot;
 
@@ -115,6 +119,7 @@ const EstimationPage = () => {
     estimationNumber: getEstimationNumber(estimations.length),
     cutType: cutType as "trim" | "levelling",
     facadeLength: numFacade, leftLength: numLeft, rightLength: numRight, backLength: numBack,
+    backLeftLength: numBackLeft, backRightLength: numBackRight,
     heightMode: heightMode as "global" | "per_side",
     heightGlobal: numHeightGlobal, heightFacade: numHeightFacade, heightLeft: numHeightLeft, heightRight: numHeightRight, heightBack: numHeightBack,
     width: numWidth, basePrice,
@@ -151,6 +156,7 @@ const EstimationPage = () => {
       const estimation = await insertEstimation.mutateAsync({
         client_id: clientId, cut_type: cutType,
         facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
+        back_left_length: numBackLeft, back_right_length: numBackRight,
         height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
         height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack,
         width: numWidth,
@@ -163,6 +169,7 @@ const EstimationPage = () => {
         status: "pending", estimated_profit: totalPrice,
         measurement_snapshot: {
           facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
+          back_left_length: numBackLeft, back_right_length: numBackRight,
           height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
           height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack, width: numWidth,
         },
@@ -178,6 +185,7 @@ const EstimationPage = () => {
   const handleCloseConfirmation = () => {
     setShowConfirmation(false);
     setClientId(""); setFacadeLength(""); setLeftLength(""); setRightLength(""); setBackLength("");
+    setBackLeftLength(""); setBackRightLength("");
     setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
     setWidth(""); setBushItems([]); setExtras([]);
   };
@@ -225,13 +233,25 @@ const EstimationPage = () => {
                 <Select value={cutType} onValueChange={(v) => setCutType(v as CutType)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="trim">Trim</SelectItem><SelectItem value="levelling">Levelling</SelectItem></SelectContent></Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Mesures (pieds linéaires)</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs text-muted-foreground">Façade</Label><Input type="number" min={0} placeholder="0" value={facadeLength} onChange={(e) => setFacadeLength(e.target.value)} /></div>
-                  <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={leftLength} onChange={(e) => setLeftLength(e.target.value)} /></div>
-                  <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={rightLength} onChange={(e) => setRightLength(e.target.value)} /></div>
-                  <div><Label className="text-xs text-muted-foreground">Arrière</Label><Input type="number" min={0} placeholder="0" value={backLength} onChange={(e) => setBackLength(e.target.value)} /></div>
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Mesures (pieds linéaires)</Label>
+                
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  <p className="text-sm font-medium text-foreground">Avant</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={leftLength} onChange={(e) => setLeftLength(e.target.value)} /></div>
+                    <div><Label className="text-xs text-muted-foreground">Façade</Label><Input type="number" min={0} placeholder="0" value={facadeLength} onChange={(e) => setFacadeLength(e.target.value)} /></div>
+                    <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={rightLength} onChange={(e) => setRightLength(e.target.value)} /></div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  <p className="text-sm font-medium text-foreground">Arrière</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={backLeftLength} onChange={(e) => setBackLeftLength(e.target.value)} /></div>
+                    <div><Label className="text-xs text-muted-foreground">Fond</Label><Input type="number" min={0} placeholder="0" value={backLength} onChange={(e) => setBackLength(e.target.value)} /></div>
+                    <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={backRightLength} onChange={(e) => setBackRightLength(e.target.value)} /></div>
+                  </div>
                 </div>
               </div>
 
@@ -317,6 +337,7 @@ const EstimationPage = () => {
               params={params ?? null}
               cutType={cutType as "trim" | "levelling"}
               facadeLength={numFacade} leftLength={numLeft} rightLength={numRight} backLength={numBack}
+              backLeftLength={numBackLeft} backRightLength={numBackRight}
               heightMode={heightMode as "global" | "per_side"}
               heightGlobal={numHeightGlobal} heightFacade={numHeightFacade} heightLeft={numHeightLeft}
               heightRight={numHeightRight} heightBack={numHeightBack} width={numWidth}

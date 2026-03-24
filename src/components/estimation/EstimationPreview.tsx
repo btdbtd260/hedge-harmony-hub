@@ -20,6 +20,8 @@ interface Props {
   leftLength: number;
   rightLength: number;
   backLength: number;
+  backLeftLength: number;
+  backRightLength: number;
   heightMode: "global" | "per_side";
   heightGlobal: number;
   heightFacade: number;
@@ -42,11 +44,12 @@ interface Props {
 
 export default function EstimationPreview({
   customer, params, cutType, facadeLength, leftLength, rightLength, backLength,
+  backLeftLength, backRightLength,
   heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
   width, basePrice, bushItems, extras, heightMultiplierApplied, widthMultiplierApplied,
   heightMultiplier, widthMultiplier, bushesTotal, extrasPrice, totalPrice, estimationCount,
 }: Props) {
-  const totalFeet = facadeLength + leftLength + rightLength + backLength;
+  const totalFeet = facadeLength + leftLength + rightLength + backLength + backLeftLength + backRightLength;
   const pricePerFoot = cutType === "trim" ? (params?.price_per_foot_trim ?? 4.5) : (params?.price_per_foot_levelling ?? 6);
   const cutLabel = cutType === "levelling" ? "Nivelage" : "Taille";
   const estNumber = getEstimationNumber(estimationCount, new Date().toISOString());
@@ -87,11 +90,17 @@ export default function EstimationPreview({
         {/* Measurements */}
         <div>
           <p className="text-xs text-muted-foreground mb-1">Mesures</p>
-          <div className="grid grid-cols-2 gap-x-4 gap-y-1">
-            <span>Façade</span><span className="text-right font-medium">{facadeLength} pi</span>
+          <p className="text-xs font-medium mb-1">Avant</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 ml-2">
             <span>Gauche</span><span className="text-right font-medium">{leftLength} pi</span>
+            <span>Façade</span><span className="text-right font-medium">{facadeLength} pi</span>
             <span>Droite</span><span className="text-right font-medium">{rightLength} pi</span>
-            <span>Arrière</span><span className="text-right font-medium">{backLength} pi</span>
+          </div>
+          <p className="text-xs font-medium mt-2 mb-1">Arrière</p>
+          <div className="grid grid-cols-2 gap-x-4 gap-y-0.5 ml-2">
+            <span>Gauche</span><span className="text-right font-medium">{backLeftLength} pi</span>
+            <span>Fond</span><span className="text-right font-medium">{backLength} pi</span>
+            <span>Droite</span><span className="text-right font-medium">{backRightLength} pi</span>
           </div>
           <div className="flex justify-between mt-1 font-medium">
             <span>Total</span><span>{totalFeet} pi</span>
