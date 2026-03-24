@@ -44,11 +44,12 @@ interface Props {
 
 export default function EstimationPreview({
   customer, params, cutType, facadeLength, leftLength, rightLength, backLength,
+  backLeftLength, backRightLength,
   heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
   width, basePrice, bushItems, extras, heightMultiplierApplied, widthMultiplierApplied,
   heightMultiplier, widthMultiplier, bushesTotal, extrasPrice, totalPrice, estimationCount,
 }: Props) {
-  const totalFeet = facadeLength + leftLength + rightLength + backLength;
+  const totalFeet = facadeLength + leftLength + rightLength + backLength + backLeftLength + backRightLength;
   const pricePerFoot = cutType === "trim" ? (params?.price_per_foot_trim ?? 4.5) : (params?.price_per_foot_levelling ?? 6);
   const cutLabel = cutType === "levelling" ? "Nivelage" : "Taille";
   const estNumber = getEstimationNumber(estimationCount, new Date().toISOString());
