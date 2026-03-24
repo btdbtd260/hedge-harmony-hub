@@ -66,6 +66,8 @@ const EstimationPage = () => {
   const numLeft = Number(leftLength) || 0;
   const numRight = Number(rightLength) || 0;
   const numBack = Number(backLength) || 0;
+  const numBackLeft = Number(backLeftLength) || 0;
+  const numBackRight = Number(backRightLength) || 0;
   const numHeightGlobal = Number(heightGlobal) || 4;
   const numHeightFacade = Number(heightFacade) || 0;
   const numHeightLeft = Number(heightLeft) || 0;
