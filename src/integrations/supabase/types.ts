@@ -112,7 +112,9 @@ export type Database = {
       }
       estimations: {
         Row: {
+          back_left_length: number
           back_length: number
+          back_right_length: number
           bushes_count: number
           client_id: string
           created_at: string
@@ -133,7 +135,9 @@ export type Database = {
           width: number
         }
         Insert: {
+          back_left_length?: number
           back_length?: number
+          back_right_length?: number
           bushes_count?: number
           client_id: string
           created_at?: string
@@ -154,7 +158,9 @@ export type Database = {
           width?: number
         }
         Update: {
+          back_left_length?: number
           back_length?: number
+          back_right_length?: number
           bushes_count?: number
           client_id?: string
           created_at?: string
@@ -336,6 +342,7 @@ export type Database = {
           bush_price: number
           company_address: string
           company_email: string
+          company_logo_url: string | null
           company_name: string
           company_phone: string
           height_multiplier: number
@@ -355,6 +362,7 @@ export type Database = {
           bush_price?: number
           company_address?: string
           company_email?: string
+          company_logo_url?: string | null
           company_name?: string
           company_phone?: string
           height_multiplier?: number
@@ -374,6 +382,7 @@ export type Database = {
           bush_price?: number
           company_address?: string
           company_email?: string
+          company_logo_url?: string | null
           company_name?: string
           company_phone?: string
           height_multiplier?: number
