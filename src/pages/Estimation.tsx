@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInsertEstimation, useInsertJob, useInsertInvoice } from "@/hooks/useSupabaseData";
-import { Calculator, Plus, Trash2, Search, UserPlus, Download } from "lucide-react";
+import { Calculator, Plus, Trash2, Search, UserPlus, Download, Mail } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import type { CutType, HeightMode, EstimationExtra } from "@/types";
 import EstimationPreview from "@/components/estimation/EstimationPreview";
