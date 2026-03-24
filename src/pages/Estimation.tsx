@@ -129,6 +129,21 @@ const EstimationPage = () => {
     toast.success("PDF estimation téléchargé");
   };
 
+  const handleOpenEmailDialog = () => {
+    setEmailTo(selectedClient?.email || "");
+    setEmailMessage(`Bonjour${selectedClient ? ` ${selectedClient.name}` : ""},\n\nVeuillez trouver ci-joint notre estimation pour les travaux de coupe de haies.\n\nTotal estimé : ${totalPrice.toFixed(2)} $\n\nN'hésitez pas à nous contacter pour toute question.\n\nCordialement,`);
+    setShowEmailDialog(true);
+  };
+
+  const handleSendEmail = () => {
+    if (!emailTo.trim()) { toast.error("Veuillez entrer une adresse email"); return; }
+    const subject = encodeURIComponent(`Estimation - ${selectedClient?.name || "Client"}`);
+    const body = encodeURIComponent(emailMessage);
+    window.open(`mailto:${emailTo}?subject=${subject}&body=${body}`, "_blank");
+    toast.success(`Email préparé pour ${emailTo}`);
+    setShowEmailDialog(false);
+  };
+
   const handleCreateEstimation = async () => {
     if (!clientId) return;
     try {
