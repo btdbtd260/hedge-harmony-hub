@@ -156,6 +156,7 @@ const EstimationPage = () => {
       const estimation = await insertEstimation.mutateAsync({
         client_id: clientId, cut_type: cutType,
         facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
+        back_left_length: numBackLeft, back_right_length: numBackRight,
         height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
         height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack,
         width: numWidth,
@@ -168,6 +169,7 @@ const EstimationPage = () => {
         status: "pending", estimated_profit: totalPrice,
         measurement_snapshot: {
           facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
+          back_left_length: numBackLeft, back_right_length: numBackRight,
           height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
           height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack, width: numWidth,
         },
