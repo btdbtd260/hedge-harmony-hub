@@ -359,7 +359,9 @@ const EstimationPage = () => {
               backLeftLength={numBackLeft} backRightLength={numBackRight}
               heightMode={heightMode as "global" | "per_side"}
               heightGlobal={numHeightGlobal} heightFacade={numHeightFacade} heightLeft={numHeightLeft}
-              heightRight={numHeightRight} heightBack={numHeightBack} width={numWidth}
+              heightRight={numHeightRight} heightBack={numHeightBack}
+              heightBackLeft={numHeightBackLeft} heightBackRight={numHeightBackRight}
+              width={numWidth}
               basePrice={basePrice} bushItems={bushItems} extras={extras}
               heightMultiplierApplied={heightMultiplierApplied} widthMultiplierApplied={widthMultiplierApplied}
               heightMultiplier={p.height_multiplier} widthMultiplier={p.width_multiplier}

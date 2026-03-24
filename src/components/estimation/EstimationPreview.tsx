@@ -48,6 +48,7 @@ export default function EstimationPreview({
   customer, params, cutType, facadeLength, leftLength, rightLength, backLength,
   backLeftLength, backRightLength,
   heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
+  heightBackLeft, heightBackRight,
   width, basePrice, bushItems, extras, heightMultiplierApplied, widthMultiplierApplied,
   heightMultiplier, widthMultiplier, bushesTotal, extrasPrice, totalPrice, estimationCount,
 }: Props) {
