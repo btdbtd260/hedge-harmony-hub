@@ -52,6 +52,8 @@ const EstimationPage = () => {
   const [heightLeft, setHeightLeft] = useState("");
   const [heightRight, setHeightRight] = useState("");
   const [heightBack, setHeightBack] = useState("");
+  const [heightBackLeft, setHeightBackLeft] = useState("");
+  const [heightBackRight, setHeightBackRight] = useState("");
   const [width, setWidth] = useState("");
   const [extras, setExtras] = useState<EstimationExtra[]>([]);
   const [bushItems, setBushItems] = useState<BushItem[]>([]);
@@ -73,13 +75,15 @@ const EstimationPage = () => {
   const numHeightLeft = Number(heightLeft) || 0;
   const numHeightRight = Number(heightRight) || 0;
   const numHeightBack = Number(heightBack) || 0;
+  const numHeightBackLeft = Number(heightBackLeft) || 0;
+  const numHeightBackRight = Number(heightBackRight) || 0;
   const numWidth = Number(width) || 2;
 
   const totalLinearFeet = numFacade + numLeft + numRight + numBack + numBackLeft + numBackRight;
   const pricePerFoot = cutType === "trim" ? p.price_per_foot_trim : p.price_per_foot_levelling;
   let basePrice = totalLinearFeet * pricePerFoot;
 
-  const effectiveHeight = heightMode === "global" ? numHeightGlobal : Math.max(numHeightFacade, numHeightLeft, numHeightRight, numHeightBack);
+  const effectiveHeight = heightMode === "global" ? numHeightGlobal : Math.max(numHeightFacade, numHeightLeft, numHeightRight, numHeightBack, numHeightBackLeft, numHeightBackRight);
   const heightMultiplierApplied = effectiveHeight >= p.height_multiplier_threshold;
   const widthMultiplierApplied = numWidth >= p.width_multiplier_threshold;
   if (heightMultiplierApplied) basePrice *= p.height_multiplier;
@@ -121,7 +125,7 @@ const EstimationPage = () => {
     facadeLength: numFacade, leftLength: numLeft, rightLength: numRight, backLength: numBack,
     backLeftLength: numBackLeft, backRightLength: numBackRight,
     heightMode: heightMode as "global" | "per_side",
-    heightGlobal: numHeightGlobal, heightFacade: numHeightFacade, heightLeft: numHeightLeft, heightRight: numHeightRight, heightBack: numHeightBack,
+    heightGlobal: numHeightGlobal, heightFacade: numHeightFacade, heightLeft: numHeightLeft, heightRight: numHeightRight, heightBack: numHeightBack, heightBackLeft: numHeightBackLeft, heightBackRight: numHeightBackRight,
     width: numWidth, basePrice,
     bushItems: bushItems.map(b => ({ description: b.description, count: b.count, price: b.price })),
     extras,
@@ -159,6 +163,7 @@ const EstimationPage = () => {
         back_left_length: numBackLeft, back_right_length: numBackRight,
         height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
         height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack,
+        height_back_left: numHeightBackLeft, height_back_right: numHeightBackRight,
         width: numWidth,
         extras: JSON.parse(JSON.stringify([...extras, ...bushItems.map((b) => ({ id: b.id, description: `Bush: ${b.description || "Bush"}`, price: b.count * b.price }))])),
         bushes_count: totalBushesCount, total_price: totalPrice,
@@ -171,7 +176,8 @@ const EstimationPage = () => {
           facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
           back_left_length: numBackLeft, back_right_length: numBackRight,
           height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
-          height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack, width: numWidth,
+          height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack,
+          height_back_left: numHeightBackLeft, height_back_right: numHeightBackRight, width: numWidth,
         },
       });
 
@@ -187,6 +193,7 @@ const EstimationPage = () => {
     setClientId(""); setFacadeLength(""); setLeftLength(""); setRightLength(""); setBackLength("");
     setBackLeftLength(""); setBackRightLength("");
     setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
+    setHeightBackLeft(""); setHeightBackRight("");
     setWidth(""); setBushItems([]); setExtras([]);
   };
 
@@ -261,11 +268,23 @@ const EstimationPage = () => {
                 {heightMode === "global" ? (
                   <Input type="number" min={0} placeholder="4" value={heightGlobal} onChange={(e) => setHeightGlobal(e.target.value)} />
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><Label className="text-xs text-muted-foreground">Façade</Label><Input type="number" min={0} placeholder="0" value={heightFacade} onChange={(e) => setHeightFacade(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={heightLeft} onChange={(e) => setHeightLeft(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={heightRight} onChange={(e) => setHeightRight(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Arrière</Label><Input type="number" min={0} placeholder="0" value={heightBack} onChange={(e) => setHeightBack(e.target.value)} /></div>
+                  <div className="space-y-3">
+                    <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                      <p className="text-sm font-medium text-foreground">Avant</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={heightLeft} onChange={(e) => setHeightLeft(e.target.value)} /></div>
+                        <div><Label className="text-xs text-muted-foreground">Façade</Label><Input type="number" min={0} placeholder="0" value={heightFacade} onChange={(e) => setHeightFacade(e.target.value)} /></div>
+                        <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={heightRight} onChange={(e) => setHeightRight(e.target.value)} /></div>
+                      </div>
+                    </div>
+                    <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                      <p className="text-sm font-medium text-foreground">Arrière</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={heightBackLeft} onChange={(e) => setHeightBackLeft(e.target.value)} /></div>
+                        <div><Label className="text-xs text-muted-foreground">Fond</Label><Input type="number" min={0} placeholder="0" value={heightBack} onChange={(e) => setHeightBack(e.target.value)} /></div>
+                        <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={heightBackRight} onChange={(e) => setHeightBackRight(e.target.value)} /></div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
@@ -340,7 +359,9 @@ const EstimationPage = () => {
               backLeftLength={numBackLeft} backRightLength={numBackRight}
               heightMode={heightMode as "global" | "per_side"}
               heightGlobal={numHeightGlobal} heightFacade={numHeightFacade} heightLeft={numHeightLeft}
-              heightRight={numHeightRight} heightBack={numHeightBack} width={numWidth}
+              heightRight={numHeightRight} heightBack={numHeightBack}
+              heightBackLeft={numHeightBackLeft} heightBackRight={numHeightBackRight}
+              width={numWidth}
               basePrice={basePrice} bushItems={bushItems} extras={extras}
               heightMultiplierApplied={heightMultiplierApplied} widthMultiplierApplied={widthMultiplierApplied}
               heightMultiplier={p.height_multiplier} widthMultiplier={p.width_multiplier}

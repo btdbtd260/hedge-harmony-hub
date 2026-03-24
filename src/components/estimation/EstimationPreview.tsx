@@ -28,6 +28,8 @@ interface Props {
   heightLeft: number;
   heightRight: number;
   heightBack: number;
+  heightBackLeft: number;
+  heightBackRight: number;
   width: number;
   basePrice: number;
   bushItems: BushItem[];
@@ -46,6 +48,7 @@ export default function EstimationPreview({
   customer, params, cutType, facadeLength, leftLength, rightLength, backLength,
   backLeftLength, backRightLength,
   heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
+  heightBackLeft, heightBackRight,
   width, basePrice, bushItems, extras, heightMultiplierApplied, widthMultiplierApplied,
   heightMultiplier, widthMultiplier, bushesTotal, extrasPrice, totalPrice, estimationCount,
 }: Props) {

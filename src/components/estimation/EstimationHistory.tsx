@@ -59,6 +59,8 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
       heightLeft: Number(est.height_left),
       heightRight: Number(est.height_right),
       heightBack: Number(est.height_back),
+      heightBackLeft: Number((est as any).height_back_left || 0),
+      heightBackRight: Number((est as any).height_back_right || 0),
       width: Number(est.width),
       basePrice,
       bushItems: bushExtras.map((e: any) => ({ description: e.description?.replace("Bush: ", "") || "", count: 1, price: Number(e.price) })),
