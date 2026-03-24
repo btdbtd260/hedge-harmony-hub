@@ -115,10 +115,10 @@ const Invoices = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const downloadBillPdf = () => {
+  const downloadBillPdf = async () => {
     if (billInvoices.length === 0) return;
-    const { jsPDF } = require("jspdf");
-    const autoTable = require("jspdf-autotable").default;
+    const { default: jsPDF } = await import("jspdf");
+    const { default: autoTable } = await import("jspdf-autotable");
     const doc = new jsPDF();
     const pageW = doc.internal.pageSize.getWidth();
     const customer = customers.find((c) => c.id === billClientId);
