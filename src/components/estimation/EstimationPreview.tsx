@@ -20,6 +20,8 @@ interface Props {
   leftLength: number;
   rightLength: number;
   backLength: number;
+  backLeftLength: number;
+  backRightLength: number;
   heightMode: "global" | "per_side";
   heightGlobal: number;
   heightFacade: number;
