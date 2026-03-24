@@ -53,6 +53,9 @@ const EstimationPage = () => {
   const [width, setWidth] = useState("");
   const [extras, setExtras] = useState<EstimationExtra[]>([]);
   const [bushItems, setBushItems] = useState<BushItem[]>([]);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
 
   const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3 };
 
