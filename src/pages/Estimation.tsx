@@ -339,6 +339,28 @@ const EstimationPage = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Envoyer l'estimation par email</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Destinataire *</Label>
+              <Input type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} placeholder="email@exemple.com" />
+            </div>
+            <div className="space-y-1">
+              <Label>Message</Label>
+              <Textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)} rows={6} />
+            </div>
+            <p className="text-xs text-muted-foreground">L'email s'ouvrira dans votre application de messagerie. Pensez à joindre le PDF téléchargé.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>Annuler</Button>
+            <Button onClick={handleSendEmail} disabled={!emailTo.trim()}>
+              <Mail className="h-4 w-4 mr-2" /> Envoyer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
