@@ -28,6 +28,8 @@ interface Props {
   heightLeft: number;
   heightRight: number;
   heightBack: number;
+  heightBackLeft: number;
+  heightBackRight: number;
   width: number;
   basePrice: number;
   bushItems: BushItem[];
