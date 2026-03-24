@@ -125,7 +125,7 @@ const EstimationPage = () => {
     facadeLength: numFacade, leftLength: numLeft, rightLength: numRight, backLength: numBack,
     backLeftLength: numBackLeft, backRightLength: numBackRight,
     heightMode: heightMode as "global" | "per_side",
-    heightGlobal: numHeightGlobal, heightFacade: numHeightFacade, heightLeft: numHeightLeft, heightRight: numHeightRight, heightBack: numHeightBack,
+    heightGlobal: numHeightGlobal, heightFacade: numHeightFacade, heightLeft: numHeightLeft, heightRight: numHeightRight, heightBack: numHeightBack, heightBackLeft: numHeightBackLeft, heightBackRight: numHeightBackRight,
     width: numWidth, basePrice,
     bushItems: bushItems.map(b => ({ description: b.description, count: b.count, price: b.price })),
     extras,
