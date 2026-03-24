@@ -291,6 +291,9 @@ const EstimationPage = () => {
               <Button variant="outline" className="w-full" onClick={handleDownloadPdf}>
                 <Download className="h-4 w-4 mr-2" /> Télécharger PDF
               </Button>
+              <Button variant="outline" className="w-full" onClick={handleOpenEmailDialog}>
+                <Mail className="h-4 w-4 mr-2" /> Envoyer par email
+              </Button>
               <Button className="w-full" disabled={!clientId || insertEstimation.isPending} onClick={handleCreateEstimation}>
                 {insertEstimation.isPending ? "Création…" : "Créer estimation"}
               </Button>
