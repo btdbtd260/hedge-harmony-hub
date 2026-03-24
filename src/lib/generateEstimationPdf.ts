@@ -35,6 +35,7 @@ export interface EstimationPdfData {
 
 export function generateEstimationPdf(data: EstimationPdfData): jsPDF {
   const { customer, params, estimationNumber, cutType, facadeLength, leftLength, rightLength, backLength,
+    backLeftLength, backRightLength,
     heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack, width,
     basePrice, bushItems, extras, heightMultiplierApplied, widthMultiplierApplied,
     heightMultiplier, widthMultiplier, totalPrice, date } = data;
