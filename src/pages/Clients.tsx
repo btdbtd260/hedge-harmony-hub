@@ -76,6 +76,9 @@ const Clients = () => {
 
   const clientJobs = selectedClient ? jobs.filter((j) => j.client_id === selectedClient.id) : [];
 
+  // Keep selectedClient in sync with fresh data
+  const liveSelectedClient = selectedClient ? customers.find((c) => c.id === selectedClient.id) ?? selectedClient : null;
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
