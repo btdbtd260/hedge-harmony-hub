@@ -31,6 +31,7 @@ const Clients = () => {
   const [formPhone, setFormPhone] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formAddress, setFormAddress] = useState("");
+  const [clientToDelete, setClientToDelete] = useState<DbCustomer | null>(null);
 
   const filtered = customers
     .filter((c) => showHidden || !c.hidden)
