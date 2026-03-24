@@ -33,7 +33,7 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
     const bushExtras = extras.filter((e: any) => e.description?.startsWith("Bush:"));
     const otherExtras = extras.filter((e: any) => !e.description?.startsWith("Bush:"));
 
-    const totalFeet = Number(est.facade_length) + Number(est.left_length) + Number(est.right_length) + Number(est.back_length);
+    const totalFeet = Number(est.facade_length) + Number(est.left_length) + Number(est.right_length) + Number(est.back_length) + Number((est as any).back_left_length || 0) + Number((est as any).back_right_length || 0);
     const pricePerFoot = est.cut_type === "trim" ? p.price_per_foot_trim : p.price_per_foot_levelling;
     let basePrice = totalFeet * pricePerFoot;
     const effH = est.height_mode === "global" ? Number(est.height_global) : Math.max(Number(est.height_facade), Number(est.height_left), Number(est.height_right), Number(est.height_back));
@@ -51,6 +51,8 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
       leftLength: Number(est.left_length),
       rightLength: Number(est.right_length),
       backLength: Number(est.back_length),
+      backLeftLength: Number((est as any).back_left_length || 0),
+      backRightLength: Number((est as any).back_right_length || 0),
       heightMode: est.height_mode as "global" | "per_side",
       heightGlobal: Number(est.height_global),
       heightFacade: Number(est.height_facade),
