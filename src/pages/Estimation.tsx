@@ -185,6 +185,7 @@ const EstimationPage = () => {
   const handleCloseConfirmation = () => {
     setShowConfirmation(false);
     setClientId(""); setFacadeLength(""); setLeftLength(""); setRightLength(""); setBackLength("");
+    setBackLeftLength(""); setBackRightLength("");
     setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
     setWidth(""); setBushItems([]); setExtras([]);
   };
