@@ -75,6 +75,8 @@ const EstimationPage = () => {
   const numHeightLeft = Number(heightLeft) || 0;
   const numHeightRight = Number(heightRight) || 0;
   const numHeightBack = Number(heightBack) || 0;
+  const numHeightBackLeft = Number(heightBackLeft) || 0;
+  const numHeightBackRight = Number(heightBackRight) || 0;
   const numWidth = Number(width) || 2;
 
   const totalLinearFeet = numFacade + numLeft + numRight + numBack + numBackLeft + numBackRight;
