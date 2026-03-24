@@ -122,6 +122,8 @@ export type Database = {
           extras: Json
           facade_length: number
           height_back: number
+          height_back_left: number
+          height_back_right: number
           height_facade: number
           height_global: number
           height_left: number
@@ -145,6 +147,8 @@ export type Database = {
           extras?: Json
           facade_length?: number
           height_back?: number
+          height_back_left?: number
+          height_back_right?: number
           height_facade?: number
           height_global?: number
           height_left?: number
@@ -168,6 +172,8 @@ export type Database = {
           extras?: Json
           facade_length?: number
           height_back?: number
+          height_back_left?: number
+          height_back_right?: number
           height_facade?: number
           height_global?: number
           height_left?: number
