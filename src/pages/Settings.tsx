@@ -42,11 +42,20 @@ const Settings = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const handlePdfUpload = (type: "estimation" | "invoice", file: File) => {
-    if (file.type !== "application/pdf") { toast.error("Veuillez téléverser un fichier PDF"); return; }
-    const url = URL.createObjectURL(file);
-    if (type === "estimation") setEstimationPdf(url); else setInvoicePdf(url);
-    toast.success(`Template ${type === "estimation" ? "estimation" : "facture"} téléversé`);
+  const handleLogoUpload = async (file: File) => {
+    if (!file.type.startsWith("image/")) { toast.error("Veuillez téléverser une image"); return; }
+    setUploadingLogo(true);
+    try {
+      const ext = file.name.split(".").pop() || "png";
+      const filePath = `logo.${ext}`;
+      const { error: uploadError } = await supabase.storage.from("company-assets").upload(filePath, file, { upsert: true });
+      if (uploadError) throw uploadError;
+      const { data: urlData } = supabase.storage.from("company-assets").getPublicUrl(filePath);
+      const logoUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+      updateField("company_logo_url", logoUrl);
+      toast.success("Logo téléversé");
+    } catch (e: any) { toast.error(e.message); }
+    setUploadingLogo(false);
   };
 
   if (isLoading) return <p className="p-6 text-muted-foreground">Chargement…</p>;
