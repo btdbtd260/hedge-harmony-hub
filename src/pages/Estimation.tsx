@@ -268,11 +268,23 @@ const EstimationPage = () => {
                 {heightMode === "global" ? (
                   <Input type="number" min={0} placeholder="4" value={heightGlobal} onChange={(e) => setHeightGlobal(e.target.value)} />
                 ) : (
-                  <div className="grid grid-cols-2 gap-3">
-                    <div><Label className="text-xs text-muted-foreground">Façade</Label><Input type="number" min={0} placeholder="0" value={heightFacade} onChange={(e) => setHeightFacade(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={heightLeft} onChange={(e) => setHeightLeft(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={heightRight} onChange={(e) => setHeightRight(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Arrière</Label><Input type="number" min={0} placeholder="0" value={heightBack} onChange={(e) => setHeightBack(e.target.value)} /></div>
+                  <div className="space-y-3">
+                    <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                      <p className="text-sm font-medium text-foreground">Avant</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={heightLeft} onChange={(e) => setHeightLeft(e.target.value)} /></div>
+                        <div><Label className="text-xs text-muted-foreground">Façade</Label><Input type="number" min={0} placeholder="0" value={heightFacade} onChange={(e) => setHeightFacade(e.target.value)} /></div>
+                        <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={heightRight} onChange={(e) => setHeightRight(e.target.value)} /></div>
+                      </div>
+                    </div>
+                    <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                      <p className="text-sm font-medium text-foreground">Arrière</p>
+                      <div className="grid grid-cols-3 gap-2">
+                        <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={heightBackLeft} onChange={(e) => setHeightBackLeft(e.target.value)} /></div>
+                        <div><Label className="text-xs text-muted-foreground">Fond</Label><Input type="number" min={0} placeholder="0" value={heightBack} onChange={(e) => setHeightBack(e.target.value)} /></div>
+                        <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={heightBackRight} onChange={(e) => setHeightBackRight(e.target.value)} /></div>
+                      </div>
+                    </div>
                   </div>
                 )}
               </div>
