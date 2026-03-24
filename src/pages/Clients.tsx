@@ -52,6 +52,17 @@ const Clients = () => {
     }
   };
 
+  const handleHideClient = async () => {
+    if (!clientToDelete) return;
+    try {
+      await hideCustomer.mutateAsync(clientToDelete.id);
+      setClientToDelete(null);
+      toast.success("Client masqué");
+    } catch (e: any) {
+      toast.error(e.message);
+    }
+  };
+
   const clientJobs = selectedClient ? jobs.filter((j) => j.client_id === selectedClient.id) : [];
 
   return (
