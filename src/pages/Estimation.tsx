@@ -52,6 +52,8 @@ const EstimationPage = () => {
   const [heightLeft, setHeightLeft] = useState("");
   const [heightRight, setHeightRight] = useState("");
   const [heightBack, setHeightBack] = useState("");
+  const [heightBackLeft, setHeightBackLeft] = useState("");
+  const [heightBackRight, setHeightBackRight] = useState("");
   const [width, setWidth] = useState("");
   const [extras, setExtras] = useState<EstimationExtra[]>([]);
   const [bushItems, setBushItems] = useState<BushItem[]>([]);
