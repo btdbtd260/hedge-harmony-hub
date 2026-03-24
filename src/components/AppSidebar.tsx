@@ -50,10 +50,10 @@ export function AppSidebar() {
       <SidebarHeader className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-2">
           <div className="h-8 w-8 rounded-md bg-primary flex items-center justify-center">
-            <span className="text-primary-foreground text-sm font-bold">HP</span>
+            <span className="text-primary-foreground text-xs font-bold">ACF</span>
           </div>
           <div>
-            <h2 className="text-sm font-semibold text-sidebar-foreground">HedgePro</h2>
+            <h2 className="text-sm font-semibold text-sidebar-foreground">Haie ACF</h2>
             <p className="text-xs text-muted-foreground">Gestion</p>
           </div>
         </div>
