@@ -20,6 +20,10 @@ interface Props {
 
 export default function EstimationHistory({ estimations, customers, params }: Props) {
   const [selected, setSelected] = useState<DbEstimation | null>(null);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
+  const [emailEstimation, setEmailEstimation] = useState<{ est: DbEstimation; idx: number } | null>(null);
 
   const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3 };
 
