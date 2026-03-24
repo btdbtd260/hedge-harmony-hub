@@ -113,16 +113,15 @@ export function generateEstimationPdf(data: EstimationPdfData): jsPDF {
   doc.text("Mesures", 14, y);
   y += 2;
 
-  const totalFeet = facadeLength + leftLength + rightLength + backLength;
+  const totalFeet = facadeLength + leftLength + rightLength + backLength + backLeftLength + backRightLength;
   const cutLabel = cutType === "levelling" ? "Nivelage" : "Taille";
   const pricePerFoot = cutType === "trim" ? (params?.price_per_foot_trim ?? 4.5) : (params?.price_per_foot_levelling ?? 6);
 
   const measureRows = [
-    ["Façade", `${facadeLength} pi`],
-    ["Gauche", `${leftLength} pi`],
-    ["Droite", `${rightLength} pi`],
-    ["Arrière", `${backLength} pi`],
-    ["Total pieds linéaires", `${totalFeet} pi`],
+    ["", "Gauche", "Centre", "Droite"],
+    ["Avant", `${leftLength} pi`, `${facadeLength} pi (Façade)`, `${rightLength} pi`],
+    ["Arrière", `${backLeftLength} pi`, `${backLength} pi (Fond)`, `${backRightLength} pi`],
+    ["Total pieds linéaires", `${totalFeet} pi`, "", ""],
   ];
 
   if (heightMode === "global") {
