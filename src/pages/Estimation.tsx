@@ -6,7 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInsertEstimation, useInsertJob, useInsertInvoice } from "@/hooks/useSupabaseData";
-import { Calculator, Plus, Trash2, Search, UserPlus, Download } from "lucide-react";
+import { Calculator, Plus, Trash2, Search, UserPlus, Download, Mail } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import type { CutType, HeightMode, EstimationExtra } from "@/types";
 import EstimationPreview from "@/components/estimation/EstimationPreview";
@@ -52,6 +53,9 @@ const EstimationPage = () => {
   const [width, setWidth] = useState("");
   const [extras, setExtras] = useState<EstimationExtra[]>([]);
   const [bushItems, setBushItems] = useState<BushItem[]>([]);
+  const [showEmailDialog, setShowEmailDialog] = useState(false);
+  const [emailTo, setEmailTo] = useState("");
+  const [emailMessage, setEmailMessage] = useState("");
 
   const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3 };
 
@@ -123,6 +127,21 @@ const EstimationPage = () => {
   const handleDownloadPdf = () => {
     downloadEstimationPdf(buildPdfData());
     toast.success("PDF estimation téléchargé");
+  };
+
+  const handleOpenEmailDialog = () => {
+    setEmailTo(selectedClient?.email || "");
+    setEmailMessage(`Bonjour${selectedClient ? ` ${selectedClient.name}` : ""},\n\nVeuillez trouver ci-joint notre estimation pour les travaux de coupe de haies.\n\nTotal estimé : ${totalPrice.toFixed(2)} $\n\nN'hésitez pas à nous contacter pour toute question.\n\nCordialement,`);
+    setShowEmailDialog(true);
+  };
+
+  const handleSendEmail = () => {
+    if (!emailTo.trim()) { toast.error("Veuillez entrer une adresse email"); return; }
+    const subject = encodeURIComponent(`Estimation - ${selectedClient?.name || "Client"}`);
+    const body = encodeURIComponent(emailMessage);
+    window.open(`mailto:${emailTo}?subject=${subject}&body=${body}`, "_blank");
+    toast.success(`Email préparé pour ${emailTo}`);
+    setShowEmailDialog(false);
   };
 
   const handleCreateEstimation = async () => {
@@ -272,6 +291,9 @@ const EstimationPage = () => {
               <Button variant="outline" className="w-full" onClick={handleDownloadPdf}>
                 <Download className="h-4 w-4 mr-2" /> Télécharger PDF
               </Button>
+              <Button variant="outline" className="w-full" onClick={handleOpenEmailDialog}>
+                <Mail className="h-4 w-4 mr-2" /> Envoyer par email
+              </Button>
               <Button className="w-full" disabled={!clientId || insertEstimation.isPending} onClick={handleCreateEstimation}>
                 {insertEstimation.isPending ? "Création…" : "Créer estimation"}
               </Button>
@@ -314,6 +336,28 @@ const EstimationPage = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewClientDialog(false)}>Annuler</Button>
             <Button onClick={handleCreateClient} disabled={!newClientName.trim()}>Créer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+      <Dialog open={showEmailDialog} onOpenChange={setShowEmailDialog}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Envoyer l'estimation par email</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1">
+              <Label>Destinataire *</Label>
+              <Input type="email" value={emailTo} onChange={(e) => setEmailTo(e.target.value)} placeholder="email@exemple.com" />
+            </div>
+            <div className="space-y-1">
+              <Label>Message</Label>
+              <Textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)} rows={6} />
+            </div>
+            <p className="text-xs text-muted-foreground">L'email s'ouvrira dans votre application de messagerie. Pensez à joindre le PDF téléchargé.</p>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowEmailDialog(false)}>Annuler</Button>
+            <Button onClick={handleSendEmail} disabled={!emailTo.trim()}>
+              <Mail className="h-4 w-4 mr-2" /> Envoyer
+            </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
