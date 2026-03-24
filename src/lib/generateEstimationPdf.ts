@@ -21,6 +21,8 @@ export interface EstimationPdfData {
   heightLeft: number;
   heightRight: number;
   heightBack: number;
+  heightBackLeft: number;
+  heightBackRight: number;
   width: number;
   basePrice: number;
   bushItems: { description: string; count: number; price: number }[];
