@@ -5,8 +5,9 @@ import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { useCustomers, useJobs, useInsertCustomer, type DbCustomer } from "@/hooks/useSupabaseData";
-import { Search, Eye, EyeOff, Plus } from "lucide-react";
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { useCustomers, useJobs, useInsertCustomer, useHideCustomer, type DbCustomer } from "@/hooks/useSupabaseData";
+import { Search, Eye, EyeOff, Plus, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 
 const statusColor: Record<string, string> = {

@@ -37,6 +37,17 @@ export function useInsertCustomer() {
   });
 }
 
+export function useHideCustomer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("customers").update({ hidden: true }).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+  });
+}
+
 // ─── JOBS ───
 export function useJobs() {
   return useQuery({
