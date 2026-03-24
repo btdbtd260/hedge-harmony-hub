@@ -4,12 +4,14 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useJobs, useCustomers, useUpdateJob, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
-import { Search, Calendar, XCircle } from "lucide-react";
+import { useJobs, useCustomers, useUpdateJob, useInsertInvoice, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
+import { Search, Calendar, XCircle, FileDown } from "lucide-react";
 import { toast } from "sonner";
 
 const statusColor: Record<string, string> = {
@@ -23,10 +25,16 @@ const Jobs = () => {
   const { data: jobs = [] } = useJobs();
   const { data: customers = [] } = useCustomers();
   const updateJob = useUpdateJob();
+  const insertInvoice = useInsertInvoice();
   const [search, setSearch] = useState("");
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedJob, setSelectedJob] = useState<DbJob | null>(null);
   const [jobToRemove, setJobToRemove] = useState<{ id: string; name: string } | null>(null);
+
+  // Create invoice dialog
+  const [showCreateInvoice, setShowCreateInvoice] = useState(false);
+  const [invoiceJobId, setInvoiceJobId] = useState<string>("");
+  const [invoiceDesc, setInvoiceDesc] = useState("");
 
   const filtered = jobs
     .filter((j) => j.status !== "hidden")
@@ -68,11 +76,38 @@ const Jobs = () => {
     } catch (err: any) { toast.error(err.message); }
   };
 
+  // ── Create invoice from job ──
+  const selectedJobForInvoice = jobs.find((j) => j.id === invoiceJobId);
+
+  const handleCreateInvoice = async () => {
+    if (!selectedJobForInvoice) return;
+    try {
+      const amount = selectedJobForInvoice.real_profit ?? selectedJobForInvoice.estimated_profit ?? 0;
+      await insertInvoice.mutateAsync({
+        job_id: selectedJobForInvoice.id,
+        client_id: selectedJobForInvoice.client_id,
+        amount,
+        status: "unpaid",
+      });
+      toast.success("Facture créée avec succès");
+      setShowCreateInvoice(false);
+      setInvoiceJobId("");
+      setInvoiceDesc("");
+    } catch (err: any) { toast.error(err.message); }
+  };
+
+  const completedJobsForInvoice = jobs.filter((j) => j.status === "completed" || j.status === "scheduled");
+
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Jobs</h1>
-        <p className="text-muted-foreground">Gérez et suivez tous les jobs</p>
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Jobs</h1>
+          <p className="text-muted-foreground">Gérez et suivez tous les jobs</p>
+        </div>
+        <Button onClick={() => setShowCreateInvoice(true)}>
+          <FileDown className="h-4 w-4 mr-1" />Créer une facture
+        </Button>
       </div>
 
       <div className="flex items-center gap-3">
@@ -126,6 +161,7 @@ const Jobs = () => {
         </TabsContent>
       </Tabs>
 
+      {/* ── Job detail dialog ── */}
       <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJob(null)}>
         <DialogContent>
           {selectedJob && (
@@ -168,13 +204,12 @@ const Jobs = () => {
         </DialogContent>
       </Dialog>
 
+      {/* ── Remove confirmation ── */}
       <AlertDialog open={!!jobToRemove} onOpenChange={(open) => !open && setJobToRemove(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Retirer ce job ?</AlertDialogTitle>
-            <AlertDialogDescription>
-              Le job de «{jobToRemove?.name}» sera masqué. Il ne sera pas supprimé définitivement.
-            </AlertDialogDescription>
+            <AlertDialogDescription>Le job de «{jobToRemove?.name}» sera masqué.</AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
             <AlertDialogCancel>Annuler</AlertDialogCancel>
@@ -182,6 +217,45 @@ const Jobs = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+
+      {/* ── Create invoice from job dialog ── */}
+      <Dialog open={showCreateInvoice} onOpenChange={setShowCreateInvoice}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Créer une facture</DialogTitle></DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1">
+              <Label>Sélectionner un job</Label>
+              <Select value={invoiceJobId} onValueChange={setInvoiceJobId}>
+                <SelectTrigger><SelectValue placeholder="Choisir un job…" /></SelectTrigger>
+                <SelectContent>
+                  {completedJobsForInvoice.map((j) => (
+                    <SelectItem key={j.id} value={j.id}>
+                      {getClientNameFromList(customers, j.client_id)} · {j.cut_type} · {formatDateQC(j.scheduled_date)}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {selectedJobForInvoice && (
+              <div className="p-3 rounded-lg bg-muted space-y-1 text-sm">
+                <p><span className="text-muted-foreground">Client:</span> {getClientNameFromList(customers, selectedJobForInvoice.client_id)}</p>
+                <p><span className="text-muted-foreground">Montant:</span> ${selectedJobForInvoice.real_profit ?? selectedJobForInvoice.estimated_profit ?? 0}</p>
+                <p><span className="text-muted-foreground">Type:</span> {selectedJobForInvoice.cut_type}</p>
+              </div>
+            )}
+
+            <div className="space-y-1">
+              <Label>Description (optionnel)</Label>
+              <Textarea value={invoiceDesc} onChange={(e) => setInvoiceDesc(e.target.value)} placeholder="Ex: Service completion on hedge work" rows={2} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCreateInvoice(false)}>Annuler</Button>
+            <Button onClick={handleCreateInvoice} disabled={!invoiceJobId}>Créer la facture</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
