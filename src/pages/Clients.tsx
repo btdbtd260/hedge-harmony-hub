@@ -96,7 +96,12 @@ const Clients = () => {
                 <p className="text-xs text-muted-foreground">{c.phone} · {c.email}</p>
                 <p className="text-xs text-muted-foreground mt-1">{jobs.filter((j) => j.client_id === c.id).length} job(s)</p>
               </div>
-              <Badge className={statusColor[c.status]}>{c.status}</Badge>
+              <div className="flex items-center gap-2">
+                <Badge className={statusColor[c.status]}>{c.status}</Badge>
+                <Button variant="ghost" size="icon" className="h-8 w-8 text-muted-foreground hover:text-destructive" onClick={(e) => { e.stopPropagation(); setClientToDelete(c); }}>
+                  <Trash2 className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           ))}
         </CardContent>
