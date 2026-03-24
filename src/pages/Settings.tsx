@@ -108,25 +108,29 @@ const Settings = () => {
             </CardContent>
           </Card>
           <Card>
-            <CardHeader><CardTitle>Templates PDF</CardTitle></CardHeader>
+            <CardHeader><CardTitle>Logo de l'entreprise</CardTitle></CardHeader>
             <CardContent className="space-y-4">
+              <p className="text-sm text-muted-foreground">Ce logo sera affiché sur vos estimations et factures PDF.</p>
               <div className="space-y-2">
-                <Label>Template Estimation (PDF)</Label>
                 <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                  {estimationPdf ? (
-                    <div className="space-y-2"><p className="text-sm text-foreground font-medium">✓ Template estimation téléversé</p><Button variant="outline" size="sm" onClick={() => setEstimationPdf(null)}>Remplacer</Button></div>
+                  {form.company_logo_url ? (
+                    <div className="space-y-3">
+                      <img src={form.company_logo_url} alt="Logo" className="max-h-24 mx-auto object-contain" />
+                      <div className="flex gap-2 justify-center">
+                        <label className="cursor-pointer">
+                          <Button variant="outline" size="sm" asChild><span><Upload className="h-4 w-4 mr-1" /> Remplacer</span></Button>
+                          <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])} />
+                        </label>
+                        <Button variant="ghost" size="sm" onClick={() => updateField("company_logo_url", "")}>Supprimer</Button>
+                      </div>
+                    </div>
                   ) : (
-                    <label className="cursor-pointer space-y-2 block"><Upload className="h-8 w-8 mx-auto text-muted-foreground" /><p className="text-sm text-muted-foreground">Glissez ou cliquez pour téléverser le PDF estimation</p><input type="file" accept=".pdf" className="hidden" onChange={(e) => e.target.files?.[0] && handlePdfUpload("estimation", e.target.files[0])} /></label>
-                  )}
-                </div>
-              </div>
-              <div className="space-y-2">
-                <Label>Template Facture (PDF)</Label>
-                <div className="border-2 border-dashed rounded-lg p-6 text-center hover:border-primary/50 transition-colors">
-                  {invoicePdf ? (
-                    <div className="space-y-2"><p className="text-sm text-foreground font-medium">✓ Template facture téléversé</p><Button variant="outline" size="sm" onClick={() => setInvoicePdf(null)}>Remplacer</Button></div>
-                  ) : (
-                    <label className="cursor-pointer space-y-2 block"><Upload className="h-8 w-8 mx-auto text-muted-foreground" /><p className="text-sm text-muted-foreground">Glissez ou cliquez pour téléverser le PDF facture</p><input type="file" accept=".pdf" className="hidden" onChange={(e) => e.target.files?.[0] && handlePdfUpload("invoice", e.target.files[0])} /></label>
+                    <label className="cursor-pointer space-y-2 block">
+                      <Upload className="h-8 w-8 mx-auto text-muted-foreground" />
+                      <p className="text-sm text-muted-foreground">Cliquez pour téléverser votre logo</p>
+                      <p className="text-xs text-muted-foreground">PNG, JPG ou SVG recommandé</p>
+                      <input type="file" accept="image/*" className="hidden" onChange={(e) => e.target.files?.[0] && handleLogoUpload(e.target.files[0])} />
+                    </label>
                   )}
                 </div>
               </div>
