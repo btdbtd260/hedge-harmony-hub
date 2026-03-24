@@ -142,15 +142,20 @@ const Clients = () => {
 
       <Dialog open={!!selectedClient} onOpenChange={(open) => !open && setSelectedClient(null)}>
         <DialogContent>
-          {selectedClient && (
+          {liveSelectedClient && (
             <>
-              <DialogHeader><DialogTitle>{selectedClient.name}</DialogTitle></DialogHeader>
+              <DialogHeader>
+                <DialogTitle className="flex items-center gap-2">
+                  {liveSelectedClient.name}
+                  {liveSelectedClient.hidden && <Badge variant="outline" className="text-xs bg-muted">Masqué</Badge>}
+                </DialogTitle>
+              </DialogHeader>
               <div className="space-y-3">
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Téléphone</span><span>{selectedClient.phone}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Email</span><span>{selectedClient.email}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Adresse</span><span>{selectedClient.address}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Statut</span><Badge className={statusColor[selectedClient.status]}>{selectedClient.status}</Badge></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Année active</span><span>{selectedClient.active_year}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Téléphone</span><span>{liveSelectedClient.phone}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Email</span><span>{liveSelectedClient.email}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Adresse</span><span>{liveSelectedClient.address}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Statut</span><Badge className={statusColor[liveSelectedClient.status]}>{liveSelectedClient.status}</Badge></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Année active</span><span>{liveSelectedClient.active_year}</span></div>
                 <div className="border-t pt-3">
                   <p className="text-sm font-medium mb-2">Historique des jobs ({clientJobs.length})</p>
                   {clientJobs.length === 0 ? (
@@ -166,12 +171,12 @@ const Clients = () => {
                   ))}
                 </div>
                 <div className="border-t pt-3">
-                  {!selectedClient.hidden ? (
-                    <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setClientToDelete(selectedClient)}>
+                  {!liveSelectedClient.hidden ? (
+                    <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setClientToDelete(liveSelectedClient)}>
                       <Trash2 className="h-4 w-4 mr-1" /> Masquer ce client
                     </Button>
                   ) : (
-                    <Button variant="outline" size="sm" onClick={() => { handleRestoreClient(selectedClient); setSelectedClient(null); }}>
+                    <Button variant="outline" size="sm" onClick={() => handleRestoreClient(liveSelectedClient)}>
                       <RotateCcw className="h-4 w-4 mr-1" /> Restaurer ce client
                     </Button>
                   )}
