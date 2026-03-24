@@ -83,7 +83,7 @@ const EstimationPage = () => {
   const pricePerFoot = cutType === "trim" ? p.price_per_foot_trim : p.price_per_foot_levelling;
   let basePrice = totalLinearFeet * pricePerFoot;
 
-  const effectiveHeight = heightMode === "global" ? numHeightGlobal : Math.max(numHeightFacade, numHeightLeft, numHeightRight, numHeightBack);
+  const effectiveHeight = heightMode === "global" ? numHeightGlobal : Math.max(numHeightFacade, numHeightLeft, numHeightRight, numHeightBack, numHeightBackLeft, numHeightBackRight);
   const heightMultiplierApplied = effectiveHeight >= p.height_multiplier_threshold;
   const widthMultiplierApplied = numWidth >= p.width_multiplier_threshold;
   if (heightMultiplierApplied) basePrice *= p.height_multiplier;
