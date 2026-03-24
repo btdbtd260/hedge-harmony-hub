@@ -21,6 +21,7 @@ const Clients = () => {
   const { data: customers = [] } = useCustomers();
   const { data: jobs = [] } = useJobs();
   const insertCustomer = useInsertCustomer();
+  const hideCustomer = useHideCustomer();
 
   const [search, setSearch] = useState("");
   const [showHidden, setShowHidden] = useState(false);
