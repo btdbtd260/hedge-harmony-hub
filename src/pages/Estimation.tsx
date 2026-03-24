@@ -233,13 +233,25 @@ const EstimationPage = () => {
                 <Select value={cutType} onValueChange={(v) => setCutType(v as CutType)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="trim">Trim</SelectItem><SelectItem value="levelling">Levelling</SelectItem></SelectContent></Select>
               </div>
 
-              <div className="space-y-2">
-                <Label>Mesures (pieds linéaires)</Label>
-                <div className="grid grid-cols-2 gap-3">
-                  <div><Label className="text-xs text-muted-foreground">Façade</Label><Input type="number" min={0} placeholder="0" value={facadeLength} onChange={(e) => setFacadeLength(e.target.value)} /></div>
-                  <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={leftLength} onChange={(e) => setLeftLength(e.target.value)} /></div>
-                  <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={rightLength} onChange={(e) => setRightLength(e.target.value)} /></div>
-                  <div><Label className="text-xs text-muted-foreground">Arrière</Label><Input type="number" min={0} placeholder="0" value={backLength} onChange={(e) => setBackLength(e.target.value)} /></div>
+              <div className="space-y-3">
+                <Label className="text-base font-semibold">Mesures (pieds linéaires)</Label>
+                
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  <p className="text-sm font-medium text-foreground">Avant</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={leftLength} onChange={(e) => setLeftLength(e.target.value)} /></div>
+                    <div><Label className="text-xs text-muted-foreground">Façade</Label><Input type="number" min={0} placeholder="0" value={facadeLength} onChange={(e) => setFacadeLength(e.target.value)} /></div>
+                    <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={rightLength} onChange={(e) => setRightLength(e.target.value)} /></div>
+                  </div>
+                </div>
+
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
+                  <p className="text-sm font-medium text-foreground">Arrière</p>
+                  <div className="grid grid-cols-3 gap-2">
+                    <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={backLeftLength} onChange={(e) => setBackLeftLength(e.target.value)} /></div>
+                    <div><Label className="text-xs text-muted-foreground">Fond</Label><Input type="number" min={0} placeholder="0" value={backLength} onChange={(e) => setBackLength(e.target.value)} /></div>
+                    <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={backRightLength} onChange={(e) => setBackRightLength(e.target.value)} /></div>
+                  </div>
                 </div>
               </div>
 
