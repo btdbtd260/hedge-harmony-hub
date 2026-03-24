@@ -170,6 +170,23 @@ const Clients = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Masquer ce client ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              Le client <strong>{clientToDelete?.name}</strong> sera masqué de la liste. Vous pourrez toujours le retrouver via « Voir masqués ». Cette action ne supprime aucune donnée.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction onClick={handleHideClient} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
+              Masquer le client
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
