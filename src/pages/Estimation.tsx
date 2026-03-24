@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { formatDateQC } from "@/lib/utils";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -7,9 +6,12 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInsertEstimation, useInsertJob, useInsertInvoice } from "@/hooks/useSupabaseData";
-import { Calculator, Plus, Trash2, Search, UserPlus } from "lucide-react";
+import { Calculator, Plus, Trash2, Search, UserPlus, Download } from "lucide-react";
 import { toast } from "sonner";
 import type { CutType, HeightMode, EstimationExtra } from "@/types";
+import EstimationPreview from "@/components/estimation/EstimationPreview";
+import EstimationHistory from "@/components/estimation/EstimationHistory";
+import { downloadEstimationPdf, getEstimationNumber, type EstimationPdfData } from "@/lib/generateEstimationPdf";
 
 interface BushItem {
   id: string;
@@ -69,8 +71,10 @@ const EstimationPage = () => {
   let basePrice = totalLinearFeet * pricePerFoot;
 
   const effectiveHeight = heightMode === "global" ? numHeightGlobal : Math.max(numHeightFacade, numHeightLeft, numHeightRight, numHeightBack);
-  if (effectiveHeight >= p.height_multiplier_threshold) basePrice *= p.height_multiplier;
-  if (numWidth >= p.width_multiplier_threshold) basePrice *= p.width_multiplier;
+  const heightMultiplierApplied = effectiveHeight >= p.height_multiplier_threshold;
+  const widthMultiplierApplied = numWidth >= p.width_multiplier_threshold;
+  if (heightMultiplierApplied) basePrice *= p.height_multiplier;
+  if (widthMultiplierApplied) basePrice *= p.width_multiplier;
 
   const bushesTotal = bushItems.reduce((sum, b) => sum + b.count * b.price, 0);
   const totalBushesCount = bushItems.reduce((sum, b) => sum + b.count, 0);
@@ -86,7 +90,7 @@ const EstimationPage = () => {
   const updateBush = (id: string, field: keyof BushItem, value: string | number) => setBushItems(bushItems.map((b) => b.id === id ? { ...b, [field]: value } : b));
 
   const filteredClients = customers.filter((c) => !c.hidden).filter((c) => c.name.toLowerCase().includes(clientSearch.toLowerCase()));
-  const selectedClient = customers.find((c) => c.id === clientId);
+  const selectedClient = customers.find((c) => c.id === clientId) ?? null;
 
   const handleSelectClient = (id: string) => { setClientId(id); setClientSearch(""); setShowClientDropdown(false); };
 
@@ -100,34 +104,43 @@ const EstimationPage = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
+  const buildPdfData = (): EstimationPdfData => ({
+    customer: selectedClient,
+    params: params ?? null,
+    estimationNumber: getEstimationNumber(estimations.length),
+    cutType: cutType as "trim" | "levelling",
+    facadeLength: numFacade, leftLength: numLeft, rightLength: numRight, backLength: numBack,
+    heightMode: heightMode as "global" | "per_side",
+    heightGlobal: numHeightGlobal, heightFacade: numHeightFacade, heightLeft: numHeightLeft, heightRight: numHeightRight, heightBack: numHeightBack,
+    width: numWidth, basePrice,
+    bushItems: bushItems.map(b => ({ description: b.description, count: b.count, price: b.price })),
+    extras,
+    heightMultiplierApplied, widthMultiplierApplied,
+    heightMultiplier: p.height_multiplier, widthMultiplier: p.width_multiplier,
+    totalPrice,
+  });
+
+  const handleDownloadPdf = () => {
+    downloadEstimationPdf(buildPdfData());
+    toast.success("PDF estimation téléchargé");
+  };
+
   const handleCreateEstimation = async () => {
     if (!clientId) return;
     try {
       const estimation = await insertEstimation.mutateAsync({
-        client_id: clientId,
-        cut_type: cutType,
-        facade_length: numFacade,
-        left_length: numLeft,
-        right_length: numRight,
-        back_length: numBack,
-        height_mode: heightMode,
-        height_global: numHeightGlobal,
-        height_facade: numHeightFacade,
-        height_left: numHeightLeft,
-        height_right: numHeightRight,
-        height_back: numHeightBack,
+        client_id: clientId, cut_type: cutType,
+        facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
+        height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
+        height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack,
         width: numWidth,
         extras: JSON.parse(JSON.stringify([...extras, ...bushItems.map((b) => ({ id: b.id, description: `Bush: ${b.description || "Bush"}`, price: b.count * b.price }))])),
-        bushes_count: totalBushesCount,
-        total_price: totalPrice,
+        bushes_count: totalBushesCount, total_price: totalPrice,
       });
 
       const job = await insertJob.mutateAsync({
-        client_id: clientId,
-        estimation_id: estimation.id,
-        cut_type: cutType,
-        status: "pending",
-        estimated_profit: totalPrice,
+        client_id: clientId, estimation_id: estimation.id, cut_type: cutType,
+        status: "pending", estimated_profit: totalPrice,
         measurement_snapshot: {
           facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
           height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
@@ -151,8 +164,9 @@ const EstimationPage = () => {
         <p className="text-muted-foreground">Créer une estimation et générer automatiquement un job et une facture</p>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-4">
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+        {/* Form – left */}
+        <div className="lg:col-span-5 space-y-4">
           <Card>
             <CardHeader><CardTitle>Nouvelle estimation</CardTitle></CardHeader>
             <CardContent className="space-y-4">
@@ -213,7 +227,7 @@ const EstimationPage = () => {
 
               <div className="space-y-2"><Label>Largeur (pieds)</Label><Input type="number" min={0} placeholder="2" value={width} onChange={(e) => setWidth(e.target.value)} /></div>
 
-              {/* Bushes List */}
+              {/* Bushes */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between"><Label>Bushes</Label><Button variant="outline" size="sm" onClick={addBush}><Plus className="h-3 w-3 mr-1" /> Ajouter</Button></div>
                 {bushItems.map((bush) => (
@@ -241,7 +255,8 @@ const EstimationPage = () => {
           </Card>
         </div>
 
-        <div className="space-y-4">
+        {/* Summary + Actions – middle */}
+        <div className="lg:col-span-3 space-y-4">
           <Card>
             <CardHeader><CardTitle className="flex items-center gap-2"><Calculator className="h-5 w-5" /> Résumé</CardTitle></CardHeader>
             <CardContent className="space-y-3">
@@ -250,29 +265,40 @@ const EstimationPage = () => {
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Base</span><span>${basePrice.toFixed(2)}</span></div>
               {bushesTotal > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Bushes ({totalBushesCount})</span><span>${bushesTotal.toFixed(2)}</span></div>}
               {extrasPrice > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Extras</span><span>${extrasPrice}</span></div>}
-              {effectiveHeight >= p.height_multiplier_threshold && <div className="flex justify-between text-sm text-amber-600"><span>Mult. hauteur (×{p.height_multiplier})</span><span>Appliqué</span></div>}
-              {numWidth >= p.width_multiplier_threshold && <div className="flex justify-between text-sm text-amber-600"><span>Mult. largeur (×{p.width_multiplier})</span><span>Appliqué</span></div>}
-              <div className="border-t pt-3 flex justify-between font-bold text-lg"><span>Total</span><span>${totalPrice.toFixed(2)}</span></div>
+              {heightMultiplierApplied && <div className="flex justify-between text-sm text-amber-600"><span>Mult. hauteur (×{p.height_multiplier})</span><span>Appliqué</span></div>}
+              {widthMultiplierApplied && <div className="flex justify-between text-sm text-amber-600"><span>Mult. largeur (×{p.width_multiplier})</span><span>Appliqué</span></div>}
+              <div className="border-t pt-3 flex justify-between font-bold text-lg"><span>Total</span><span className="text-primary">${totalPrice.toFixed(2)}</span></div>
+
+              <Button variant="outline" className="w-full" onClick={handleDownloadPdf}>
+                <Download className="h-4 w-4 mr-2" /> Télécharger PDF
+              </Button>
               <Button className="w-full" disabled={!clientId || insertEstimation.isPending} onClick={handleCreateEstimation}>
                 {insertEstimation.isPending ? "Création…" : "Créer estimation"}
               </Button>
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader><CardTitle className="text-sm">Historique</CardTitle></CardHeader>
-            <CardContent className="space-y-2">
-              {estimations.length === 0 ? <p className="text-sm text-muted-foreground">Aucune estimation.</p> : estimations.map((est) => {
-                const client = customers.find((c) => c.id === est.client_id);
-                return (
-                  <div key={est.id} className="p-2 rounded border text-sm">
-                    <div className="flex justify-between"><span className="font-medium">{client?.name ?? "Inconnu"}</span><span className="font-semibold">${est.total_price}</span></div>
-                    <p className="text-xs text-muted-foreground">{est.cut_type} · {formatDateQC(est.created_at)}</p>
-                  </div>
-                );
-              })}
-            </CardContent>
-          </Card>
+          <EstimationHistory estimations={estimations} customers={customers} params={params ?? null} />
+        </div>
+
+        {/* Live Preview – right */}
+        <div className="lg:col-span-4">
+          <div className="sticky top-6">
+            <EstimationPreview
+              customer={selectedClient}
+              params={params ?? null}
+              cutType={cutType as "trim" | "levelling"}
+              facadeLength={numFacade} leftLength={numLeft} rightLength={numRight} backLength={numBack}
+              heightMode={heightMode as "global" | "per_side"}
+              heightGlobal={numHeightGlobal} heightFacade={numHeightFacade} heightLeft={numHeightLeft}
+              heightRight={numHeightRight} heightBack={numHeightBack} width={numWidth}
+              basePrice={basePrice} bushItems={bushItems} extras={extras}
+              heightMultiplierApplied={heightMultiplierApplied} widthMultiplierApplied={widthMultiplierApplied}
+              heightMultiplier={p.height_multiplier} widthMultiplier={p.width_multiplier}
+              bushesTotal={bushesTotal} extrasPrice={extrasPrice} totalPrice={totalPrice}
+              estimationCount={estimations.length}
+            />
+          </div>
         </div>
       </div>
 
