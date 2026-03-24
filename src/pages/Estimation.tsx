@@ -119,6 +119,7 @@ const EstimationPage = () => {
     estimationNumber: getEstimationNumber(estimations.length),
     cutType: cutType as "trim" | "levelling",
     facadeLength: numFacade, leftLength: numLeft, rightLength: numRight, backLength: numBack,
+    backLeftLength: numBackLeft, backRightLength: numBackRight,
     heightMode: heightMode as "global" | "per_side",
     heightGlobal: numHeightGlobal, heightFacade: numHeightFacade, heightLeft: numHeightLeft, heightRight: numHeightRight, heightBack: numHeightBack,
     width: numWidth, basePrice,
