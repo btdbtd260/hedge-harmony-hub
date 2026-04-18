@@ -435,10 +435,13 @@ const EstimationPage = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><Calculator className="h-5 w-5" /> Résumé</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Pieds linéaires</span><span>{totalLinearFeet} pi</span></div>
-              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Prix/pied ({cutType})</span><span>${pricePerFoot}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Prix/pied ({cutTypeLabel})</span><span>${pricePerFoot}</span></div>
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Base</span><span>${basePrice.toFixed(2)}</span></div>
               {bushesTotal > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Bushes ({totalBushesCount})</span><span>${bushesTotal.toFixed(2)}</span></div>}
               {extrasPrice > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Extras</span><span>${extrasPrice}</span></div>}
+              {(twoSidesLeft || twoSidesFacade || twoSidesRight || twoSidesBackLeft || twoSidesBack || twoSidesBackRight) && (
+                <div className="flex justify-between text-sm text-amber-600"><span>Mult. deux côtés (×{twoSidesMult})</span><span>Appliqué</span></div>
+              )}
               {heightMultiplierApplied && <div className="flex justify-between text-sm text-amber-600"><span>Mult. hauteur (×{p.height_multiplier})</span><span>Appliqué</span></div>}
               {widthMultiplierApplied && <div className="flex justify-between text-sm text-amber-600"><span>Mult. largeur (×{p.width_multiplier})</span><span>Appliqué</span></div>}
               <div className="border-t pt-3 flex justify-between font-bold text-lg"><span>Total</span><span className="text-primary">${totalPrice.toFixed(2)}</span></div>
