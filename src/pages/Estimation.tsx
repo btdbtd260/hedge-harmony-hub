@@ -184,21 +184,36 @@ const EstimationPage = () => {
 
   const handleCreateEstimation = async () => {
     if (!clientId) return;
+    if (cutType === "custom" && numCustomPrice <= 0) {
+      toast.error("Entrez un prix par pied pour le type Custom");
+      return;
+    }
     try {
+      // Persist custom cut name + per-side two-sides flags inside extras (schema-compatible)
+      const metaExtras = [
+        ...(cutType === "custom" ? [{ id: `meta-cut-${Date.now()}`, description: `__CUT_META__:${customCutName.trim() || "Custom"}|${numCustomPrice}`, price: 0 }] : []),
+        { id: `meta-sides-${Date.now()}`, description: `__SIDES_META__:${[twoSidesLeft, twoSidesFacade, twoSidesRight, twoSidesBackLeft, twoSidesBack, twoSidesBackRight].map(b => b ? "1" : "0").join("")}`, price: 0 },
+      ];
+      const persistedCutType = cutType === "custom" ? "custom" : cutType;
+
       const estimation = await insertEstimation.mutateAsync({
-        client_id: clientId, cut_type: cutType,
+        client_id: clientId, cut_type: persistedCutType,
         facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
         back_left_length: numBackLeft, back_right_length: numBackRight,
         height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
         height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack,
         height_back_left: numHeightBackLeft, height_back_right: numHeightBackRight,
         width: numWidth,
-        extras: JSON.parse(JSON.stringify([...extras, ...bushItems.map((b) => ({ id: b.id, description: `Bush: ${b.description || "Bush"}`, price: b.count * b.price }))])),
+        extras: JSON.parse(JSON.stringify([
+          ...extras,
+          ...bushItems.map((b) => ({ id: b.id, description: `Bush: ${b.description || "Bush"}`, price: b.count * b.price })),
+          ...metaExtras,
+        ])),
         bushes_count: totalBushesCount, total_price: totalPrice,
       });
 
       const job = await insertJob.mutateAsync({
-        client_id: clientId, estimation_id: estimation.id, cut_type: cutType,
+        client_id: clientId, estimation_id: estimation.id, cut_type: persistedCutType,
         status: "pending", estimated_profit: totalPrice,
         measurement_snapshot: {
           facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
@@ -206,6 +221,12 @@ const EstimationPage = () => {
           height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
           height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack,
           height_back_left: numHeightBackLeft, height_back_right: numHeightBackRight, width: numWidth,
+          custom_cut_name: cutType === "custom" ? customCutName.trim() : null,
+          custom_cut_price: cutType === "custom" ? numCustomPrice : null,
+          two_sides: {
+            facade: twoSidesFacade, left: twoSidesLeft, right: twoSidesRight,
+            back: twoSidesBack, back_left: twoSidesBackLeft, back_right: twoSidesBackRight,
+          },
         },
       });
 
@@ -223,6 +244,9 @@ const EstimationPage = () => {
     setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
     setHeightBackLeft(""); setHeightBackRight("");
     setWidth(""); setBushItems([]); setExtras([]);
+    setCustomCutName(""); setCustomCutPrice("");
+    setTwoSidesFacade(false); setTwoSidesLeft(false); setTwoSidesRight(false);
+    setTwoSidesBack(false); setTwoSidesBackLeft(false); setTwoSidesBackRight(false);
   };
 
   return (
