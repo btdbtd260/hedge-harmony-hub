@@ -15,7 +15,9 @@ interface BushItem {
 interface Props {
   customer: DbCustomer | null;
   params: DbParameters | null;
-  cutType: "trim" | "levelling";
+  cutType: "trim" | "levelling" | "custom";
+  customCutLabel?: string;
+  customPricePerFoot?: number;
   facadeLength: number;
   leftLength: number;
   rightLength: number;
