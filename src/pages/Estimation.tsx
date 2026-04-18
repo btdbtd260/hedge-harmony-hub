@@ -467,7 +467,9 @@ const EstimationPage = () => {
             <EstimationPreview
               customer={selectedClient}
               params={params ?? null}
-              cutType={cutType as "trim" | "levelling"}
+              cutType={cutType as "trim" | "levelling" | "custom"}
+              customCutLabel={cutType === "custom" ? (customCutName.trim() || "Custom") : undefined}
+              customPricePerFoot={cutType === "custom" ? numCustomPrice : undefined}
               facadeLength={numFacade} leftLength={numLeft} rightLength={numRight} backLength={numBack}
               backLeftLength={numBackLeft} backRightLength={numBackRight}
               heightMode={heightMode as "global" | "per_side"}
