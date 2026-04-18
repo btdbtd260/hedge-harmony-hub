@@ -39,13 +39,22 @@ const EstimationPage = () => {
   const [newClientEmail, setNewClientEmail] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
 
-  const [cutType, setCutType] = useState<CutType>("trim");
+  const [cutType, setCutType] = useState<CutType | "custom">("trim");
+  const [customCutName, setCustomCutName] = useState("");
+  const [customCutPrice, setCustomCutPrice] = useState("");
   const [facadeLength, setFacadeLength] = useState("");
   const [leftLength, setLeftLength] = useState("");
   const [rightLength, setRightLength] = useState("");
   const [backLength, setBackLength] = useState("");
   const [backLeftLength, setBackLeftLength] = useState("");
   const [backRightLength, setBackRightLength] = useState("");
+  // "Deux côtés" toggles per side — multiplies that side's price by two_sides_multiplier
+  const [twoSidesFacade, setTwoSidesFacade] = useState(false);
+  const [twoSidesLeft, setTwoSidesLeft] = useState(false);
+  const [twoSidesRight, setTwoSidesRight] = useState(false);
+  const [twoSidesBack, setTwoSidesBack] = useState(false);
+  const [twoSidesBackLeft, setTwoSidesBackLeft] = useState(false);
+  const [twoSidesBackRight, setTwoSidesBackRight] = useState(false);
   const [heightMode, setHeightMode] = useState<HeightMode>("global");
   const [heightGlobal, setHeightGlobal] = useState("");
   const [heightFacade, setHeightFacade] = useState("");
@@ -62,7 +71,8 @@ const EstimationPage = () => {
   const [emailMessage, setEmailMessage] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3 };
+  const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3, two_sides_multiplier: 1.5 };
+  const twoSidesMult = (p as any).two_sides_multiplier ?? 1.5;
 
   const numFacade = Number(facadeLength) || 0;
   const numLeft = Number(leftLength) || 0;
@@ -78,10 +88,26 @@ const EstimationPage = () => {
   const numHeightBackLeft = Number(heightBackLeft) || 0;
   const numHeightBackRight = Number(heightBackRight) || 0;
   const numWidth = Number(width) || 2;
+  const numCustomPrice = Number(customCutPrice) || 0;
 
   const totalLinearFeet = numFacade + numLeft + numRight + numBack + numBackLeft + numBackRight;
-  const pricePerFoot = cutType === "trim" ? p.price_per_foot_trim : p.price_per_foot_levelling;
-  let basePrice = totalLinearFeet * pricePerFoot;
+  const pricePerFoot = cutType === "trim"
+    ? p.price_per_foot_trim
+    : cutType === "levelling"
+      ? p.price_per_foot_levelling
+      : numCustomPrice;
+
+  // Per-side base price with optional two-sides multiplier
+  const sideBase = (length: number, twoSides: boolean) =>
+    length * pricePerFoot * (twoSides ? twoSidesMult : 1);
+
+  let basePrice =
+    sideBase(numLeft, twoSidesLeft) +
+    sideBase(numFacade, twoSidesFacade) +
+    sideBase(numRight, twoSidesRight) +
+    sideBase(numBackLeft, twoSidesBackLeft) +
+    sideBase(numBack, twoSidesBack) +
+    sideBase(numBackRight, twoSidesBackRight);
 
   const effectiveHeight = heightMode === "global" ? numHeightGlobal : Math.max(numHeightFacade, numHeightLeft, numHeightRight, numHeightBack, numHeightBackLeft, numHeightBackRight);
   const heightMultiplierApplied = effectiveHeight >= p.height_multiplier_threshold;
@@ -93,6 +119,8 @@ const EstimationPage = () => {
   const totalBushesCount = bushItems.reduce((sum, b) => sum + b.count, 0);
   const extrasPrice = extras.reduce((sum, e) => sum + e.price, 0);
   const totalPrice = basePrice + bushesTotal + extrasPrice;
+
+  const cutTypeLabel = cutType === "trim" ? "Trim" : cutType === "levelling" ? "Levelling" : (customCutName.trim() || "Custom");
 
   const addExtra = () => setExtras([...extras, { id: `ext-${Date.now()}`, description: "", price: 0 }]);
   const removeExtra = (id: string) => setExtras(extras.filter((e) => e.id !== id));
