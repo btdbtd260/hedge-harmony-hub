@@ -5,13 +5,17 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useParameters, useUpdateParameters } from "@/hooks/useSupabaseData";
-import { Calculator, FileText, Bell, Save, Upload } from "lucide-react";
+import { Calculator, FileText, Bell, Save, Upload, Lock } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth, useIsAdmin } from "@/hooks/useAuth";
+import { LoginSettingsTab } from "@/components/settings/LoginSettingsTab";
 
 const Settings = () => {
   const { data: dbParams, isLoading } = useParameters();
   const updateParams = useUpdateParameters();
+  const { user } = useAuth();
+  const { isAdmin } = useIsAdmin(user?.id);
 
   const [form, setForm] = useState<Record<string, any>>({});
   const [uploadingLogo, setUploadingLogo] = useState(false);
@@ -71,10 +75,11 @@ const Settings = () => {
       </div>
 
       <Tabs defaultValue="estimation">
-        <TabsList className="grid grid-cols-3 w-full max-w-lg">
+        <TabsList className={`grid ${isAdmin ? "grid-cols-4" : "grid-cols-3"} w-full max-w-2xl`}>
           <TabsTrigger value="estimation"><Calculator className="h-4 w-4 mr-1" /> Estimation</TabsTrigger>
           <TabsTrigger value="template"><FileText className="h-4 w-4 mr-1" /> Template</TabsTrigger>
           <TabsTrigger value="reminder"><Bell className="h-4 w-4 mr-1" /> Rappels</TabsTrigger>
+          {isAdmin && <TabsTrigger value="login"><Lock className="h-4 w-4 mr-1" /> Login</TabsTrigger>}
         </TabsList>
 
         <TabsContent value="estimation" className="mt-4 space-y-4">
@@ -169,6 +174,12 @@ const Settings = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        {isAdmin && (
+          <TabsContent value="login" className="mt-4 space-y-4">
+            <LoginSettingsTab />
+          </TabsContent>
+        )}
       </Tabs>
     </div>
   );

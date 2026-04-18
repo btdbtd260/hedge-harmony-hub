@@ -14,6 +14,66 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          google_signin_enabled: boolean
+          id: string
+          require_login: boolean
+          updated_at: string
+        }
+        Insert: {
+          google_signin_enabled?: boolean
+          id?: string
+          require_login?: boolean
+          updated_at?: string
+        }
+        Update: {
+          google_signin_enabled?: boolean
+          id?: string
+          require_login?: boolean
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      approved_domains: {
+        Row: {
+          created_at: string
+          domain: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          domain: string
+          id?: string
+        }
+        Update: {
+          created_at?: string
+          domain?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      approved_emails: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_admin: boolean
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_admin?: boolean
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_admin?: boolean
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           active_year: number
@@ -445,15 +505,44 @@ export type Database = {
         }
         Relationships: []
       }
+      user_roles: {
+        Row: {
+          created_at: string
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      current_user_approved: { Args: never; Returns: boolean }
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
+      is_email_approved: { Args: { _email: string }; Returns: boolean }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "member"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -580,6 +669,8 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "member"],
+    },
   },
 } as const
