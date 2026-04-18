@@ -289,27 +289,83 @@ const EstimationPage = () => {
 
               <div className="space-y-2">
                 <Label>Type de coupe</Label>
-                <Select value={cutType} onValueChange={(v) => setCutType(v as CutType)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="trim">Trim</SelectItem><SelectItem value="levelling">Levelling</SelectItem></SelectContent></Select>
+                <Select value={cutType} onValueChange={(v) => setCutType(v as CutType | "custom")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="trim">Trim</SelectItem>
+                    <SelectItem value="levelling">Levelling</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+                {cutType === "custom" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Nom du type</Label>
+                      <Input placeholder="Ex: Sculpture" value={customCutName} onChange={(e) => setCustomCutName(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Prix par pied ($)</Label>
+                      <Input type="number" min={0} step="0.01" placeholder="0" value={customCutPrice} onChange={(e) => setCustomCutPrice(e.target.value)} />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Mesures (pieds linéaires)</Label>
-                
+                <p className="text-xs text-muted-foreground -mt-1">Cochez « 2 côtés » si la haie est coupée des deux côtés (×{twoSidesMult}).</p>
+
                 <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
                   <p className="text-sm font-medium text-foreground">Avant</p>
                   <div className="grid grid-cols-3 gap-2">
-                    <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={leftLength} onChange={(e) => setLeftLength(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Façade</Label><Input type="number" min={0} placeholder="0" value={facadeLength} onChange={(e) => setFacadeLength(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={rightLength} onChange={(e) => setRightLength(e.target.value)} /></div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Gauche</Label>
+                      <Input type="number" min={0} placeholder="0" value={leftLength} onChange={(e) => setLeftLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesLeft} onChange={(e) => setTwoSidesLeft(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Façade</Label>
+                      <Input type="number" min={0} placeholder="0" value={facadeLength} onChange={(e) => setFacadeLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesFacade} onChange={(e) => setTwoSidesFacade(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Droite</Label>
+                      <Input type="number" min={0} placeholder="0" value={rightLength} onChange={(e) => setRightLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesRight} onChange={(e) => setTwoSidesRight(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
                   </div>
                 </div>
 
                 <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
                   <p className="text-sm font-medium text-foreground">Arrière</p>
                   <div className="grid grid-cols-3 gap-2">
-                    <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={backLeftLength} onChange={(e) => setBackLeftLength(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Fond</Label><Input type="number" min={0} placeholder="0" value={backLength} onChange={(e) => setBackLength(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={backRightLength} onChange={(e) => setBackRightLength(e.target.value)} /></div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Gauche</Label>
+                      <Input type="number" min={0} placeholder="0" value={backLeftLength} onChange={(e) => setBackLeftLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesBackLeft} onChange={(e) => setTwoSidesBackLeft(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Fond</Label>
+                      <Input type="number" min={0} placeholder="0" value={backLength} onChange={(e) => setBackLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesBack} onChange={(e) => setTwoSidesBack(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Droite</Label>
+                      <Input type="number" min={0} placeholder="0" value={backRightLength} onChange={(e) => setBackRightLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesBackRight} onChange={(e) => setTwoSidesBackRight(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
