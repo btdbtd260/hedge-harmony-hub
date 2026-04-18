@@ -100,6 +100,16 @@ const Settings = () => {
                   <div className="space-y-2"><Label>Multiplicateur</Label><Input type="number" step="0.1" placeholder="0" value={numValue("width_multiplier")} onChange={(e) => handleNumChange("width_multiplier", e.target.value)} /></div>
                 </div>
               </div>
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-medium mb-3">Coupe deux côtés</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div className="space-y-2">
+                    <Label>Multiplicateur Deux Côtés</Label>
+                    <Input type="number" step="0.1" placeholder="1.5" value={numValue("two_sides_multiplier")} onChange={(e) => handleNumChange("two_sides_multiplier", e.target.value)} />
+                    <p className="text-xs text-muted-foreground">Appliqué au prix d'un côté lorsque la haie y est coupée des deux côtés.</p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
@@ -113,6 +123,7 @@ const Settings = () => {
                 <div className="space-y-2"><Label>Adresse</Label><Input value={form.company_address ?? ""} onChange={(e) => updateField("company_address", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Téléphone</Label><Input value={form.company_phone ?? ""} onChange={(e) => updateField("company_phone", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Email</Label><Input value={form.company_email ?? ""} onChange={(e) => updateField("company_email", e.target.value)} /></div>
+                <div className="space-y-2 md:col-span-2"><Label>Site web</Label><Input placeholder="https://exemple.com" value={form.company_website ?? ""} onChange={(e) => updateField("company_website", e.target.value)} /></div>
               </div>
             </CardContent>
           </Card>

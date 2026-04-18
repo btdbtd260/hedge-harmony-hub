@@ -39,13 +39,22 @@ const EstimationPage = () => {
   const [newClientEmail, setNewClientEmail] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
 
-  const [cutType, setCutType] = useState<CutType>("trim");
+  const [cutType, setCutType] = useState<CutType | "custom">("trim");
+  const [customCutName, setCustomCutName] = useState("");
+  const [customCutPrice, setCustomCutPrice] = useState("");
   const [facadeLength, setFacadeLength] = useState("");
   const [leftLength, setLeftLength] = useState("");
   const [rightLength, setRightLength] = useState("");
   const [backLength, setBackLength] = useState("");
   const [backLeftLength, setBackLeftLength] = useState("");
   const [backRightLength, setBackRightLength] = useState("");
+  // "Deux côtés" toggles per side — multiplies that side's price by two_sides_multiplier
+  const [twoSidesFacade, setTwoSidesFacade] = useState(false);
+  const [twoSidesLeft, setTwoSidesLeft] = useState(false);
+  const [twoSidesRight, setTwoSidesRight] = useState(false);
+  const [twoSidesBack, setTwoSidesBack] = useState(false);
+  const [twoSidesBackLeft, setTwoSidesBackLeft] = useState(false);
+  const [twoSidesBackRight, setTwoSidesBackRight] = useState(false);
   const [heightMode, setHeightMode] = useState<HeightMode>("global");
   const [heightGlobal, setHeightGlobal] = useState("");
   const [heightFacade, setHeightFacade] = useState("");
@@ -62,7 +71,8 @@ const EstimationPage = () => {
   const [emailMessage, setEmailMessage] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3 };
+  const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3, two_sides_multiplier: 1.5 };
+  const twoSidesMult = (p as any).two_sides_multiplier ?? 1.5;
 
   const numFacade = Number(facadeLength) || 0;
   const numLeft = Number(leftLength) || 0;
@@ -78,10 +88,26 @@ const EstimationPage = () => {
   const numHeightBackLeft = Number(heightBackLeft) || 0;
   const numHeightBackRight = Number(heightBackRight) || 0;
   const numWidth = Number(width) || 2;
+  const numCustomPrice = Number(customCutPrice) || 0;
 
   const totalLinearFeet = numFacade + numLeft + numRight + numBack + numBackLeft + numBackRight;
-  const pricePerFoot = cutType === "trim" ? p.price_per_foot_trim : p.price_per_foot_levelling;
-  let basePrice = totalLinearFeet * pricePerFoot;
+  const pricePerFoot = cutType === "trim"
+    ? p.price_per_foot_trim
+    : cutType === "levelling"
+      ? p.price_per_foot_levelling
+      : numCustomPrice;
+
+  // Per-side base price with optional two-sides multiplier
+  const sideBase = (length: number, twoSides: boolean) =>
+    length * pricePerFoot * (twoSides ? twoSidesMult : 1);
+
+  let basePrice =
+    sideBase(numLeft, twoSidesLeft) +
+    sideBase(numFacade, twoSidesFacade) +
+    sideBase(numRight, twoSidesRight) +
+    sideBase(numBackLeft, twoSidesBackLeft) +
+    sideBase(numBack, twoSidesBack) +
+    sideBase(numBackRight, twoSidesBackRight);
 
   const effectiveHeight = heightMode === "global" ? numHeightGlobal : Math.max(numHeightFacade, numHeightLeft, numHeightRight, numHeightBack, numHeightBackLeft, numHeightBackRight);
   const heightMultiplierApplied = effectiveHeight >= p.height_multiplier_threshold;
@@ -93,6 +119,8 @@ const EstimationPage = () => {
   const totalBushesCount = bushItems.reduce((sum, b) => sum + b.count, 0);
   const extrasPrice = extras.reduce((sum, e) => sum + e.price, 0);
   const totalPrice = basePrice + bushesTotal + extrasPrice;
+
+  const cutTypeLabel = cutType === "trim" ? "Trim" : cutType === "levelling" ? "Levelling" : (customCutName.trim() || "Custom");
 
   const addExtra = () => setExtras([...extras, { id: `ext-${Date.now()}`, description: "", price: 0 }]);
   const removeExtra = (id: string) => setExtras(extras.filter((e) => e.id !== id));
@@ -121,7 +149,9 @@ const EstimationPage = () => {
     customer: selectedClient,
     params: params ?? null,
     estimationNumber: getEstimationNumber(estimations.length),
-    cutType: cutType as "trim" | "levelling",
+    cutType: cutType as "trim" | "levelling" | "custom",
+    customCutLabel: cutType === "custom" ? (customCutName.trim() || "Custom") : undefined,
+    customPricePerFoot: cutType === "custom" ? numCustomPrice : undefined,
     facadeLength: numFacade, leftLength: numLeft, rightLength: numRight, backLength: numBack,
     backLeftLength: numBackLeft, backRightLength: numBackRight,
     heightMode: heightMode as "global" | "per_side",
@@ -156,21 +186,36 @@ const EstimationPage = () => {
 
   const handleCreateEstimation = async () => {
     if (!clientId) return;
+    if (cutType === "custom" && numCustomPrice <= 0) {
+      toast.error("Entrez un prix par pied pour le type Custom");
+      return;
+    }
     try {
+      // Persist custom cut name + per-side two-sides flags inside extras (schema-compatible)
+      const metaExtras = [
+        ...(cutType === "custom" ? [{ id: `meta-cut-${Date.now()}`, description: `__CUT_META__:${customCutName.trim() || "Custom"}|${numCustomPrice}`, price: 0 }] : []),
+        { id: `meta-sides-${Date.now()}`, description: `__SIDES_META__:${[twoSidesLeft, twoSidesFacade, twoSidesRight, twoSidesBackLeft, twoSidesBack, twoSidesBackRight].map(b => b ? "1" : "0").join("")}`, price: 0 },
+      ];
+      const persistedCutType = cutType === "custom" ? "custom" : cutType;
+
       const estimation = await insertEstimation.mutateAsync({
-        client_id: clientId, cut_type: cutType,
+        client_id: clientId, cut_type: persistedCutType,
         facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
         back_left_length: numBackLeft, back_right_length: numBackRight,
         height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
         height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack,
         height_back_left: numHeightBackLeft, height_back_right: numHeightBackRight,
         width: numWidth,
-        extras: JSON.parse(JSON.stringify([...extras, ...bushItems.map((b) => ({ id: b.id, description: `Bush: ${b.description || "Bush"}`, price: b.count * b.price }))])),
+        extras: JSON.parse(JSON.stringify([
+          ...extras,
+          ...bushItems.map((b) => ({ id: b.id, description: `Bush: ${b.description || "Bush"}`, price: b.count * b.price })),
+          ...metaExtras,
+        ])),
         bushes_count: totalBushesCount, total_price: totalPrice,
       });
 
       const job = await insertJob.mutateAsync({
-        client_id: clientId, estimation_id: estimation.id, cut_type: cutType,
+        client_id: clientId, estimation_id: estimation.id, cut_type: persistedCutType,
         status: "pending", estimated_profit: totalPrice,
         measurement_snapshot: {
           facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
@@ -178,6 +223,12 @@ const EstimationPage = () => {
           height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
           height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack,
           height_back_left: numHeightBackLeft, height_back_right: numHeightBackRight, width: numWidth,
+          custom_cut_name: cutType === "custom" ? customCutName.trim() : null,
+          custom_cut_price: cutType === "custom" ? numCustomPrice : null,
+          two_sides: {
+            facade: twoSidesFacade, left: twoSidesLeft, right: twoSidesRight,
+            back: twoSidesBack, back_left: twoSidesBackLeft, back_right: twoSidesBackRight,
+          },
         },
       });
 
@@ -195,6 +246,9 @@ const EstimationPage = () => {
     setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
     setHeightBackLeft(""); setHeightBackRight("");
     setWidth(""); setBushItems([]); setExtras([]);
+    setCustomCutName(""); setCustomCutPrice("");
+    setTwoSidesFacade(false); setTwoSidesLeft(false); setTwoSidesRight(false);
+    setTwoSidesBack(false); setTwoSidesBackLeft(false); setTwoSidesBackRight(false);
   };
 
   return (
@@ -237,27 +291,83 @@ const EstimationPage = () => {
 
               <div className="space-y-2">
                 <Label>Type de coupe</Label>
-                <Select value={cutType} onValueChange={(v) => setCutType(v as CutType)}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="trim">Trim</SelectItem><SelectItem value="levelling">Levelling</SelectItem></SelectContent></Select>
+                <Select value={cutType} onValueChange={(v) => setCutType(v as CutType | "custom")}>
+                  <SelectTrigger><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="trim">Trim</SelectItem>
+                    <SelectItem value="levelling">Levelling</SelectItem>
+                    <SelectItem value="custom">Custom</SelectItem>
+                  </SelectContent>
+                </Select>
+                {cutType === "custom" && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Nom du type</Label>
+                      <Input placeholder="Ex: Sculpture" value={customCutName} onChange={(e) => setCustomCutName(e.target.value)} />
+                    </div>
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Prix par pied ($)</Label>
+                      <Input type="number" min={0} step="0.01" placeholder="0" value={customCutPrice} onChange={(e) => setCustomCutPrice(e.target.value)} />
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
                 <Label className="text-base font-semibold">Mesures (pieds linéaires)</Label>
-                
+                <p className="text-xs text-muted-foreground -mt-1">Cochez « 2 côtés » si la haie est coupée des deux côtés (×{twoSidesMult}).</p>
+
                 <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
                   <p className="text-sm font-medium text-foreground">Avant</p>
                   <div className="grid grid-cols-3 gap-2">
-                    <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={leftLength} onChange={(e) => setLeftLength(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Façade</Label><Input type="number" min={0} placeholder="0" value={facadeLength} onChange={(e) => setFacadeLength(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={rightLength} onChange={(e) => setRightLength(e.target.value)} /></div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Gauche</Label>
+                      <Input type="number" min={0} placeholder="0" value={leftLength} onChange={(e) => setLeftLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesLeft} onChange={(e) => setTwoSidesLeft(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Façade</Label>
+                      <Input type="number" min={0} placeholder="0" value={facadeLength} onChange={(e) => setFacadeLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesFacade} onChange={(e) => setTwoSidesFacade(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Droite</Label>
+                      <Input type="number" min={0} placeholder="0" value={rightLength} onChange={(e) => setRightLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesRight} onChange={(e) => setTwoSidesRight(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
                   </div>
                 </div>
 
                 <div className="rounded-lg border bg-muted/30 p-3 space-y-2">
                   <p className="text-sm font-medium text-foreground">Arrière</p>
                   <div className="grid grid-cols-3 gap-2">
-                    <div><Label className="text-xs text-muted-foreground">Gauche</Label><Input type="number" min={0} placeholder="0" value={backLeftLength} onChange={(e) => setBackLeftLength(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Fond</Label><Input type="number" min={0} placeholder="0" value={backLength} onChange={(e) => setBackLength(e.target.value)} /></div>
-                    <div><Label className="text-xs text-muted-foreground">Droite</Label><Input type="number" min={0} placeholder="0" value={backRightLength} onChange={(e) => setBackRightLength(e.target.value)} /></div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Gauche</Label>
+                      <Input type="number" min={0} placeholder="0" value={backLeftLength} onChange={(e) => setBackLeftLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesBackLeft} onChange={(e) => setTwoSidesBackLeft(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Fond</Label>
+                      <Input type="number" min={0} placeholder="0" value={backLength} onChange={(e) => setBackLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesBack} onChange={(e) => setTwoSidesBack(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
+                    <div className="space-y-1">
+                      <Label className="text-xs text-muted-foreground">Droite</Label>
+                      <Input type="number" min={0} placeholder="0" value={backRightLength} onChange={(e) => setBackRightLength(e.target.value)} />
+                      <label className="flex items-center gap-1 text-xs text-muted-foreground cursor-pointer">
+                        <input type="checkbox" checked={twoSidesBackRight} onChange={(e) => setTwoSidesBackRight(e.target.checked)} className="h-3 w-3" /> 2 côtés
+                      </label>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -325,10 +435,13 @@ const EstimationPage = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><Calculator className="h-5 w-5" /> Résumé</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Pieds linéaires</span><span>{totalLinearFeet} pi</span></div>
-              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Prix/pied ({cutType})</span><span>${pricePerFoot}</span></div>
+              <div className="flex justify-between text-sm"><span className="text-muted-foreground">Prix/pied ({cutTypeLabel})</span><span>${pricePerFoot}</span></div>
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Base</span><span>${basePrice.toFixed(2)}</span></div>
               {bushesTotal > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Bushes ({totalBushesCount})</span><span>${bushesTotal.toFixed(2)}</span></div>}
               {extrasPrice > 0 && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Extras</span><span>${extrasPrice}</span></div>}
+              {(twoSidesLeft || twoSidesFacade || twoSidesRight || twoSidesBackLeft || twoSidesBack || twoSidesBackRight) && (
+                <div className="flex justify-between text-sm text-amber-600"><span>Mult. deux côtés (×{twoSidesMult})</span><span>Appliqué</span></div>
+              )}
               {heightMultiplierApplied && <div className="flex justify-between text-sm text-amber-600"><span>Mult. hauteur (×{p.height_multiplier})</span><span>Appliqué</span></div>}
               {widthMultiplierApplied && <div className="flex justify-between text-sm text-amber-600"><span>Mult. largeur (×{p.width_multiplier})</span><span>Appliqué</span></div>}
               <div className="border-t pt-3 flex justify-between font-bold text-lg"><span>Total</span><span className="text-primary">${totalPrice.toFixed(2)}</span></div>
@@ -354,7 +467,9 @@ const EstimationPage = () => {
             <EstimationPreview
               customer={selectedClient}
               params={params ?? null}
-              cutType={cutType as "trim" | "levelling"}
+              cutType={cutType as "trim" | "levelling" | "custom"}
+              customCutLabel={cutType === "custom" ? (customCutName.trim() || "Custom") : undefined}
+              customPricePerFoot={cutType === "custom" ? numCustomPrice : undefined}
               facadeLength={numFacade} leftLength={numLeft} rightLength={numRight} backLength={numBack}
               backLeftLength={numBackLeft} backRightLength={numBackRight}
               heightMode={heightMode as "global" | "per_side"}
@@ -426,7 +541,7 @@ const EstimationPage = () => {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Type</span>
-                <span className="font-medium">{cutType === "levelling" ? "Nivelage" : "Taille"}</span>
+                <span className="font-medium">{cutTypeLabel}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Pieds linéaires</span>

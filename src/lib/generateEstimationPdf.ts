@@ -8,7 +8,9 @@ export interface EstimationPdfData {
   customer: DbCustomer | null;
   params: DbParameters | null;
   estimationNumber: string;
-  cutType: "trim" | "levelling";
+  cutType: "trim" | "levelling" | "custom";
+  customCutLabel?: string;
+  customPricePerFoot?: number;
   facadeLength: number;
   leftLength: number;
   rightLength: number;
@@ -117,8 +119,12 @@ export function generateEstimationPdf(data: EstimationPdfData): jsPDF {
   y += 2;
 
   const totalFeet = facadeLength + leftLength + rightLength + backLength + backLeftLength + backRightLength;
-  const cutLabel = cutType === "levelling" ? "Nivelage" : "Taille";
-  const pricePerFoot = cutType === "trim" ? (params?.price_per_foot_trim ?? 4.5) : (params?.price_per_foot_levelling ?? 6);
+  const cutLabel = cutType === "levelling" ? "Nivelage" : cutType === "custom" ? (data.customCutLabel || "Custom") : "Taille";
+  const pricePerFoot = cutType === "trim"
+    ? (params?.price_per_foot_trim ?? 4.5)
+    : cutType === "levelling"
+      ? (params?.price_per_foot_levelling ?? 6)
+      : (data.customPricePerFoot ?? 0);
 
   const measureRows = [
     ["", "Gauche", "Centre", "Droite"],

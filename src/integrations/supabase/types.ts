@@ -351,6 +351,7 @@ export type Database = {
           company_logo_url: string | null
           company_name: string
           company_phone: string
+          company_website: string
           height_multiplier: number
           height_multiplier_threshold: number
           id: string
@@ -360,6 +361,7 @@ export type Database = {
           reminder_notification_time: string
           social_links: Json
           split_rule_profit_expense: number
+          two_sides_multiplier: number
           updated_at: string
           width_multiplier: number
           width_multiplier_threshold: number
@@ -371,6 +373,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string
           company_phone?: string
+          company_website?: string
           height_multiplier?: number
           height_multiplier_threshold?: number
           id?: string
@@ -380,6 +383,7 @@ export type Database = {
           reminder_notification_time?: string
           social_links?: Json
           split_rule_profit_expense?: number
+          two_sides_multiplier?: number
           updated_at?: string
           width_multiplier?: number
           width_multiplier_threshold?: number
@@ -391,6 +395,7 @@ export type Database = {
           company_logo_url?: string | null
           company_name?: string
           company_phone?: string
+          company_website?: string
           height_multiplier?: number
           height_multiplier_threshold?: number
           id?: string
@@ -400,6 +405,7 @@ export type Database = {
           reminder_notification_time?: string
           social_links?: Json
           split_rule_profit_expense?: number
+          two_sides_multiplier?: number
           updated_at?: string
           width_multiplier?: number
           width_multiplier_threshold?: number
