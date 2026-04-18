@@ -541,7 +541,7 @@ const EstimationPage = () => {
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Type</span>
-                <span className="font-medium">{cutType === "levelling" ? "Nivelage" : "Taille"}</span>
+                <span className="font-medium">{cutTypeLabel}</span>
               </div>
               <div className="flex justify-between text-sm">
                 <span className="text-muted-foreground">Pieds linéaires</span>
