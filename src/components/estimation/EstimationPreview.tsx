@@ -47,7 +47,7 @@ interface Props {
 }
 
 export default function EstimationPreview({
-  customer, params, cutType, facadeLength, leftLength, rightLength, backLength,
+  customer, params, cutType, customCutLabel, customPricePerFoot, facadeLength, leftLength, rightLength, backLength,
   backLeftLength, backRightLength,
   heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
   heightBackLeft, heightBackRight,
@@ -55,8 +55,12 @@ export default function EstimationPreview({
   heightMultiplier, widthMultiplier, bushesTotal, extrasPrice, totalPrice, estimationCount,
 }: Props) {
   const totalFeet = facadeLength + leftLength + rightLength + backLength + backLeftLength + backRightLength;
-  const pricePerFoot = cutType === "trim" ? (params?.price_per_foot_trim ?? 4.5) : (params?.price_per_foot_levelling ?? 6);
-  const cutLabel = cutType === "levelling" ? "Nivelage" : "Taille";
+  const pricePerFoot = cutType === "trim"
+    ? (params?.price_per_foot_trim ?? 4.5)
+    : cutType === "levelling"
+      ? (params?.price_per_foot_levelling ?? 6)
+      : (customPricePerFoot ?? 0);
+  const cutLabel = cutType === "levelling" ? "Nivelage" : cutType === "custom" ? (customCutLabel || "Custom") : "Taille";
   const estNumber = getEstimationNumber(estimationCount, new Date().toISOString());
 
   return (
