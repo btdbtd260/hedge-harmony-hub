@@ -185,10 +185,19 @@ const EstimationPage = () => {
   };
 
   const handleCreateEstimation = async () => {
-    if (!clientId) return;
-    if (cutType === "custom" && numCustomPrice <= 0) {
-      toast.error("Entrez un prix par pied pour le type Custom");
+    if (!clientId) {
+      toast.error("Sélectionnez un client");
       return;
+    }
+    if (cutType === "custom") {
+      if (!customCutName.trim()) {
+        toast.error("Entrez un nom pour le type Custom");
+        return;
+      }
+      if (numCustomPrice <= 0) {
+        toast.error("Entrez un prix par pied valide pour le type Custom");
+        return;
+      }
     }
     try {
       // Persist custom cut name + per-side two-sides flags inside extras (schema-compatible)
