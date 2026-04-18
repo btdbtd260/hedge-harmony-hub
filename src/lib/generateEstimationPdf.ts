@@ -8,7 +8,9 @@ export interface EstimationPdfData {
   customer: DbCustomer | null;
   params: DbParameters | null;
   estimationNumber: string;
-  cutType: "trim" | "levelling";
+  cutType: "trim" | "levelling" | "custom";
+  customCutLabel?: string;
+  customPricePerFoot?: number;
   facadeLength: number;
   leftLength: number;
   rightLength: number;
