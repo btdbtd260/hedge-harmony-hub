@@ -126,12 +126,33 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
-        <p className="text-sm text-muted-foreground">
-          Précision des estimations de durée — comparaison entre temps prévu et temps réel.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
+          <p className="text-sm text-muted-foreground">
+            Précision des estimations de durée — comparaison entre temps prévu et temps réel.
+          </p>
+        </div>
+        <Tabs value={cutFilter} onValueChange={(v) => setCutFilter(v as CutFilter)}>
+          <TabsList>
+            <TabsTrigger value="all">
+              Tous <Badge variant="secondary" className="ml-2">{counts.all}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="trim">
+              Taillage <Badge variant="secondary" className="ml-2">{counts.trim}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="levelling">
+              Levelling <Badge variant="secondary" className="ml-2">{counts.levelling}</Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
+
+      {cutFilter === "all" && counts.trim > 0 && counts.levelling > 0 && (
+        <p className="text-xs text-muted-foreground -mt-2">
+          ⚠ Vue combinée : taillage et levelling ont des durées de référence très différentes. Filtre par type pour une analyse précise.
+        </p>
+      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -279,6 +300,7 @@ export default function Analytics() {
                     <th className="text-left px-4 py-2">#</th>
                     <th className="text-left px-4 py-2">Date</th>
                     <th className="text-left px-4 py-2">Client</th>
+                    <th className="text-left px-4 py-2">Type</th>
                     <th className="text-right px-4 py-2">Estimé</th>
                     <th className="text-right px-4 py-2">Réel</th>
                     <th className="text-right px-4 py-2">Écart</th>
@@ -290,6 +312,9 @@ export default function Analytics() {
                       <td className="px-4 py-2 text-muted-foreground">{d.index}</td>
                       <td className="px-4 py-2">{d.label}</td>
                       <td className="px-4 py-2">{d.client}</td>
+                      <td className="px-4 py-2">
+                        <Badge variant="outline" className="text-xs">{cutLabel(d.cutType)}</Badge>
+                      </td>
                       <td className="px-4 py-2 text-right tabular-nums">{formatMinutes(d.estimated)}</td>
                       <td className="px-4 py-2 text-right tabular-nums font-medium">{formatMinutes(d.real)}</td>
                       <td className={cnVariance(d.variance)}>
