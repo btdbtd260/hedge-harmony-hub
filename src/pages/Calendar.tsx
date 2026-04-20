@@ -239,23 +239,31 @@ const CalendarPage = () => {
   );
 };
 
+// ─── Reusable estimation request style (blue) ───
+const REQUEST_CLASSES =
+  "bg-estimation-request/15 text-estimation-request hover:bg-estimation-request/25 border-l-2 border-estimation-request";
+
 // ─── Month View ───
 function MonthView({
   days,
   currentMonth,
   todayStr,
   scheduledByDate,
+  requestsByDate,
   customers,
   onDayClick,
   onJobClick,
+  onRequestClick,
 }: {
   days: Date[];
   currentMonth: number;
   todayStr: string;
   scheduledByDate: Map<string, DbJob[]>;
+  requestsByDate: Map<string, DbEstimationRequest[]>;
   customers: any[];
   onDayClick: (d: Date) => void;
   onJobClick: (id: string) => void;
+  onRequestClick: (id: string) => void;
 }) {
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -268,6 +276,8 @@ function MonthView({
         {days.map((d, i) => {
           const k = ymd(d);
           const dayJobs = scheduledByDate.get(k) ?? [];
+          const dayRequests = requestsByDate.get(k) ?? [];
+          const totalEntries = dayJobs.length + dayRequests.length;
           const isToday = k === todayStr;
           const isOtherMonth = d.getMonth() !== currentMonth;
           return (
@@ -284,7 +294,19 @@ function MonthView({
                 {d.getDate()}
               </div>
               <div className="space-y-0.5 overflow-hidden">
-                {dayJobs.slice(0, 2).map((j) => (
+                {/* External estimation requests first (visually distinct, blue) */}
+                {dayRequests.slice(0, 2).map((r) => (
+                  <div
+                    key={r.id}
+                    onClick={(e) => { e.stopPropagation(); onRequestClick(r.id); }}
+                    className={cn("text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer", REQUEST_CLASSES)}
+                    title={`Estimation à faire · ${r.client_name || "Sans nom"}`}
+                  >
+                    {r.requested_time && <span className="font-medium mr-1">{r.requested_time.slice(0, 5)}</span>}
+                    {r.client_name || "Estimation à faire"}
+                  </div>
+                ))}
+                {dayJobs.slice(0, Math.max(0, 2 - dayRequests.length)).map((j) => (
                   <div
                     key={j.id}
                     onClick={(e) => { e.stopPropagation(); onJobClick(j.id); }}
@@ -295,8 +317,8 @@ function MonthView({
                     {getClientNameFromList(customers, j.client_id)}
                   </div>
                 ))}
-                {dayJobs.length > 2 && (
-                  <div className="text-[10px] text-muted-foreground px-1.5">+{dayJobs.length - 2} autres</div>
+                {totalEntries > 2 && (
+                  <div className="text-[10px] text-muted-foreground px-1.5">+{totalEntries - 2} autres</div>
                 )}
               </div>
             </button>
