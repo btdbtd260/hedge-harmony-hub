@@ -1,8 +1,13 @@
+import { useEffect } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { MapPin, Phone, Mail, Calendar as CalIcon, Clock, ExternalLink } from "lucide-react";
-import { useUpdateEstimationRequest, type DbEstimationRequest } from "@/hooks/useSupabaseData";
+import {
+  useUpdateEstimationRequest,
+  useMarkEstimationRequestSeen,
+  type DbEstimationRequest,
+} from "@/hooks/useSupabaseData";
 import { toast } from "sonner";
 
 interface Props {
@@ -13,10 +18,20 @@ interface Props {
 /**
  * Lightweight viewer for an external estimation request.
  * Read-only fields + actions (mark done, hide).
- * The full conversion-to-job flow can be wired later when external data lands.
+ * Marks the request as "seen" automatically when opened so the sidebar
+ * notification badge clears without requiring an explicit action.
  */
 export function EstimationRequestDialog({ request, onOpenChange }: Props) {
   const updateRequest = useUpdateEstimationRequest();
+  const markSeen = useMarkEstimationRequestSeen();
+
+  // Auto-mark as seen when the dialog opens for an unseen request.
+  useEffect(() => {
+    if (request && !request.seen_at) {
+      markSeen.mutate(request.id);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [request?.id]);
 
   if (!request) return null;
 
