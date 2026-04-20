@@ -54,8 +54,18 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
 
   const handleDateChange = async (jobId: string, date: Date | undefined) => {
     try {
-      await updateJob.mutateAsync({ id: jobId, scheduled_date: date ? toYmd(date) : null });
-      toast.success(date ? "Date planifiée enregistrée" : "Date planifiée retirée");
+      const patch: any = { id: jobId, scheduled_date: date ? toYmd(date) : null };
+      // Auto-promote pending → scheduled when a date is assigned
+      const promoted = date && job?.status === "pending";
+      if (promoted) patch.status = "scheduled";
+      await updateJob.mutateAsync(patch);
+      toast.success(
+        date
+          ? promoted
+            ? "Date enregistrée — statut → Scheduled"
+            : "Date planifiée enregistrée"
+          : "Date planifiée retirée",
+      );
       setDatePickerOpen(false);
     } catch (err: any) {
       toast.error(err.message);
