@@ -43,6 +43,22 @@ function parseTimeToMinutes(t: string | null | undefined): number | null {
   return Number(m[1]) * 60 + Number(m[2]);
 }
 
+// Color classes per cut type — uses semantic tokens from index.css
+function cutTypeClasses(cutType: string | null | undefined): string {
+  if (cutType === "levelling") {
+    return "bg-cut-levelling/15 text-cut-levelling hover:bg-cut-levelling/25 border-l-2 border-cut-levelling";
+  }
+  if (cutType === "trim") {
+    return "bg-cut-trim/15 text-cut-trim hover:bg-cut-trim/25 border-l-2 border-cut-trim";
+  }
+  return "bg-muted text-muted-foreground hover:bg-muted/80 border-l-2 border-muted-foreground/40";
+}
+function cutTypeLabel(cutType: string | null | undefined): string {
+  if (cutType === "levelling") return "Nivelage";
+  if (cutType === "trim") return "Taille";
+  return cutType || "Autre";
+}
+
 const CalendarPage = () => {
   const { data: jobs = [] } = useJobs();
   const { data: customers = [] } = useCustomers();
@@ -126,10 +142,13 @@ const CalendarPage = () => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-lg">{title}</CardTitle>
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
-              <Button variant="outline" size="sm" onClick={goToday}>Aujourd'hui</Button>
-              <Button variant="outline" size="sm" onClick={goNext}><ChevronRight className="h-4 w-4" /></Button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <CutTypeLegend />
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" onClick={goToday}>Aujourd'hui</Button>
+                <Button variant="outline" size="sm" onClick={goNext}><ChevronRight className="h-4 w-4" /></Button>
+              </div>
             </div>
           </div>
         </CardHeader>
@@ -221,8 +240,8 @@ function MonthView({
                   <div
                     key={j.id}
                     onClick={(e) => { e.stopPropagation(); onJobClick(j.id); }}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary truncate hover:bg-primary/25"
-                    title={getClientNameFromList(customers, j.client_id)}
+                    className={cn("text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer", cutTypeClasses(j.cut_type))}
+                    title={`${cutTypeLabel(j.cut_type)} · ${getClientNameFromList(customers, j.client_id)}`}
                   >
                     {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}</span>}
                     {getClientNameFromList(customers, j.client_id)}
@@ -282,7 +301,8 @@ function WeekView({
                   <button
                     key={j.id}
                     onClick={() => onJobClick(j.id)}
-                    className="w-full text-left text-[11px] px-1.5 py-1 rounded bg-primary/15 text-primary hover:bg-primary/25"
+                    className={cn("w-full text-left text-[11px] px-1.5 py-1 rounded", cutTypeClasses(j.cut_type))}
+                    title={cutTypeLabel(j.cut_type)}
                   >
                     {j.start_time && <div className="font-medium">{j.start_time.slice(0, 5)}</div>}
                     <div className="truncate">{getClientNameFromList(customers, j.client_id)}</div>
@@ -336,10 +356,10 @@ function DayHourlyDialog({
                   <button
                     key={j.id}
                     onClick={() => onJobClick(j.id)}
-                    className="w-full text-left p-2 rounded border bg-card hover:bg-accent/40 transition-colors text-sm"
+                    className={cn("w-full text-left p-2 rounded text-sm transition-colors", cutTypeClasses(j.cut_type))}
                   >
                     <div className="font-medium">{getClientNameFromList(customers, j.client_id)}</div>
-                    <div className="text-xs text-muted-foreground">{j.cut_type}</div>
+                    <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
                   </button>
                 ))}
               </div>
@@ -361,7 +381,7 @@ function DayHourlyDialog({
                         <button
                           key={j.id}
                           onClick={() => onJobClick(j.id)}
-                          className="w-full text-left px-2 py-1.5 rounded bg-primary/15 text-primary hover:bg-primary/25 text-sm"
+                          className={cn("w-full text-left px-2 py-1.5 rounded text-sm", cutTypeClasses(j.cut_type))}
                         >
                           <div className="font-medium">
                             {j.start_time?.slice(0, 5)}
@@ -369,7 +389,7 @@ function DayHourlyDialog({
                             {" · "}
                             {getClientNameFromList(customers, j.client_id)}
                           </div>
-                          <div className="text-xs opacity-80">{j.cut_type}</div>
+                          <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
                         </button>
                       ))}
                     </div>
@@ -381,6 +401,22 @@ function DayHourlyDialog({
         )}
       </DialogContent>
     </Dialog>
+  );
+}
+
+// ─── Legend ───
+function CutTypeLegend() {
+  return (
+    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      <div className="flex items-center gap-1.5">
+        <span className="inline-block w-3 h-3 rounded-sm bg-cut-trim" />
+        <span>Taille</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="inline-block w-3 h-3 rounded-sm bg-cut-levelling" />
+        <span>Nivelage</span>
+      </div>
+    </div>
   );
 }
 
