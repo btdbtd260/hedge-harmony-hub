@@ -1,14 +1,19 @@
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { MapPin, Phone, Mail, Calendar as CalIcon, Clock, ExternalLink } from "lucide-react";
+import { MapPin, Phone, Mail, Calendar as CalIcon, Clock, ExternalLink, ArrowRight } from "lucide-react";
 import {
   useUpdateEstimationRequest,
   useMarkEstimationRequestSeen,
+  useCustomers,
+  useInsertCustomer,
   type DbEstimationRequest,
 } from "@/hooks/useSupabaseData";
 import { toast } from "sonner";
+
+const norm = (s?: string | null) => (s || "").trim().toLowerCase();
 
 interface Props {
   request: DbEstimationRequest | null;
@@ -22,8 +27,12 @@ interface Props {
  * notification badge clears without requiring an explicit action.
  */
 export function EstimationRequestDialog({ request, onOpenChange }: Props) {
+  const navigate = useNavigate();
   const updateRequest = useUpdateEstimationRequest();
   const markSeen = useMarkEstimationRequestSeen();
+  const insertCustomer = useInsertCustomer();
+  const { data: customers = [] } = useCustomers();
+  const [converting, setConverting] = useState(false);
 
   // Auto-mark as seen when the dialog opens for an unseen request.
   useEffect(() => {
@@ -45,6 +54,61 @@ export function EstimationRequestDialog({ request, onOpenChange }: Props) {
     await updateRequest.mutateAsync({ id: request.id, updates: { hidden: true } });
     toast.success("Demande masquée");
     onOpenChange(false);
+  };
+
+  /**
+   * Convertit la demande externe en client (créé ou réutilisé) puis ouvre
+   * l'onglet Estimation avec ce client présélectionné.
+   * Dédup: téléphone > email > (nom + adresse), tous insensibles à la casse.
+   * Ne crée AUCUN job — celui-ci sera généré par le workflow normal après
+   * la création de l'estimation.
+   */
+  const convertToClient = async () => {
+    if (converting) return;
+    setConverting(true);
+    try {
+      const phone = norm(request.client_phone);
+      const email = norm(request.client_email);
+      const name = norm(request.client_name);
+      const address = norm(request.client_address);
+
+      let match = customers.find((c) => phone && norm(c.phone) === phone);
+      if (!match) match = customers.find((c) => email && norm(c.email) === email);
+      if (!match) match = customers.find((c) => name && norm(c.name) === name && address && norm(c.address) === address);
+
+      let clientId: string;
+      if (match) {
+        clientId = match.id;
+        toast.success(`Client existant réutilisé : ${match.name}`);
+      } else {
+        if (!request.client_name?.trim()) {
+          toast.error("Nom du client manquant — impossible de créer le client");
+          setConverting(false);
+          return;
+        }
+        const created = await insertCustomer.mutateAsync({
+          name: request.client_name.trim(),
+          phone: request.client_phone || "",
+          email: request.client_email || "",
+          address: request.client_address || "",
+        });
+        clientId = created.id;
+        toast.success(`Client créé : ${created.name}`);
+      }
+
+      // Marque la demande comme traitée + masquée pour qu'elle disparaisse du calendrier.
+      await updateRequest.mutateAsync({
+        id: request.id,
+        updates: { status: "converted", hidden: true },
+      });
+
+      onOpenChange(false);
+      navigate(`/estimation?clientId=${clientId}`);
+    } catch (e: any) {
+      toast.error(e.message || "Erreur lors de la conversion");
+    } finally {
+      setConverting(false);
+    }
   };
 
   return (
@@ -118,9 +182,15 @@ export function EstimationRequestDialog({ request, onOpenChange }: Props) {
           )}
         </div>
 
-        <div className="flex justify-end gap-2 pt-3">
-          <Button variant="ghost" size="sm" onClick={hide}>Masquer</Button>
-          <Button size="sm" onClick={markDone}>Marquer traitée</Button>
+        <div className="flex flex-col gap-2 pt-3">
+          <Button size="sm" onClick={convertToClient} disabled={converting} className="w-full">
+            <ArrowRight className="h-4 w-4" />
+            {converting ? "Conversion…" : "Convertir en client + estimation"}
+          </Button>
+          <div className="flex justify-end gap-2">
+            <Button variant="ghost" size="sm" onClick={hide}>Masquer</Button>
+            <Button variant="outline" size="sm" onClick={markDone}>Marquer traitée</Button>
+          </div>
         </div>
       </DialogContent>
     </Dialog>
