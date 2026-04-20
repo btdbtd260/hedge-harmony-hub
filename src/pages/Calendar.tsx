@@ -396,21 +396,25 @@ function DayHourlyDialog({
                       {String(hour).padStart(2, "0")}:00
                     </div>
                     <div className="flex-1 p-1.5 space-y-1">
-                      {hourJobs.map((j) => (
-                        <button
-                          key={j.id}
-                          onClick={() => onJobClick(j.id)}
-                          className={cn("w-full text-left px-2 py-1.5 rounded text-sm", cutTypeClasses(j.cut_type))}
-                        >
-                          <div className="font-medium">
-                            {j.start_time?.slice(0, 5)}
-                            {j.end_time && ` – ${j.end_time.slice(0, 5)}`}
-                            {" · "}
-                            {getClientNameFromList(customers, j.client_id)}
-                          </div>
-                          <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
-                        </button>
-                      ))}
+                      {hourJobs.map((j) => {
+                        const end = projectedEndTime(j);
+                        return (
+                          <button
+                            key={j.id}
+                            onClick={() => onJobClick(j.id)}
+                            className={cn("w-full text-left px-2 py-1.5 rounded text-sm", cutTypeClasses(j.cut_type))}
+                          >
+                            <div className="font-medium">
+                              {j.start_time?.slice(0, 5)}
+                              {end && ` – ${end}`}
+                              {!j.end_time && end && <span className="text-[10px] opacity-70 ml-1">(estimé)</span>}
+                              {" · "}
+                              {getClientNameFromList(customers, j.client_id)}
+                            </div>
+                            <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
                 );
