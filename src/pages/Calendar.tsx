@@ -356,10 +356,10 @@ function DayHourlyDialog({
                   <button
                     key={j.id}
                     onClick={() => onJobClick(j.id)}
-                    className="w-full text-left p-2 rounded border bg-card hover:bg-accent/40 transition-colors text-sm"
+                    className={cn("w-full text-left p-2 rounded text-sm transition-colors", cutTypeClasses(j.cut_type))}
                   >
                     <div className="font-medium">{getClientNameFromList(customers, j.client_id)}</div>
-                    <div className="text-xs text-muted-foreground">{j.cut_type}</div>
+                    <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
                   </button>
                 ))}
               </div>
