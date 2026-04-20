@@ -146,8 +146,30 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                 </div>
               )}
 
-              {job.start_time && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Début</span><span>{job.start_time}</span></div>}
-              {job.end_time && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Fin</span><span>{job.end_time}</span></div>}
+              {job.status === "scheduled" && (
+                <>
+                  <div className="flex justify-between items-center text-sm gap-2">
+                    <span className="text-muted-foreground">Heure de début</span>
+                    <Input
+                      type="time"
+                      defaultValue={job.start_time?.slice(0, 5) ?? ""}
+                      onBlur={(e) => handleTimeChange(job.id, "start_time", e.target.value)}
+                      className="h-8 w-32"
+                    />
+                  </div>
+                  <div className="flex justify-between items-center text-sm gap-2">
+                    <span className="text-muted-foreground">Heure de fin</span>
+                    <Input
+                      type="time"
+                      defaultValue={job.end_time?.slice(0, 5) ?? ""}
+                      onBlur={(e) => handleTimeChange(job.id, "end_time", e.target.value)}
+                      className="h-8 w-32"
+                    />
+                  </div>
+                </>
+              )}
+              {job.status !== "scheduled" && job.start_time && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Début</span><span>{job.start_time}</span></div>}
+              {job.status !== "scheduled" && job.end_time && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Fin</span><span>{job.end_time}</span></div>}
               {job.total_duration_minutes && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Durée</span><span>{job.total_duration_minutes} min</span></div>}
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit estimé</span><span className="font-semibold">${job.estimated_profit}</span></div>
               {job.real_profit !== null && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit réel</span><span className="font-semibold">${job.real_profit}</span></div>}
