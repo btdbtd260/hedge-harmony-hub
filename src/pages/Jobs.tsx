@@ -49,6 +49,21 @@ const Jobs = () => {
   const pendingJobs = filtered.filter((j) => j.status === "pending");
   const allJobs = filtered;
 
+  // ── Completed jobs with year filter ──
+  // Uses scheduled_date (most logical date for a completed job); falls back to created_at.
+  const getJobYear = (j: DbJob): number => {
+    const dateStr = j.scheduled_date ?? j.created_at;
+    return dateStr ? new Date(dateStr).getFullYear() : new Date().getFullYear();
+  };
+  const completedJobs = jobs.filter((j) => j.status === "completed");
+  const availableYears = Array.from(new Set(completedJobs.map(getJobYear))).sort((a, b) => b - a);
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
+  const completedFiltered = completedJobs
+    .filter((j) => selectedYear === "all" || getJobYear(j) === Number(selectedYear))
+    .filter((j) => getClientNameFromList(customers, j.client_id).toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => (b.scheduled_date ?? b.created_at ?? "").localeCompare(a.scheduled_date ?? a.created_at ?? ""));
+
   const snap = selectedJob?.measurement_snapshot as any;
 
   const handleRemoveClick = (e: React.MouseEvent, jobId: string, clientName: string) => {
@@ -125,6 +140,7 @@ const Jobs = () => {
           <TabsTrigger value="all">Tous les jobs</TabsTrigger>
           <TabsTrigger value="upcoming">Prochains</TabsTrigger>
           <TabsTrigger value="pending">Jobs pending ({pendingJobs.length})</TabsTrigger>
+          <TabsTrigger value="completed">Complétés ({completedJobs.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-4">
@@ -154,6 +170,38 @@ const Jobs = () => {
             <CardHeader><CardTitle>Jobs en attente ({pendingJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {pendingJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job pending.</p> : pendingJobs.map((job) => (
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
+
+        <TabsContent value="completed" className="mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <CardTitle>Jobs complétés ({completedFiltered.length})</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm text-muted-foreground">Année</Label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes</SelectItem>
+                      {availableYears.map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                      {!availableYears.includes(currentYear) && (
+                        <SelectItem value={String(currentYear)}>{currentYear}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {completedFiltered.length === 0 ? (
+                <p className="text-muted-foreground text-sm">Aucun job complété pour cette période.</p>
+              ) : completedFiltered.map((job) => (
                 <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
               ))}
             </CardContent>
