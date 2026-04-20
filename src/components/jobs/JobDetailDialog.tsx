@@ -73,6 +73,15 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
     }
   };
 
+  const handleTimeChange = async (jobId: string, field: "start_time" | "end_time", value: string) => {
+    const v = value.trim() === "" ? null : value;
+    try {
+      await updateJob.mutateAsync({ id: jobId, [field]: v } as any);
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
   return (
     <Dialog open={!!job} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
