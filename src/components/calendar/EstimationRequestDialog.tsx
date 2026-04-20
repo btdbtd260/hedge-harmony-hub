@@ -43,7 +43,7 @@ export function EstimationRequestDialog({ request, onOpenChange }: Props) {
           <DialogDescription>Demande d'estimation reçue depuis le site web</DialogDescription>
         </DialogHeader>
 
-        <div className="space-y-3 text-sm">
+        <div className="space-y-3 text-sm max-h-[70vh] overflow-y-auto pr-1">
           <div>
             <div className="font-semibold text-base">{request.client_name || "Client sans nom"}</div>
             {request.source && (
@@ -77,8 +77,28 @@ export function EstimationRequestDialog({ request, onOpenChange }: Props) {
 
           {request.notes && (
             <div className="border-t pt-3">
-              <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Notes</p>
+              <p className="text-xs font-medium text-muted-foreground uppercase mb-1">Détails</p>
               <p className="whitespace-pre-wrap">{request.notes}</p>
+            </div>
+          )}
+
+          {Array.isArray(request.photos) && request.photos.length > 0 && (
+            <div className="border-t pt-3">
+              <p className="text-xs font-medium text-muted-foreground uppercase mb-2">
+                Photos ({request.photos.length})
+              </p>
+              <div className="grid grid-cols-2 gap-2">
+                {request.photos.map((url, i) => (
+                  <a key={i} href={url} target="_blank" rel="noopener noreferrer" className="block">
+                    <img
+                      src={url}
+                      alt={`Photo ${i + 1}`}
+                      className="w-full h-32 object-cover rounded border border-border hover:opacity-80 transition"
+                      loading="lazy"
+                    />
+                  </a>
+                ))}
+              </div>
             </div>
           )}
         </div>
