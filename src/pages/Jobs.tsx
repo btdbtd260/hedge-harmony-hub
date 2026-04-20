@@ -212,7 +212,7 @@ const Jobs = () => {
 
       {/* ── Job detail dialog ── */}
       <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJob(null)}>
-        <DialogContent>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedJob && (
             <>
               <DialogHeader><DialogTitle>Job — {getClientNameFromList(customers, selectedJob.client_id)}</DialogTitle></DialogHeader>
@@ -247,6 +247,7 @@ const Jobs = () => {
                     </div>
                   </div>
                 )}
+                <JobPhotosManager job={selectedJob} />
               </div>
             </>
           )}
