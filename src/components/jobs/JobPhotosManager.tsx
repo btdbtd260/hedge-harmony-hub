@@ -95,21 +95,19 @@ export function JobPhotosManager({ job }: Props) {
   );
 }
 
-function PhotoSection({
-  title,
-  kind,
-  photos,
-  busy,
-  onFiles,
-  onRemove,
-}: {
+interface PhotoSectionProps {
   title: string;
   kind: Kind;
   photos: string[];
   busy: boolean;
   onFiles: (kind: Kind, files: FileList | null) => void;
   onRemove: (kind: Kind, url: string) => void;
-}) {
+}
+
+const PhotoSection = forwardRef<HTMLDivElement, PhotoSectionProps>(function PhotoSection(
+  { title, kind, photos, busy, onFiles, onRemove },
+  ref,
+) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const libraryRef = useRef<HTMLInputElement>(null);
 
