@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useJobs, useCustomers, useUpdateJob, useInsertInvoice, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { Search, Calendar, XCircle, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { JobPhotosManager } from "@/components/jobs/JobPhotosManager";
 
 const statusColor: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
