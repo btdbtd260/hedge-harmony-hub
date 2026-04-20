@@ -8,6 +8,7 @@ import {
   DollarSign,
   UserCog,
   Bell,
+  BarChart3,
   Settings,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -35,6 +36,7 @@ const navItems = [
   { title: "Finance", url: "/finance", icon: DollarSign },
   { title: "Employés", url: "/employees", icon: UserCog },
   { title: "Rappels", url: "/reminders", icon: Bell },
+  { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Paramètres", url: "/settings", icon: Settings },
 ];
 
