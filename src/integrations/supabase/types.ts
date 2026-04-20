@@ -170,6 +170,60 @@ export type Database = {
         }
         Relationships: []
       }
+      estimation_requests: {
+        Row: {
+          client_address: string
+          client_email: string
+          client_name: string
+          client_phone: string
+          created_at: string
+          external_ref: string | null
+          hidden: boolean
+          id: string
+          notes: string
+          raw_payload: Json
+          requested_date: string
+          requested_time: string | null
+          source: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          client_address?: string
+          client_email?: string
+          client_name?: string
+          client_phone?: string
+          created_at?: string
+          external_ref?: string | null
+          hidden?: boolean
+          id?: string
+          notes?: string
+          raw_payload?: Json
+          requested_date: string
+          requested_time?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          client_address?: string
+          client_email?: string
+          client_name?: string
+          client_phone?: string
+          created_at?: string
+          external_ref?: string | null
+          hidden?: boolean
+          id?: string
+          notes?: string
+          raw_payload?: Json
+          requested_date?: string
+          requested_time?: string | null
+          source?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       estimations: {
         Row: {
           back_left_length: number

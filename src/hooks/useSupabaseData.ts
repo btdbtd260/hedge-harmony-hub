@@ -12,6 +12,7 @@ export type DbEmployee = Tables<"employees">;
 export type DbEmployeeJob = Tables<"employee_jobs">;
 export type DbReminder = Tables<"reminders">;
 export type DbParameters = Tables<"parameters">;
+export type DbEstimationRequest = Tables<"estimation_requests">;
 
 // ─── CUSTOMERS ───
 export function useCustomers() {
@@ -280,6 +281,45 @@ export function useUpdateParameters() {
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["parameters"] }),
+  });
+}
+
+// ─── ESTIMATION REQUESTS (external site submissions) ───
+export function useEstimationRequests() {
+  return useQuery({
+    queryKey: ["estimation_requests"],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("estimation_requests")
+        .select("*")
+        .eq("hidden", false)
+        .order("requested_date", { ascending: true });
+      if (error) throw error;
+      return data as DbEstimationRequest[];
+    },
+  });
+}
+
+export function useUpdateEstimationRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, updates }: { id: string; updates: Partial<DbEstimationRequest> }) => {
+      const { error } = await supabase.from("estimation_requests").update(updates).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["estimation_requests"] }),
+  });
+}
+
+export function useInsertEstimationRequest() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (payload: TablesInsert<"estimation_requests">) => {
+      const { data, error } = await supabase.from("estimation_requests").insert(payload).select().single();
+      if (error) throw error;
+      return data as DbEstimationRequest;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["estimation_requests"] }),
   });
 }
 

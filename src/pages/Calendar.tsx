@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
-import { useJobs, useCustomers, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
+import { useJobs, useCustomers, useEstimationRequests, getClientNameFromList, type DbJob, type DbEstimationRequest } from "@/hooks/useSupabaseData";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
+import { EstimationRequestDialog } from "@/components/calendar/EstimationRequestDialog";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "month" | "week";
@@ -81,14 +82,17 @@ function cutTypeLabel(cutType: string | null | undefined): string {
 const CalendarPage = () => {
   const { data: jobs = [] } = useJobs();
   const { data: customers = [] } = useCustomers();
+  const { data: estimationRequests = [] } = useEstimationRequests();
 
   const [view, setView] = useState<ViewMode>("month");
   const [cursor, setCursor] = useState<Date>(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) ?? null : null;
+  const selectedRequest = selectedRequestId ? estimationRequests.find((r) => r.id === selectedRequestId) ?? null : null;
 
-  // Index scheduled jobs by date string
+  // Index scheduled jobs by date string — pending jobs are explicitly excluded.
   const scheduledByDate = useMemo(() => {
     const map = new Map<string, DbJob[]>();
     jobs
@@ -104,6 +108,22 @@ const CalendarPage = () => {
     );
     return map;
   }, [jobs]);
+
+  // Index external estimation requests by date — kept separate from jobs.
+  const requestsByDate = useMemo(() => {
+    const map = new Map<string, DbEstimationRequest[]>();
+    estimationRequests
+      .filter((r) => r.status !== "done" && r.requested_date)
+      .forEach((r) => {
+        const k = r.requested_date;
+        if (!map.has(k)) map.set(k, []);
+        map.get(k)!.push(r);
+      });
+    map.forEach((arr) =>
+      arr.sort((a, b) => (parseTimeToMinutes(a.requested_time) ?? 1e9) - (parseTimeToMinutes(b.requested_time) ?? 1e9)),
+    );
+    return map;
+  }, [estimationRequests]);
 
   const todayStr = ymd(new Date());
 
@@ -178,18 +198,22 @@ const CalendarPage = () => {
               currentMonth={cursor.getMonth()}
               todayStr={todayStr}
               scheduledByDate={scheduledByDate}
+              requestsByDate={requestsByDate}
               customers={customers}
               onDayClick={(d) => setSelectedDay(d)}
               onJobClick={(id) => setSelectedJobId(id)}
+              onRequestClick={(id) => setSelectedRequestId(id)}
             />
           ) : (
             <WeekView
               days={weekDays}
               todayStr={todayStr}
               scheduledByDate={scheduledByDate}
+              requestsByDate={requestsByDate}
               customers={customers}
               onDayClick={(d) => setSelectedDay(d)}
               onJobClick={(id) => setSelectedJobId(id)}
+              onRequestClick={(id) => setSelectedRequestId(id)}
             />
           )}
         </CardContent>
@@ -200,15 +224,24 @@ const CalendarPage = () => {
         day={selectedDay}
         onOpenChange={(open) => !open && setSelectedDay(null)}
         scheduledByDate={scheduledByDate}
+        requestsByDate={requestsByDate}
         customers={customers}
         onJobClick={(id) => setSelectedJobId(id)}
+        onRequestClick={(id) => setSelectedRequestId(id)}
       />
 
       {/* Job detail — reuses shared dialog */}
       <JobDetailDialog job={selectedJob} onOpenChange={(open) => !open && setSelectedJobId(null)} />
+
+      {/* External estimation request detail */}
+      <EstimationRequestDialog request={selectedRequest} onOpenChange={(open) => !open && setSelectedRequestId(null)} />
     </div>
   );
 };
+
+// ─── Reusable estimation request style (blue) ───
+const REQUEST_CLASSES =
+  "bg-estimation-request/15 text-estimation-request hover:bg-estimation-request/25 border-l-2 border-estimation-request";
 
 // ─── Month View ───
 function MonthView({
@@ -216,17 +249,21 @@ function MonthView({
   currentMonth,
   todayStr,
   scheduledByDate,
+  requestsByDate,
   customers,
   onDayClick,
   onJobClick,
+  onRequestClick,
 }: {
   days: Date[];
   currentMonth: number;
   todayStr: string;
   scheduledByDate: Map<string, DbJob[]>;
+  requestsByDate: Map<string, DbEstimationRequest[]>;
   customers: any[];
   onDayClick: (d: Date) => void;
   onJobClick: (id: string) => void;
+  onRequestClick: (id: string) => void;
 }) {
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -239,6 +276,8 @@ function MonthView({
         {days.map((d, i) => {
           const k = ymd(d);
           const dayJobs = scheduledByDate.get(k) ?? [];
+          const dayRequests = requestsByDate.get(k) ?? [];
+          const totalEntries = dayJobs.length + dayRequests.length;
           const isToday = k === todayStr;
           const isOtherMonth = d.getMonth() !== currentMonth;
           return (
@@ -255,7 +294,19 @@ function MonthView({
                 {d.getDate()}
               </div>
               <div className="space-y-0.5 overflow-hidden">
-                {dayJobs.slice(0, 2).map((j) => (
+                {/* External estimation requests first (visually distinct, blue) */}
+                {dayRequests.slice(0, 2).map((r) => (
+                  <div
+                    key={r.id}
+                    onClick={(e) => { e.stopPropagation(); onRequestClick(r.id); }}
+                    className={cn("text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer", REQUEST_CLASSES)}
+                    title={`Estimation à faire · ${r.client_name || "Sans nom"}`}
+                  >
+                    {r.requested_time && <span className="font-medium mr-1">{r.requested_time.slice(0, 5)}</span>}
+                    {r.client_name || "Estimation à faire"}
+                  </div>
+                ))}
+                {dayJobs.slice(0, Math.max(0, 2 - dayRequests.length)).map((j) => (
                   <div
                     key={j.id}
                     onClick={(e) => { e.stopPropagation(); onJobClick(j.id); }}
@@ -266,8 +317,8 @@ function MonthView({
                     {getClientNameFromList(customers, j.client_id)}
                   </div>
                 ))}
-                {dayJobs.length > 2 && (
-                  <div className="text-[10px] text-muted-foreground px-1.5">+{dayJobs.length - 2} autres</div>
+                {totalEntries > 2 && (
+                  <div className="text-[10px] text-muted-foreground px-1.5">+{totalEntries - 2} autres</div>
                 )}
               </div>
             </button>
@@ -283,23 +334,29 @@ function WeekView({
   days,
   todayStr,
   scheduledByDate,
+  requestsByDate,
   customers,
   onDayClick,
   onJobClick,
+  onRequestClick,
 }: {
   days: Date[];
   todayStr: string;
   scheduledByDate: Map<string, DbJob[]>;
+  requestsByDate: Map<string, DbEstimationRequest[]>;
   customers: any[];
   onDayClick: (d: Date) => void;
   onJobClick: (id: string) => void;
+  onRequestClick: (id: string) => void;
 }) {
   return (
     <div className="grid grid-cols-7 gap-2">
       {days.map((d) => {
         const k = ymd(d);
         const dayJobs = scheduledByDate.get(k) ?? [];
+        const dayRequests = requestsByDate.get(k) ?? [];
         const isToday = k === todayStr;
+        const isEmpty = dayJobs.length === 0 && dayRequests.length === 0;
         return (
           <div key={k} className="border rounded-lg overflow-hidden flex flex-col min-h-[200px]">
             <button
@@ -313,20 +370,33 @@ function WeekView({
               <div className="text-base font-semibold">{d.getDate()}</div>
             </button>
             <div className="flex-1 p-1.5 space-y-1 overflow-y-auto">
-              {dayJobs.length === 0 ? (
+              {isEmpty ? (
                 <p className="text-[10px] text-muted-foreground text-center pt-2">—</p>
               ) : (
-                dayJobs.map((j) => (
-                  <button
-                    key={j.id}
-                    onClick={() => onJobClick(j.id)}
-                    className={cn("w-full text-left text-[11px] px-1.5 py-1 rounded", cutTypeClasses(j.cut_type))}
-                    title={cutTypeLabel(j.cut_type)}
-                  >
-                    {j.start_time && <div className="font-medium">{j.start_time.slice(0, 5)}</div>}
-                    <div className="truncate">{getClientNameFromList(customers, j.client_id)}</div>
-                  </button>
-                ))
+                <>
+                  {dayRequests.map((r) => (
+                    <button
+                      key={r.id}
+                      onClick={() => onRequestClick(r.id)}
+                      className={cn("w-full text-left text-[11px] px-1.5 py-1 rounded", REQUEST_CLASSES)}
+                      title="Estimation à faire"
+                    >
+                      {r.requested_time && <div className="font-medium">{r.requested_time.slice(0, 5)}</div>}
+                      <div className="truncate">{r.client_name || "Estimation à faire"}</div>
+                    </button>
+                  ))}
+                  {dayJobs.map((j) => (
+                    <button
+                      key={j.id}
+                      onClick={() => onJobClick(j.id)}
+                      className={cn("w-full text-left text-[11px] px-1.5 py-1 rounded", cutTypeClasses(j.cut_type))}
+                      title={cutTypeLabel(j.cut_type)}
+                    >
+                      {j.start_time && <div className="font-medium">{j.start_time.slice(0, 5)}</div>}
+                      <div className="truncate">{getClientNameFromList(customers, j.client_id)}</div>
+                    </button>
+                  ))}
+                </>
               )}
             </div>
           </div>
@@ -341,18 +411,25 @@ function DayHourlyDialog({
   day,
   onOpenChange,
   scheduledByDate,
+  requestsByDate,
   customers,
   onJobClick,
+  onRequestClick,
 }: {
   day: Date | null;
   onOpenChange: (open: boolean) => void;
   scheduledByDate: Map<string, DbJob[]>;
+  requestsByDate: Map<string, DbEstimationRequest[]>;
   customers: any[];
   onJobClick: (id: string) => void;
+  onRequestClick: (id: string) => void;
 }) {
   const dayJobs = day ? scheduledByDate.get(ymd(day)) ?? [] : [];
+  const dayRequests = day ? requestsByDate.get(ymd(day)) ?? [] : [];
   const unscheduledJobs = dayJobs.filter((j) => parseTimeToMinutes(j.start_time) === null);
   const scheduledJobs = dayJobs.filter((j) => parseTimeToMinutes(j.start_time) !== null);
+  const unscheduledRequests = dayRequests.filter((r) => parseTimeToMinutes(r.requested_time) === null);
+  const scheduledRequests = dayRequests.filter((r) => parseTimeToMinutes(r.requested_time) !== null);
 
   return (
     <Dialog open={!!day} onOpenChange={onOpenChange}>
@@ -364,13 +441,24 @@ function DayHourlyDialog({
                 {DAY_NAMES[day.getDay()]} {day.getDate()} {MONTH_NAMES[day.getMonth()]} {day.getFullYear()}
               </DialogTitle>
               <DialogDescription>
-                Horaire complet de la journée ({dayJobs.length} job{dayJobs.length > 1 ? "s" : ""} planifié{dayJobs.length > 1 ? "s" : ""})
+                {dayJobs.length} job{dayJobs.length > 1 ? "s" : ""} planifié{dayJobs.length > 1 ? "s" : ""}
+                {dayRequests.length > 0 && ` · ${dayRequests.length} estimation${dayRequests.length > 1 ? "s" : ""} à faire`}
               </DialogDescription>
             </DialogHeader>
 
-            {unscheduledJobs.length > 0 && (
+            {(unscheduledJobs.length > 0 || unscheduledRequests.length > 0) && (
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase">Sans heure</p>
+                {unscheduledRequests.map((r) => (
+                  <button
+                    key={r.id}
+                    onClick={() => onRequestClick(r.id)}
+                    className={cn("w-full text-left p-2 rounded text-sm transition-colors", REQUEST_CLASSES)}
+                  >
+                    <div className="font-medium">{r.client_name || "Estimation à faire"}</div>
+                    <div className="text-xs opacity-80">Estimation à faire</div>
+                  </button>
+                ))}
                 {unscheduledJobs.map((j) => (
                   <button
                     key={j.id}
@@ -390,12 +478,28 @@ function DayHourlyDialog({
                   const m = parseTimeToMinutes(j.start_time)!;
                   return Math.floor(m / 60) === hour;
                 });
+                const hourRequests = scheduledRequests.filter((r) => {
+                  const m = parseTimeToMinutes(r.requested_time)!;
+                  return Math.floor(m / 60) === hour;
+                });
                 return (
                   <div key={hour} className="flex min-h-[48px]">
                     <div className="w-16 shrink-0 text-xs text-muted-foreground p-2 border-r bg-muted/30 text-right">
                       {String(hour).padStart(2, "0")}:00
                     </div>
                     <div className="flex-1 p-1.5 space-y-1">
+                      {hourRequests.map((r) => (
+                        <button
+                          key={r.id}
+                          onClick={() => onRequestClick(r.id)}
+                          className={cn("w-full text-left px-2 py-1.5 rounded text-sm", REQUEST_CLASSES)}
+                        >
+                          <div className="font-medium">
+                            {r.requested_time?.slice(0, 5)} · {r.client_name || "Estimation à faire"}
+                          </div>
+                          <div className="text-xs opacity-80">Estimation à faire</div>
+                        </button>
+                      ))}
                       {hourJobs.map((j) => {
                         const end = projectedEndTime(j);
                         return (
@@ -438,6 +542,10 @@ function CutTypeLegend() {
       <div className="flex items-center gap-1.5">
         <span className="inline-block w-3 h-3 rounded-sm bg-cut-levelling" />
         <span>Nivelage</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="inline-block w-3 h-3 rounded-sm bg-estimation-request" />
+        <span>Estimation à faire</span>
       </div>
     </div>
   );
