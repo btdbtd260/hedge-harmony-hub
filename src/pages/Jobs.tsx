@@ -87,9 +87,6 @@ const Jobs = () => {
     try {
       await updateJob.mutateAsync({ id: jobId, status: newStatus });
       toast.success(`Statut changé → ${newStatus}`);
-      if (selectedJob?.id === jobId) {
-        setSelectedJob((prev) => prev ? { ...prev, status: newStatus } : null);
-      }
     } catch (err: any) { toast.error(err.message); }
   };
 
