@@ -82,14 +82,17 @@ function cutTypeLabel(cutType: string | null | undefined): string {
 const CalendarPage = () => {
   const { data: jobs = [] } = useJobs();
   const { data: customers = [] } = useCustomers();
+  const { data: estimationRequests = [] } = useEstimationRequests();
 
   const [view, setView] = useState<ViewMode>("month");
   const [cursor, setCursor] = useState<Date>(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
   const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) ?? null : null;
+  const selectedRequest = selectedRequestId ? estimationRequests.find((r) => r.id === selectedRequestId) ?? null : null;
 
-  // Index scheduled jobs by date string
+  // Index scheduled jobs by date string — pending jobs are explicitly excluded.
   const scheduledByDate = useMemo(() => {
     const map = new Map<string, DbJob[]>();
     jobs
@@ -105,6 +108,22 @@ const CalendarPage = () => {
     );
     return map;
   }, [jobs]);
+
+  // Index external estimation requests by date — kept separate from jobs.
+  const requestsByDate = useMemo(() => {
+    const map = new Map<string, DbEstimationRequest[]>();
+    estimationRequests
+      .filter((r) => r.status !== "done" && r.requested_date)
+      .forEach((r) => {
+        const k = r.requested_date;
+        if (!map.has(k)) map.set(k, []);
+        map.get(k)!.push(r);
+      });
+    map.forEach((arr) =>
+      arr.sort((a, b) => (parseTimeToMinutes(a.requested_time) ?? 1e9) - (parseTimeToMinutes(b.requested_time) ?? 1e9)),
+    );
+    return map;
+  }, [estimationRequests]);
 
   const todayStr = ymd(new Date());
 
