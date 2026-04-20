@@ -301,7 +301,8 @@ function WeekView({
                   <button
                     key={j.id}
                     onClick={() => onJobClick(j.id)}
-                    className="w-full text-left text-[11px] px-1.5 py-1 rounded bg-primary/15 text-primary hover:bg-primary/25"
+                    className={cn("w-full text-left text-[11px] px-1.5 py-1 rounded", cutTypeClasses(j.cut_type))}
+                    title={cutTypeLabel(j.cut_type)}
                   >
                     {j.start_time && <div className="font-medium">{j.start_time.slice(0, 5)}</div>}
                     <div className="truncate">{getClientNameFromList(customers, j.client_id)}</div>
