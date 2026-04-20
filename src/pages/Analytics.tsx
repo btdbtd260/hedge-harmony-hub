@@ -36,8 +36,10 @@ function cutLabel(c: string | null | undefined): string {
 export default function Analytics() {
   const { data: jobs = [] } = useJobs();
   const { data: customers = [] } = useCustomers();
+  const [cutFilter, setCutFilter] = useState<CutFilter>("all");
 
-  const completedJobs = useMemo(() => {
+  // All completed jobs with full duration data — base dataset
+  const allCompleted = useMemo(() => {
     return jobs
       .filter(
         (j) =>
@@ -46,12 +48,27 @@ export default function Analytics() {
           j.estimated_duration_minutes != null,
       )
       .sort((a, b) => {
-        // Use scheduled_date primarily, fallback to created_at
         const da = a.scheduled_date || a.created_at;
         const db = b.scheduled_date || b.created_at;
         return new Date(da).getTime() - new Date(db).getTime();
       });
   }, [jobs]);
+
+  // Counts per cut type (for the filter tabs)
+  const counts = useMemo(() => {
+    const c = { all: allCompleted.length, trim: 0, levelling: 0 };
+    for (const j of allCompleted) {
+      if (j.cut_type === "trim") c.trim++;
+      else if (j.cut_type === "levelling") c.levelling++;
+    }
+    return c;
+  }, [allCompleted]);
+
+  // Filtered dataset based on selected cut type — segmentation rule
+  const completedJobs = useMemo(() => {
+    if (cutFilter === "all") return allCompleted;
+    return allCompleted.filter((j) => j.cut_type === cutFilter);
+  }, [allCompleted, cutFilter]);
 
   const chartData = useMemo(() => {
     return completedJobs.map((j, idx) => {
@@ -60,6 +77,7 @@ export default function Analytics() {
         index: idx + 1,
         label: dateStr ? new Date(dateStr).toLocaleDateString("fr-CA", { month: "short", day: "numeric" }) : `#${idx + 1}`,
         client: getClientNameFromList(customers, j.client_id),
+        cutType: j.cut_type,
         estimated: Math.round(j.estimated_duration_minutes ?? 0),
         real: Math.round(j.total_duration_minutes ?? 0),
         variance: Math.round((j.total_duration_minutes ?? 0) - (j.estimated_duration_minutes ?? 0)),
