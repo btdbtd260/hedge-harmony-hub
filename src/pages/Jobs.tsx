@@ -13,6 +13,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useJobs, useCustomers, useUpdateJob, useInsertInvoice, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { Search, Calendar, XCircle, FileDown } from "lucide-react";
 import { toast } from "sonner";
+import { JobPhotosManager } from "@/components/jobs/JobPhotosManager";
 
 const statusColor: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -28,7 +29,8 @@ const Jobs = () => {
   const insertInvoice = useInsertInvoice();
   const [search, setSearch] = useState("");
   const [hideCompleted, setHideCompleted] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<DbJob | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) ?? null : null;
   const [jobToRemove, setJobToRemove] = useState<{ id: string; name: string } | null>(null);
 
   // Create invoice dialog
@@ -76,7 +78,7 @@ const Jobs = () => {
     try {
       await updateJob.mutateAsync({ id: jobToRemove.id, status: "hidden" });
       toast.success("Job retiré");
-      if (selectedJob?.id === jobToRemove.id) setSelectedJob(null);
+      if (selectedJob?.id === jobToRemove.id) setSelectedJobId(null);
     } catch (err: any) { toast.error(err.message); }
     setJobToRemove(null);
   };
@@ -85,9 +87,6 @@ const Jobs = () => {
     try {
       await updateJob.mutateAsync({ id: jobId, status: newStatus });
       toast.success(`Statut changé → ${newStatus}`);
-      if (selectedJob?.id === jobId) {
-        setSelectedJob((prev) => prev ? { ...prev, status: newStatus } : null);
-      }
     } catch (err: any) { toast.error(err.message); }
   };
 
@@ -148,7 +147,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Tous les jobs ({allJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {allJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job trouvé.</p> : allJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
               ))}
             </CardContent>
           </Card>
@@ -159,7 +158,7 @@ const Jobs = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Prochains jobs</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {upcoming.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job à venir.</p> : upcoming.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
               ))}
             </CardContent>
           </Card>
@@ -170,7 +169,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Jobs en attente ({pendingJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {pendingJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job pending.</p> : pendingJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
               ))}
             </CardContent>
           </Card>
@@ -202,7 +201,7 @@ const Jobs = () => {
               {completedFiltered.length === 0 ? (
                 <p className="text-muted-foreground text-sm">Aucun job complété pour cette période.</p>
               ) : completedFiltered.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
               ))}
             </CardContent>
           </Card>
@@ -210,8 +209,8 @@ const Jobs = () => {
       </Tabs>
 
       {/* ── Job detail dialog ── */}
-      <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJob(null)}>
-        <DialogContent>
+      <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJobId(null)}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
           {selectedJob && (
             <>
               <DialogHeader><DialogTitle>Job — {getClientNameFromList(customers, selectedJob.client_id)}</DialogTitle></DialogHeader>
@@ -246,6 +245,7 @@ const Jobs = () => {
                     </div>
                   </div>
                 )}
+                <JobPhotosManager job={selectedJob} />
               </div>
             </>
           )}
