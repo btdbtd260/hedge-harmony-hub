@@ -198,18 +198,22 @@ const CalendarPage = () => {
               currentMonth={cursor.getMonth()}
               todayStr={todayStr}
               scheduledByDate={scheduledByDate}
+              requestsByDate={requestsByDate}
               customers={customers}
               onDayClick={(d) => setSelectedDay(d)}
               onJobClick={(id) => setSelectedJobId(id)}
+              onRequestClick={(id) => setSelectedRequestId(id)}
             />
           ) : (
             <WeekView
               days={weekDays}
               todayStr={todayStr}
               scheduledByDate={scheduledByDate}
+              requestsByDate={requestsByDate}
               customers={customers}
               onDayClick={(d) => setSelectedDay(d)}
               onJobClick={(id) => setSelectedJobId(id)}
+              onRequestClick={(id) => setSelectedRequestId(id)}
             />
           )}
         </CardContent>
@@ -220,12 +224,17 @@ const CalendarPage = () => {
         day={selectedDay}
         onOpenChange={(open) => !open && setSelectedDay(null)}
         scheduledByDate={scheduledByDate}
+        requestsByDate={requestsByDate}
         customers={customers}
         onJobClick={(id) => setSelectedJobId(id)}
+        onRequestClick={(id) => setSelectedRequestId(id)}
       />
 
       {/* Job detail — reuses shared dialog */}
       <JobDetailDialog job={selectedJob} onOpenChange={(open) => !open && setSelectedJobId(null)} />
+
+      {/* External estimation request detail */}
+      <EstimationRequestDialog request={selectedRequest} onOpenChange={(open) => !open && setSelectedRequestId(null)} />
     </div>
   );
 };
