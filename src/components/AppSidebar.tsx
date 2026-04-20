@@ -89,6 +89,15 @@ export function AppSidebar() {
                           {activeReminders}
                         </Badge>
                       )}
+                      {item.title === "Calendrier" && unseenRequests > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className="h-5 min-w-5 text-xs flex items-center justify-center"
+                          title={`${unseenRequests} nouvelle(s) demande(s) d'estimation`}
+                        >
+                          {unseenRequests}
+                        </Badge>
+                      )}
                     </NavLink>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
