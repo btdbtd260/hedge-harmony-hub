@@ -140,6 +140,7 @@ const Jobs = () => {
           <TabsTrigger value="all">Tous les jobs</TabsTrigger>
           <TabsTrigger value="upcoming">Prochains</TabsTrigger>
           <TabsTrigger value="pending">Jobs pending ({pendingJobs.length})</TabsTrigger>
+          <TabsTrigger value="completed">Complétés ({completedJobs.length})</TabsTrigger>
         </TabsList>
 
         <TabsContent value="all" className="mt-4">
