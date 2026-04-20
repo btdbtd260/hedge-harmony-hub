@@ -23,7 +23,7 @@ import {
   SidebarMenuItem,
   SidebarHeader,
 } from "@/components/ui/sidebar";
-import { useReminders } from "@/hooks/useSupabaseData";
+import { useReminders, useEstimationRequests } from "@/hooks/useSupabaseData";
 import { Badge } from "@/components/ui/badge";
 
 const navItems = [
@@ -42,12 +42,18 @@ const navItems = [
 
 export function AppSidebar() {
   const { data: reminders = [] } = useReminders();
+  const { data: estimationRequests = [] } = useEstimationRequests();
 
   // Only count reminders due within next 7 days
   const inOneWeek = new Date();
   inOneWeek.setDate(inOneWeek.getDate() + 7);
   const inOneWeekStr = inOneWeek.toISOString().split("T")[0];
   const activeReminders = reminders.filter((r) => !r.is_completed && r.due_date <= inOneWeekStr).length;
+
+  // Unseen external estimation requests (new submissions never opened, not done, not hidden)
+  const unseenRequests = estimationRequests.filter(
+    (r) => !r.seen_at && r.status !== "done" && !r.hidden,
+  ).length;
 
   return (
     <Sidebar>
