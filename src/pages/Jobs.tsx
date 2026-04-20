@@ -175,6 +175,38 @@ const Jobs = () => {
             </CardContent>
           </Card>
         </TabsContent>
+
+        <TabsContent value="completed" className="mt-4">
+          <Card>
+            <CardHeader>
+              <div className="flex items-center justify-between gap-3 flex-wrap">
+                <CardTitle>Jobs complétés ({completedFiltered.length})</CardTitle>
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm text-muted-foreground">Année</Label>
+                  <Select value={selectedYear} onValueChange={setSelectedYear}>
+                    <SelectTrigger className="w-32 h-9"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">Toutes</SelectItem>
+                      {availableYears.map((y) => (
+                        <SelectItem key={y} value={String(y)}>{y}</SelectItem>
+                      ))}
+                      {!availableYears.includes(currentYear) && (
+                        <SelectItem value={String(currentYear)}>{currentYear}</SelectItem>
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {completedFiltered.length === 0 ? (
+                <p className="text-muted-foreground text-sm">Aucun job complété pour cette période.</p>
+              ) : completedFiltered.map((job) => (
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJob(job)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
+              ))}
+            </CardContent>
+          </Card>
+        </TabsContent>
       </Tabs>
 
       {/* ── Job detail dialog ── */}
