@@ -543,6 +543,10 @@ function CutTypeLegend() {
         <span className="inline-block w-3 h-3 rounded-sm bg-cut-levelling" />
         <span>Nivelage</span>
       </div>
+      <div className="flex items-center gap-1.5">
+        <span className="inline-block w-3 h-3 rounded-sm bg-estimation-request" />
+        <span>Estimation à faire</span>
+      </div>
     </div>
   );
 }
