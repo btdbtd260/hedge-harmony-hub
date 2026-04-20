@@ -142,10 +142,13 @@ const CalendarPage = () => {
         <CardHeader className="pb-3">
           <div className="flex items-center justify-between flex-wrap gap-3">
             <CardTitle className="text-lg">{title}</CardTitle>
-            <div className="flex items-center gap-1">
-              <Button variant="outline" size="sm" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
-              <Button variant="outline" size="sm" onClick={goToday}>Aujourd'hui</Button>
-              <Button variant="outline" size="sm" onClick={goNext}><ChevronRight className="h-4 w-4" /></Button>
+            <div className="flex items-center gap-3 flex-wrap">
+              <CutTypeLegend />
+              <div className="flex items-center gap-1">
+                <Button variant="outline" size="sm" onClick={goPrev}><ChevronLeft className="h-4 w-4" /></Button>
+                <Button variant="outline" size="sm" onClick={goToday}>Aujourd'hui</Button>
+                <Button variant="outline" size="sm" onClick={goNext}><ChevronRight className="h-4 w-4" /></Button>
+              </div>
             </div>
           </div>
         </CardHeader>
