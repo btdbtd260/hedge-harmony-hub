@@ -1,5 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useJobs, useCustomers, getClientNameFromList } from "@/hooks/useSupabaseData";
 import {
   LineChart,
@@ -12,6 +14,17 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { TrendingDown, TrendingUp, Target, Activity } from "lucide-react";
+
+type CutFilter = "all" | "trim" | "levelling";
+
+const CUT_LABEL: Record<string, string> = {
+  trim: "Taillage",
+  levelling: "Levelling",
+};
+function cutLabel(c: string | null | undefined): string {
+  if (!c) return "—";
+  return CUT_LABEL[c] ?? c;
+}
 
 /**
  * Granularité = un point par job complété, ordonné chronologiquement.
