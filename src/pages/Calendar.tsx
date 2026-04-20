@@ -404,4 +404,20 @@ function DayHourlyDialog({
   );
 }
 
+// ─── Legend ───
+function CutTypeLegend() {
+  return (
+    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+      <div className="flex items-center gap-1.5">
+        <span className="inline-block w-3 h-3 rounded-sm bg-cut-trim" />
+        <span>Taille</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="inline-block w-3 h-3 rounded-sm bg-cut-levelling" />
+        <span>Nivelage</span>
+      </div>
+    </div>
+  );
+}
+
 export default CalendarPage;
