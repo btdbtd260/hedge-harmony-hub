@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { forwardRef, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpdateJob, type DbJob } from "@/hooks/useSupabaseData";
 import { Button } from "@/components/ui/button";
@@ -95,26 +95,24 @@ export function JobPhotosManager({ job }: Props) {
   );
 }
 
-function PhotoSection({
-  title,
-  kind,
-  photos,
-  busy,
-  onFiles,
-  onRemove,
-}: {
+interface PhotoSectionProps {
   title: string;
   kind: Kind;
   photos: string[];
   busy: boolean;
   onFiles: (kind: Kind, files: FileList | null) => void;
   onRemove: (kind: Kind, url: string) => void;
-}) {
+}
+
+const PhotoSection = forwardRef<HTMLDivElement, PhotoSectionProps>(function PhotoSection(
+  { title, kind, photos, busy, onFiles, onRemove },
+  ref,
+) {
   const cameraRef = useRef<HTMLInputElement>(null);
   const libraryRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="space-y-2">
+    <div ref={ref} className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium">{title} ({photos.length})</p>
         <div className="flex gap-2">
@@ -188,4 +186,5 @@ function PhotoSection({
       )}
     </div>
   );
-}
+});
+
