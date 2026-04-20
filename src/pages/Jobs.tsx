@@ -49,6 +49,21 @@ const Jobs = () => {
   const pendingJobs = filtered.filter((j) => j.status === "pending");
   const allJobs = filtered;
 
+  // ── Completed jobs with year filter ──
+  // Uses scheduled_date (most logical date for a completed job); falls back to created_at.
+  const getJobYear = (j: DbJob): number => {
+    const dateStr = j.scheduled_date ?? j.created_at;
+    return dateStr ? new Date(dateStr).getFullYear() : new Date().getFullYear();
+  };
+  const completedJobs = jobs.filter((j) => j.status === "completed");
+  const availableYears = Array.from(new Set(completedJobs.map(getJobYear))).sort((a, b) => b - a);
+  const currentYear = new Date().getFullYear();
+  const [selectedYear, setSelectedYear] = useState<string>(String(currentYear));
+  const completedFiltered = completedJobs
+    .filter((j) => selectedYear === "all" || getJobYear(j) === Number(selectedYear))
+    .filter((j) => getClientNameFromList(customers, j.client_id).toLowerCase().includes(search.toLowerCase()))
+    .sort((a, b) => (b.scheduled_date ?? b.created_at ?? "").localeCompare(a.scheduled_date ?? a.created_at ?? ""));
+
   const snap = selectedJob?.measurement_snapshot as any;
 
   const handleRemoveClick = (e: React.MouseEvent, jobId: string, clientName: string) => {
