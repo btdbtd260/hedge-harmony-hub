@@ -29,7 +29,8 @@ const Jobs = () => {
   const insertInvoice = useInsertInvoice();
   const [search, setSearch] = useState("");
   const [hideCompleted, setHideCompleted] = useState(false);
-  const [selectedJob, setSelectedJob] = useState<DbJob | null>(null);
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) ?? null : null;
   const [jobToRemove, setJobToRemove] = useState<{ id: string; name: string } | null>(null);
 
   // Create invoice dialog
