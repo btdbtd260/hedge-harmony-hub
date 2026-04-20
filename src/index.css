@@ -114,3 +114,9 @@
     @apply bg-background text-foreground;
   }
 }
+
+@layer utilities {
+  /* Used by the time wheel picker — hide native scrollbars while keeping scroll */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}
