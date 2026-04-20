@@ -14,6 +14,7 @@ import Invoices from "./pages/Invoices";
 import Finance from "./pages/Finance";
 import Employees from "./pages/Employees";
 import Reminders from "./pages/Reminders";
+import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
 import Auth from "./pages/Auth";
 import Unauthorized from "./pages/Unauthorized";
