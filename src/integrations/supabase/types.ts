@@ -181,6 +181,7 @@ export type Database = {
           hidden: boolean
           id: string
           notes: string
+          photos: string[]
           raw_payload: Json
           requested_date: string
           requested_time: string | null
@@ -198,6 +199,7 @@ export type Database = {
           hidden?: boolean
           id?: string
           notes?: string
+          photos?: string[]
           raw_payload?: Json
           requested_date: string
           requested_time?: string | null
@@ -215,6 +217,7 @@ export type Database = {
           hidden?: boolean
           id?: string
           notes?: string
+          photos?: string[]
           raw_payload?: Json
           requested_date?: string
           requested_time?: string | null
