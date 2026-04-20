@@ -4,8 +4,9 @@ import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
-import { useJobs, useCustomers, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
+import { useJobs, useCustomers, useEstimationRequests, getClientNameFromList, type DbJob, type DbEstimationRequest } from "@/hooks/useSupabaseData";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
+import { EstimationRequestDialog } from "@/components/calendar/EstimationRequestDialog";
 import { cn } from "@/lib/utils";
 
 type ViewMode = "month" | "week";
