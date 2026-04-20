@@ -311,6 +311,25 @@ export function useUpdateEstimationRequest() {
   });
 }
 
+/**
+ * Marks an estimation request as seen (sets seen_at = now()).
+ * Idempotent: only updates rows where seen_at IS NULL to avoid unnecessary writes.
+ */
+export function useMarkEstimationRequestSeen() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase
+        .from("estimation_requests")
+        .update({ seen_at: new Date().toISOString() })
+        .eq("id", id)
+        .is("seen_at", null);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["estimation_requests"] }),
+  });
+}
+
 export function useInsertEstimationRequest() {
   const qc = useQueryClient();
   return useMutation({
