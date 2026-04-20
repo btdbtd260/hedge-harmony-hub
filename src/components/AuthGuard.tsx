@@ -11,8 +11,8 @@ export const AuthGuard = ({ children }: { children: React.ReactNode }) => {
   useEffect(() => {
     if (!session?.user) { setApproved(null); return; }
     setApproved(null);
-    supabase.from("parameters").select("id").limit(1).then(({ error, data }) => {
-      setApproved(!error && Array.isArray(data));
+    supabase.rpc("current_user_approved").then(({ error, data }) => {
+      setApproved(!error && data === true);
     });
   }, [session?.user?.id]);
 
