@@ -240,8 +240,8 @@ function MonthView({
                   <div
                     key={j.id}
                     onClick={(e) => { e.stopPropagation(); onJobClick(j.id); }}
-                    className="text-[10px] px-1.5 py-0.5 rounded bg-primary/15 text-primary truncate hover:bg-primary/25"
-                    title={getClientNameFromList(customers, j.client_id)}
+                    className={cn("text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer", cutTypeClasses(j.cut_type))}
+                    title={`${cutTypeLabel(j.cut_type)} · ${getClientNameFromList(customers, j.client_id)}`}
                   >
                     {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}</span>}
                     {getClientNameFromList(customers, j.client_id)}
