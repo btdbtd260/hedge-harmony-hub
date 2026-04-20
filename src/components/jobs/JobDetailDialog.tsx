@@ -1,15 +1,20 @@
-import { useState } from "react";
-import { format } from "date-fns";
-import { CalendarIcon, X } from "lucide-react";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { useState, useEffect, useMemo } from "react";
+import { CalendarIcon, X, Clock } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Calendar } from "@/components/ui/calendar";
-import { Input } from "@/components/ui/input";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { TimeWheelPicker } from "@/components/ui/time-wheel-picker";
 import { cn, formatDateQC } from "@/lib/utils";
-import { useCustomers, useUpdateJob, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
+import { useCustomers, useUpdateJob, useJobs, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { JobPhotosManager } from "@/components/jobs/JobPhotosManager";
+import {
+  estimateJobDuration,
+  measurementsFromJob,
+  computeRealDuration,
+  addMinutesToTime,
+} from "@/lib/jobDurationEstimator";
 import { toast } from "sonner";
 
 interface Props {
@@ -33,21 +38,93 @@ function toYmd(d: Date): string {
 
 export function JobDetailDialog({ job, onOpenChange }: Props) {
   const { data: customers = [] } = useCustomers();
+  const { data: allJobs = [] } = useJobs();
   const updateJob = useUpdateJob();
   const [datePickerOpen, setDatePickerOpen] = useState(false);
+  const [startPickerOpen, setStartPickerOpen] = useState(false);
+  const [completionOpen, setCompletionOpen] = useState(false);
+  const [completionEndTime, setCompletionEndTime] = useState<string>("17:00");
   const snap = job?.measurement_snapshot as any;
 
+  // Compute (or read) the estimated duration for the current job
+  const estimation = useMemo(() => {
+    if (!job) return null;
+    return estimateJobDuration(measurementsFromJob(job), allJobs);
+  }, [job, allJobs]);
+
+  // When dialog opens for a scheduled job without a stored estimate, save it once
+  useEffect(() => {
+    if (!job || !estimation || estimation.minutes <= 0) return;
+    if (job.status === "pending") return;
+    if (job.estimated_duration_minutes && job.estimated_duration_minutes > 0) return;
+    updateJob.mutateAsync({ id: job.id, estimated_duration_minutes: estimation.minutes }).catch(() => {});
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [job?.id]);
+
+  const storedEstimate = job?.estimated_duration_minutes ?? estimation?.minutes ?? null;
+  const projectedEnd =
+    job?.status === "scheduled" && job.start_time && storedEstimate
+      ? addMinutesToTime(job.start_time, storedEstimate)
+      : null;
+
   const handleStatusChange = async (jobId: string, newStatus: string) => {
+    if (!job) return;
+    if (newStatus === "completed") {
+      // Open modal to ask the real end time before persisting status
+      setCompletionEndTime(job.end_time?.slice(0, 5) || addMinutesToTime(job.start_time, storedEstimate ?? 60) || "17:00");
+      setCompletionOpen(true);
+      return;
+    }
     try {
-      // If reverting to pending, clear scheduled_date so it doesn't appear in Calendar
       const patch: any = { id: jobId, status: newStatus };
-      if (newStatus === "pending") patch.scheduled_date = null;
+      if (newStatus === "pending") {
+        patch.scheduled_date = null;
+        patch.start_time = null;
+        patch.end_time = null;
+      }
       await updateJob.mutateAsync(patch);
       toast.success(
         newStatus === "pending"
-          ? "Statut → Pending (date planifiée retirée)"
+          ? "Statut → Pending (planification retirée)"
           : `Statut changé → ${newStatus}`,
       );
+    } catch (err: any) {
+      toast.error(err.message);
+    }
+  };
+
+  const handleConfirmCompletion = async () => {
+    if (!job) return;
+    if (!job.start_time) {
+      toast.error("Heure de début manquante pour calculer la durée réelle.");
+      return;
+    }
+    const real = computeRealDuration(job.start_time, completionEndTime);
+    if (real === null || real <= 0) {
+      toast.error("Heure de fin invalide.");
+      return;
+    }
+    const estimated = storedEstimate ?? estimation?.minutes ?? 0;
+    const variance = estimated > 0 ? real - estimated : null;
+    try {
+      await updateJob.mutateAsync({
+        id: job.id,
+        status: "completed",
+        end_time: completionEndTime,
+        total_duration_minutes: real,
+        estimated_duration_minutes: estimated || null,
+        duration_variance_minutes: variance,
+      } as any);
+      setCompletionOpen(false);
+      const variancePart =
+        variance === null
+          ? ""
+          : variance === 0
+            ? " (pile sur l'estimation)"
+            : variance > 0
+              ? ` (+${variance} min vs estimé)`
+              : ` (${variance} min vs estimé)`;
+      toast.success(`Job complété — ${real} min réelles${variancePart}`);
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -56,9 +133,12 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   const handleDateChange = async (jobId: string, date: Date | undefined) => {
     try {
       const patch: any = { id: jobId, scheduled_date: date ? toYmd(date) : null };
-      // Auto-promote pending → scheduled when a date is assigned
       const promoted = date && job?.status === "pending";
       if (promoted) patch.status = "scheduled";
+      // Refresh estimation when the job becomes scheduled
+      if ((promoted || job?.status === "scheduled") && estimation && estimation.minutes > 0) {
+        patch.estimated_duration_minutes = estimation.minutes;
+      }
       await updateJob.mutateAsync(patch);
       toast.success(
         date
@@ -73,10 +153,10 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
     }
   };
 
-  const handleTimeChange = async (jobId: string, field: "start_time" | "end_time", value: string) => {
-    const v = value.trim() === "" ? null : value;
+  const handleStartTimeChange = async (value: string) => {
+    if (!job) return;
     try {
-      await updateJob.mutateAsync({ id: jobId, [field]: v } as any);
+      await updateJob.mutateAsync({ id: job.id, start_time: value } as any);
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -89,7 +169,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
           <>
             <DialogHeader>
               <DialogTitle>Job — {getClientNameFromList(customers, job.client_id)}</DialogTitle>
-              <DialogDescription>Détails du job et photos avant/après.</DialogDescription>
+              <DialogDescription>Détails du job, horaire et photos.</DialogDescription>
             </DialogHeader>
             <div className="space-y-3">
               <div className="flex justify-between items-center text-sm">
@@ -146,31 +226,84 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                 </div>
               )}
 
+              {/* SCHEDULED — show start time only (wheel picker) */}
               {job.status === "scheduled" && (
                 <>
                   <div className="flex justify-between items-center text-sm gap-2">
-                    <span className="text-muted-foreground">Heure de début</span>
-                    <Input
-                      type="time"
-                      defaultValue={job.start_time?.slice(0, 5) ?? ""}
-                      onBlur={(e) => handleTimeChange(job.id, "start_time", e.target.value)}
-                      className="h-8 w-32"
-                    />
+                    <span className="text-muted-foreground">Heure de départ</span>
+                    <Popover open={startPickerOpen} onOpenChange={setStartPickerOpen}>
+                      <PopoverTrigger asChild>
+                        <Button variant="outline" size="sm" className="h-8 min-w-[110px]">
+                          <Clock className="mr-2 h-3.5 w-3.5" />
+                          {job.start_time?.slice(0, 5) || "Choisir"}
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent className="w-auto p-3" align="end">
+                        <TimeWheelPicker
+                          value={job.start_time?.slice(0, 5) ?? "08:00"}
+                          onChange={handleStartTimeChange}
+                        />
+                        <div className="flex justify-end pt-2">
+                          <Button size="sm" onClick={() => setStartPickerOpen(false)}>OK</Button>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                   </div>
-                  <div className="flex justify-between items-center text-sm gap-2">
-                    <span className="text-muted-foreground">Heure de fin</span>
-                    <Input
-                      type="time"
-                      defaultValue={job.end_time?.slice(0, 5) ?? ""}
-                      onBlur={(e) => handleTimeChange(job.id, "end_time", e.target.value)}
-                      className="h-8 w-32"
-                    />
-                  </div>
+                  {storedEstimate && storedEstimate > 0 && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Durée estimée</span>
+                      <span title={estimation?.explanation ?? undefined}>
+                        ~{storedEstimate} min
+                        {projectedEnd && (
+                          <span className="text-muted-foreground"> · fin estimée {projectedEnd}</span>
+                        )}
+                      </span>
+                    </div>
+                  )}
                 </>
               )}
-              {job.status !== "scheduled" && job.start_time && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Début</span><span>{job.start_time}</span></div>}
-              {job.status !== "scheduled" && job.end_time && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Fin</span><span>{job.end_time}</span></div>}
-              {job.total_duration_minutes && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Durée</span><span>{job.total_duration_minutes} min</span></div>}
+
+              {/* COMPLETED — show start + end + comparison */}
+              {job.status === "completed" && (
+                <>
+                  {job.start_time && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Heure de départ</span>
+                      <span>{job.start_time.slice(0, 5)}</span>
+                    </div>
+                  )}
+                  {job.end_time && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Heure de fin</span>
+                      <span>{job.end_time.slice(0, 5)}</span>
+                    </div>
+                  )}
+                  {job.total_duration_minutes && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Durée réelle</span>
+                      <span className="font-medium">{job.total_duration_minutes} min</span>
+                    </div>
+                  )}
+                  {job.estimated_duration_minutes && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Durée estimée</span>
+                      <span>{job.estimated_duration_minutes} min</span>
+                    </div>
+                  )}
+                  {typeof job.duration_variance_minutes === "number" && (
+                    <div className="flex justify-between text-sm">
+                      <span className="text-muted-foreground">Écart vs estimation</span>
+                      <span className={cn(
+                        "font-semibold",
+                        job.duration_variance_minutes > 0 ? "text-cut-levelling" : "text-cut-trim",
+                      )}>
+                        {job.duration_variance_minutes > 0 ? "+" : ""}{job.duration_variance_minutes} min
+                      </span>
+                    </div>
+                  )}
+                </>
+              )}
+
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit estimé</span><span className="font-semibold">${job.estimated_profit}</span></div>
               {job.real_profit !== null && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit réel</span><span className="font-semibold">${job.real_profit}</span></div>}
               {snap && (
@@ -190,6 +323,40 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
           </>
         )}
       </DialogContent>
+
+      {/* ── Completion modal — asks for the real end time ── */}
+      <Dialog open={completionOpen} onOpenChange={setCompletionOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Marquer le job comme complété</DialogTitle>
+            <DialogDescription>
+              Choisis l'heure de fin réelle. La durée réelle sera comparée à l'estimation.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3">
+            {job?.start_time && (
+              <p className="text-sm text-muted-foreground">
+                Début : <span className="font-medium text-foreground">{job.start_time.slice(0, 5)}</span>
+              </p>
+            )}
+            <div className="flex justify-center">
+              <TimeWheelPicker value={completionEndTime} onChange={setCompletionEndTime} />
+            </div>
+            {job?.start_time && (
+              <p className="text-sm text-center text-muted-foreground">
+                Durée réelle : <span className="font-semibold text-foreground">
+                  {computeRealDuration(job.start_time, completionEndTime) ?? 0} min
+                </span>
+                {storedEstimate ? <> · estimée {storedEstimate} min</> : null}
+              </p>
+            )}
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setCompletionOpen(false)}>Annuler</Button>
+            <Button onClick={handleConfirmCompletion}>Confirmer</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Dialog>
   );
 }

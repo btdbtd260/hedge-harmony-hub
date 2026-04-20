@@ -341,7 +341,9 @@ export type Database = {
           client_id: string
           created_at: string
           cut_type: string
+          duration_variance_minutes: number | null
           end_time: string | null
+          estimated_duration_minutes: number | null
           estimated_profit: number
           estimation_id: string | null
           id: string
@@ -358,7 +360,9 @@ export type Database = {
           client_id: string
           created_at?: string
           cut_type?: string
+          duration_variance_minutes?: number | null
           end_time?: string | null
+          estimated_duration_minutes?: number | null
           estimated_profit?: number
           estimation_id?: string | null
           id?: string
@@ -375,7 +379,9 @@ export type Database = {
           client_id?: string
           created_at?: string
           cut_type?: string
+          duration_variance_minutes?: number | null
           end_time?: string | null
+          estimated_duration_minutes?: number | null
           estimated_profit?: number
           estimation_id?: string | null
           id?: string
