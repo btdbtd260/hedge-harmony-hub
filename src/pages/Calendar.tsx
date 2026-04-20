@@ -158,6 +158,12 @@ const CalendarPage = () => {
     return Array.from({ length: 7 }, (_, i) => addDays(start, i));
   }, [cursor]);
 
+  // Unseen requests for the alert banner (new external submissions never opened)
+  const unseenRequests = useMemo(
+    () => estimationRequests.filter((r) => !r.seen_at && r.status !== "done" && !r.hidden),
+    [estimationRequests],
+  );
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between flex-wrap gap-3">
@@ -176,6 +182,44 @@ const CalendarPage = () => {
           </Tabs>
         </div>
       </div>
+
+      {unseenRequests.length > 0 && (
+        <div className="rounded-lg border-l-4 border-estimation-request bg-estimation-request/10 p-4 flex items-start gap-3">
+          <span className="relative flex h-3 w-3 mt-1.5 shrink-0">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-estimation-request opacity-75" />
+            <span className="relative inline-flex rounded-full h-3 w-3 bg-estimation-request" />
+          </span>
+          <div className="flex-1 min-w-0">
+            <p className="font-semibold text-estimation-request">
+              {unseenRequests.length} nouvelle{unseenRequests.length > 1 ? "s" : ""} demande
+              {unseenRequests.length > 1 ? "s" : ""} d'estimation
+            </p>
+            <p className="text-xs text-muted-foreground mt-0.5">
+              Reçue{unseenRequests.length > 1 ? "s" : ""} depuis le site externe — cliquez pour voir le détail.
+            </p>
+            <div className="mt-2 flex flex-wrap gap-2">
+              {unseenRequests.slice(0, 5).map((r) => (
+                <button
+                  key={r.id}
+                  onClick={() => {
+                    setCursor(new Date(r.requested_date + "T00:00:00"));
+                    setSelectedRequestId(r.id);
+                  }}
+                  className="text-xs bg-background border border-estimation-request/40 hover:border-estimation-request rounded-md px-2 py-1 transition-colors"
+                >
+                  <span className="font-medium">{r.client_name || "Sans nom"}</span>
+                  <span className="text-muted-foreground ml-2">{r.requested_date}</span>
+                </button>
+              ))}
+              {unseenRequests.length > 5 && (
+                <span className="text-xs text-muted-foreground self-center">
+                  +{unseenRequests.length - 5} autres
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
 
       <Card>
         <CardHeader className="pb-3">

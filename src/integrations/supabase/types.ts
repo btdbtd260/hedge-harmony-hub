@@ -185,6 +185,7 @@ export type Database = {
           raw_payload: Json
           requested_date: string
           requested_time: string | null
+          seen_at: string | null
           source: string
           status: string
           updated_at: string
@@ -203,6 +204,7 @@ export type Database = {
           raw_payload?: Json
           requested_date: string
           requested_time?: string | null
+          seen_at?: string | null
           source?: string
           status?: string
           updated_at?: string
@@ -221,6 +223,7 @@ export type Database = {
           raw_payload?: Json
           requested_date?: string
           requested_time?: string | null
+          seen_at?: string | null
           source?: string
           status?: string
           updated_at?: string
