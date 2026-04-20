@@ -1,4 +1,4 @@
-import { useRef, useState } from "react";
+import { forwardRef, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpdateJob, type DbJob } from "@/hooks/useSupabaseData";
 import { Button } from "@/components/ui/button";
