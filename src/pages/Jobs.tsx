@@ -14,6 +14,7 @@ import { useJobs, useCustomers, useUpdateJob, useInsertInvoice, getClientNameFro
 import { Search, Calendar, XCircle, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { JobPhotosManager } from "@/components/jobs/JobPhotosManager";
+import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
 
 const statusColor: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -208,49 +209,8 @@ const Jobs = () => {
         </TabsContent>
       </Tabs>
 
-      {/* ── Job detail dialog ── */}
-      <Dialog open={!!selectedJob} onOpenChange={(open) => !open && setSelectedJobId(null)}>
-        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
-          {selectedJob && (
-            <>
-              <DialogHeader><DialogTitle>Job — {getClientNameFromList(customers, selectedJob.client_id)}</DialogTitle></DialogHeader>
-              <div className="space-y-3">
-                <div className="flex justify-between items-center text-sm">
-                  <span className="text-muted-foreground">Statut</span>
-                  <Select value={selectedJob.status} onValueChange={(val) => handleStatusChange(selectedJob.id, val)}>
-                    <SelectTrigger className="w-36 h-8"><SelectValue /></SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="pending">Pending</SelectItem>
-                      <SelectItem value="scheduled">Scheduled</SelectItem>
-                      <SelectItem value="completed">Completed</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Type de coupe</span><span>{selectedJob.cut_type}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Date planifiée</span><span>{formatDateQC(selectedJob.scheduled_date)}</span></div>
-                {selectedJob.start_time && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Début</span><span>{selectedJob.start_time}</span></div>}
-                {selectedJob.end_time && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Fin</span><span>{selectedJob.end_time}</span></div>}
-                {selectedJob.total_duration_minutes && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Durée</span><span>{selectedJob.total_duration_minutes} min</span></div>}
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit estimé</span><span className="font-semibold">${selectedJob.estimated_profit}</span></div>
-                {selectedJob.real_profit !== null && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit réel</span><span className="font-semibold">${selectedJob.real_profit}</span></div>}
-                {snap && (
-                  <div className="border-t pt-3">
-                    <p className="text-sm font-medium mb-2">Mesures</p>
-                    <div className="grid grid-cols-2 gap-2 text-sm">
-                      <span className="text-muted-foreground">Façade: {snap.facadeLength ?? snap.facade_length ?? 0} pi</span>
-                      <span className="text-muted-foreground">Gauche: {snap.leftLength ?? snap.left_length ?? 0} pi</span>
-                      <span className="text-muted-foreground">Droite: {snap.rightLength ?? snap.right_length ?? 0} pi</span>
-                      <span className="text-muted-foreground">Arrière: {snap.backLength ?? snap.back_length ?? 0} pi</span>
-                      <span className="text-muted-foreground">Largeur: {snap.width ?? 0} pi</span>
-                    </div>
-                  </div>
-                )}
-                <JobPhotosManager job={selectedJob} />
-              </div>
-            </>
-          )}
-        </DialogContent>
-      </Dialog>
+      {/* ── Job detail dialog (shared with Calendar) ── */}
+      <JobDetailDialog job={selectedJob} onOpenChange={(open) => !open && setSelectedJobId(null)} />
 
       {/* ── Remove confirmation ── */}
       <AlertDialog open={!!jobToRemove} onOpenChange={(open) => !open && setJobToRemove(null)}>
