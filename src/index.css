@@ -53,6 +53,10 @@
     --cut-trim-foreground: 0 0% 100%;
     --cut-levelling: 28 88% 52%;
     --cut-levelling-foreground: 0 0% 100%;
+
+    /* External estimation request (calendar) */
+    --estimation-request: 217 91% 55%;
+    --estimation-request-foreground: 0 0% 100%;
   }
 
   .dark {
@@ -102,6 +106,9 @@
     --cut-trim-foreground: 0 0% 100%;
     --cut-levelling: 28 88% 58%;
     --cut-levelling-foreground: 0 0% 100%;
+
+    --estimation-request: 217 91% 60%;
+    --estimation-request-foreground: 0 0% 100%;
   }
 }
 

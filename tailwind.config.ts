@@ -65,6 +65,10 @@ export default {
           DEFAULT: "hsl(var(--cut-levelling))",
           foreground: "hsl(var(--cut-levelling-foreground))",
         },
+        "estimation-request": {
+          DEFAULT: "hsl(var(--estimation-request))",
+          foreground: "hsl(var(--estimation-request-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
