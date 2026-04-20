@@ -10,7 +10,6 @@ import {
   Tooltip,
   Legend,
   ResponsiveContainer,
-  ReferenceLine,
 } from "recharts";
 import { TrendingDown, TrendingUp, Target, Activity } from "lucide-react";
 
@@ -262,11 +261,10 @@ export default function Analytics() {
                       <td className="px-4 py-2">{d.client}</td>
                       <td className="px-4 py-2 text-right tabular-nums">{formatMinutes(d.estimated)}</td>
                       <td className="px-4 py-2 text-right tabular-nums font-medium">{formatMinutes(d.real)}</td>
-                      <td
-                        className={cnVariance(d.variance)}
-                      >
-                        {d.variance > 0 ? "+" : ""}
-                        {formatMinutes(Math.abs(d.variance)) === "0 min" ? "0 min" : (d.variance < 0 ? "−" : "+") + formatMinutes(Math.abs(d.variance))}
+                      <td className={cnVariance(d.variance)}>
+                        {d.variance === 0
+                          ? "0 min"
+                          : (d.variance > 0 ? "+" : "−") + formatMinutes(Math.abs(d.variance))}
                       </td>
                     </tr>
                   ))}
