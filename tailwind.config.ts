@@ -57,6 +57,14 @@ export default {
           border: "hsl(var(--sidebar-border))",
           ring: "hsl(var(--sidebar-ring))",
         },
+        "cut-trim": {
+          DEFAULT: "hsl(var(--cut-trim))",
+          foreground: "hsl(var(--cut-trim-foreground))",
+        },
+        "cut-levelling": {
+          DEFAULT: "hsl(var(--cut-levelling))",
+          foreground: "hsl(var(--cut-levelling-foreground))",
+        },
       },
       borderRadius: {
         lg: "var(--radius)",
