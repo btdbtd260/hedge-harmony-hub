@@ -381,7 +381,7 @@ function DayHourlyDialog({
                         <button
                           key={j.id}
                           onClick={() => onJobClick(j.id)}
-                          className="w-full text-left px-2 py-1.5 rounded bg-primary/15 text-primary hover:bg-primary/25 text-sm"
+                          className={cn("w-full text-left px-2 py-1.5 rounded text-sm", cutTypeClasses(j.cut_type))}
                         >
                           <div className="font-medium">
                             {j.start_time?.slice(0, 5)}
@@ -389,7 +389,7 @@ function DayHourlyDialog({
                             {" · "}
                             {getClientNameFromList(customers, j.client_id)}
                           </div>
-                          <div className="text-xs opacity-80">{j.cut_type}</div>
+                          <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
                         </button>
                       ))}
                     </div>
