@@ -112,7 +112,7 @@ const PhotoSection = forwardRef<HTMLDivElement, PhotoSectionProps>(function Phot
   const libraryRef = useRef<HTMLInputElement>(null);
 
   return (
-    <div className="space-y-2">
+    <div ref={ref} className="space-y-2">
       <div className="flex items-center justify-between gap-2">
         <p className="text-sm font-medium">{title} ({photos.length})</p>
         <div className="flex gap-2">
@@ -186,4 +186,5 @@ const PhotoSection = forwardRef<HTMLDivElement, PhotoSectionProps>(function Phot
       )}
     </div>
   );
-}
+});
+
