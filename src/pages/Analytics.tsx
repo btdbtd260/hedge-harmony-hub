@@ -1,5 +1,7 @@
-import { useMemo } from "react";
+import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Badge } from "@/components/ui/badge";
 import { useJobs, useCustomers, getClientNameFromList } from "@/hooks/useSupabaseData";
 import {
   LineChart,
@@ -13,6 +15,17 @@ import {
 } from "recharts";
 import { TrendingDown, TrendingUp, Target, Activity } from "lucide-react";
 
+type CutFilter = "all" | "trim" | "levelling";
+
+const CUT_LABEL: Record<string, string> = {
+  trim: "Taillage",
+  levelling: "Levelling",
+};
+function cutLabel(c: string | null | undefined): string {
+  if (!c) return "—";
+  return CUT_LABEL[c] ?? c;
+}
+
 /**
  * Granularité = un point par job complété, ordonné chronologiquement.
  * Justification : c'est la donnée la plus fine et la plus honnête disponible.
@@ -23,8 +36,10 @@ import { TrendingDown, TrendingUp, Target, Activity } from "lucide-react";
 export default function Analytics() {
   const { data: jobs = [] } = useJobs();
   const { data: customers = [] } = useCustomers();
+  const [cutFilter, setCutFilter] = useState<CutFilter>("all");
 
-  const completedJobs = useMemo(() => {
+  // All completed jobs with full duration data — base dataset
+  const allCompleted = useMemo(() => {
     return jobs
       .filter(
         (j) =>
@@ -33,12 +48,27 @@ export default function Analytics() {
           j.estimated_duration_minutes != null,
       )
       .sort((a, b) => {
-        // Use scheduled_date primarily, fallback to created_at
         const da = a.scheduled_date || a.created_at;
         const db = b.scheduled_date || b.created_at;
         return new Date(da).getTime() - new Date(db).getTime();
       });
   }, [jobs]);
+
+  // Counts per cut type (for the filter tabs)
+  const counts = useMemo(() => {
+    const c = { all: allCompleted.length, trim: 0, levelling: 0 };
+    for (const j of allCompleted) {
+      if (j.cut_type === "trim") c.trim++;
+      else if (j.cut_type === "levelling") c.levelling++;
+    }
+    return c;
+  }, [allCompleted]);
+
+  // Filtered dataset based on selected cut type — segmentation rule
+  const completedJobs = useMemo(() => {
+    if (cutFilter === "all") return allCompleted;
+    return allCompleted.filter((j) => j.cut_type === cutFilter);
+  }, [allCompleted, cutFilter]);
 
   const chartData = useMemo(() => {
     return completedJobs.map((j, idx) => {
@@ -47,6 +77,7 @@ export default function Analytics() {
         index: idx + 1,
         label: dateStr ? new Date(dateStr).toLocaleDateString("fr-CA", { month: "short", day: "numeric" }) : `#${idx + 1}`,
         client: getClientNameFromList(customers, j.client_id),
+        cutType: j.cut_type,
         estimated: Math.round(j.estimated_duration_minutes ?? 0),
         real: Math.round(j.total_duration_minutes ?? 0),
         variance: Math.round((j.total_duration_minutes ?? 0) - (j.estimated_duration_minutes ?? 0)),
@@ -95,12 +126,33 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
-        <p className="text-sm text-muted-foreground">
-          Précision des estimations de durée — comparaison entre temps prévu et temps réel.
-        </p>
+      <div className="flex flex-wrap items-end justify-between gap-4">
+        <div>
+          <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
+          <p className="text-sm text-muted-foreground">
+            Précision des estimations de durée — comparaison entre temps prévu et temps réel.
+          </p>
+        </div>
+        <Tabs value={cutFilter} onValueChange={(v) => setCutFilter(v as CutFilter)}>
+          <TabsList>
+            <TabsTrigger value="all">
+              Tous <Badge variant="secondary" className="ml-2">{counts.all}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="trim">
+              Taillage <Badge variant="secondary" className="ml-2">{counts.trim}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="levelling">
+              Levelling <Badge variant="secondary" className="ml-2">{counts.levelling}</Badge>
+            </TabsTrigger>
+          </TabsList>
+        </Tabs>
       </div>
+
+      {cutFilter === "all" && counts.trim > 0 && counts.levelling > 0 && (
+        <p className="text-xs text-muted-foreground -mt-2">
+          ⚠ Vue combinée : taillage et levelling ont des durées de référence très différentes. Filtre par type pour une analyse précise.
+        </p>
+      )}
 
       {/* Stats cards */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -248,6 +300,7 @@ export default function Analytics() {
                     <th className="text-left px-4 py-2">#</th>
                     <th className="text-left px-4 py-2">Date</th>
                     <th className="text-left px-4 py-2">Client</th>
+                    <th className="text-left px-4 py-2">Type</th>
                     <th className="text-right px-4 py-2">Estimé</th>
                     <th className="text-right px-4 py-2">Réel</th>
                     <th className="text-right px-4 py-2">Écart</th>
@@ -259,6 +312,9 @@ export default function Analytics() {
                       <td className="px-4 py-2 text-muted-foreground">{d.index}</td>
                       <td className="px-4 py-2">{d.label}</td>
                       <td className="px-4 py-2">{d.client}</td>
+                      <td className="px-4 py-2">
+                        <Badge variant="outline" className="text-xs">{cutLabel(d.cutType)}</Badge>
+                      </td>
                       <td className="px-4 py-2 text-right tabular-nums">{formatMinutes(d.estimated)}</td>
                       <td className="px-4 py-2 text-right tabular-nums font-medium">{formatMinutes(d.real)}</td>
                       <td className={cnVariance(d.variance)}>
