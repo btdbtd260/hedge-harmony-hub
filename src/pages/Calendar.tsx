@@ -43,6 +43,22 @@ function parseTimeToMinutes(t: string | null | undefined): number | null {
   return Number(m[1]) * 60 + Number(m[2]);
 }
 
+// Color classes per cut type — uses semantic tokens from index.css
+function cutTypeClasses(cutType: string | null | undefined): string {
+  if (cutType === "levelling") {
+    return "bg-cut-levelling/15 text-cut-levelling hover:bg-cut-levelling/25 border-l-2 border-cut-levelling";
+  }
+  if (cutType === "trim") {
+    return "bg-cut-trim/15 text-cut-trim hover:bg-cut-trim/25 border-l-2 border-cut-trim";
+  }
+  return "bg-muted text-muted-foreground hover:bg-muted/80 border-l-2 border-muted-foreground/40";
+}
+function cutTypeLabel(cutType: string | null | undefined): string {
+  if (cutType === "levelling") return "Nivelage";
+  if (cutType === "trim") return "Taille";
+  return cutType || "Autre";
+}
+
 const CalendarPage = () => {
   const { data: jobs = [] } = useJobs();
   const { data: customers = [] } = useCustomers();
