@@ -190,6 +190,7 @@ const EstimationPage = () => {
     width: numWidth, basePrice,
     bushItems: bushItems.map(b => ({ description: b.description, count: b.count, price: b.price })),
     extras,
+    discounts,
     heightMultiplierApplied, widthMultiplierApplied,
     heightMultiplier: p.height_multiplier, widthMultiplier: p.width_multiplier,
     totalPrice,
