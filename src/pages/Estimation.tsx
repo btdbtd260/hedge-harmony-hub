@@ -290,7 +290,7 @@ const EstimationPage = () => {
     setBackLeftLength(""); setBackRightLength("");
     setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
     setHeightBackLeft(""); setHeightBackRight("");
-    setWidth(""); setBushItems([]); setExtras([]);
+    setWidth(""); setBushItems([]); setExtras([]); setDiscounts([]);
     setUseCustomPrice(false); setCustomCutPrice("");
     setTwoSidesFacade(false); setTwoSidesLeft(false); setTwoSidesRight(false);
     setTwoSidesBack(false); setTwoSidesBackLeft(false); setTwoSidesBackRight(false);
