@@ -144,7 +144,8 @@ const EstimationPage = () => {
     return Math.max(0, Number(d.value) || 0);
   });
   const discountTotal = discountAmounts.reduce((s, n) => s + n, 0);
-  const totalPrice = Math.max(0, subtotalBeforeDiscounts - discountTotal);
+  const rawTotal = Math.max(0, subtotalBeforeDiscounts - discountTotal);
+  const totalPrice = Math.floor(rawTotal / 5) * 5;
 
   const cutTypeLabel =
     cutType === "trim" ? "Taillage" : cutType === "levelling" ? "Nivelage" : "Restauration";
