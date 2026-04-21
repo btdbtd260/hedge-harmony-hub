@@ -86,9 +86,10 @@ const Settings = () => {
           <Card>
             <CardHeader><CardTitle>Prix et multiplicateurs</CardTitle></CardHeader>
             <CardContent className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div className="space-y-2"><Label>Prix par pied (Trim)</Label><Input type="number" step="0.5" placeholder="0" value={numValue("price_per_foot_trim")} onChange={(e) => handleNumChange("price_per_foot_trim", e.target.value)} /></div>
-                <div className="space-y-2"><Label>Prix par pied (Levelling)</Label><Input type="number" step="0.5" placeholder="0" value={numValue("price_per_foot_levelling")} onChange={(e) => handleNumChange("price_per_foot_levelling", e.target.value)} /></div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <div className="space-y-2"><Label>Prix par pied (Taillage)</Label><Input type="number" step="0.5" placeholder="0" value={numValue("price_per_foot_trim")} onChange={(e) => handleNumChange("price_per_foot_trim", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Prix par pied (Nivelage)</Label><Input type="number" step="0.5" placeholder="0" value={numValue("price_per_foot_levelling")} onChange={(e) => handleNumChange("price_per_foot_levelling", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Prix par pied (Restauration)</Label><Input type="number" step="0.5" placeholder="0" value={numValue("price_per_foot_restoration")} onChange={(e) => handleNumChange("price_per_foot_restoration", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Prix par bush</Label><Input type="number" placeholder="0" value={numValue("bush_price")} onChange={(e) => handleNumChange("bush_price", e.target.value)} /></div>
               </div>
               <div className="border-t pt-4">
