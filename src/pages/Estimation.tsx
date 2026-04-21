@@ -493,6 +493,51 @@ const EstimationPage = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Rabais — only displayed if user adds one. Mirrors the Extras pattern. */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Rabais</Label>
+                  <Button variant="outline" size="sm" onClick={addDiscount}>
+                    <Plus className="h-3 w-3 mr-1" /> Ajouter
+                  </Button>
+                </div>
+                {discounts.map((d, i) => (
+                  <div key={d.id} className="flex gap-2 items-center">
+                    <Input
+                      placeholder="Raison (optionnel)"
+                      value={d.description}
+                      onChange={(e) => updateDiscount(d.id, "description", e.target.value)}
+                      className="flex-1"
+                    />
+                    <Select
+                      value={d.type}
+                      onValueChange={(v) => updateDiscount(d.id, "type", v as DiscountType)}
+                    >
+                      <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percent">%</SelectItem>
+                        <SelectItem value="fixed">Montant $</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="0"
+                      value={d.value || ""}
+                      onChange={(e) => updateDiscount(d.id, "value", Number(e.target.value))}
+                      className="w-24"
+                    />
+                    <span className="text-xs text-muted-foreground w-16 text-right">
+                      −${(discountAmounts[i] ?? 0).toFixed(2)}
+                    </span>
+                    <Button variant="ghost" size="icon" onClick={() => removeDiscount(d.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
