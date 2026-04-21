@@ -132,7 +132,19 @@ const EstimationPage = () => {
   const bushesTotal = bushItems.reduce((sum, b) => sum + b.count * b.price, 0);
   const totalBushesCount = bushItems.reduce((sum, b) => sum + b.count, 0);
   const extrasPrice = extras.reduce((sum, e) => sum + e.price, 0);
-  const totalPrice = basePrice + bushesTotal + extrasPrice;
+  const subtotalBeforeDiscounts = basePrice + bushesTotal + extrasPrice;
+
+  // Apply discounts in the order added. Percentages always apply to the subtotal
+  // before any discounts (predictable & explainable). Fixed amounts deduct directly.
+  const discountAmounts = discounts.map((d) => {
+    if (d.type === "percent") {
+      const pct = Math.max(0, Math.min(100, Number(d.value) || 0));
+      return (subtotalBeforeDiscounts * pct) / 100;
+    }
+    return Math.max(0, Number(d.value) || 0);
+  });
+  const discountTotal = discountAmounts.reduce((s, n) => s + n, 0);
+  const totalPrice = Math.max(0, subtotalBeforeDiscounts - discountTotal);
 
   const cutTypeLabel =
     cutType === "trim" ? "Taillage" : cutType === "levelling" ? "Nivelage" : "Restauration";
