@@ -48,11 +48,16 @@
     --success: 152 60% 40%;
     --success-foreground: 0 0% 100%;
 
-    /* Cut type colors */
+    /* Cut type colors
+       - Taillage (trim) : green (kept — coherent with brand primary)
+       - Nivelage (levelling) : red
+       - Restauration (restoration) : orange */
     --cut-trim: 152 55% 42%;
     --cut-trim-foreground: 0 0% 100%;
-    --cut-levelling: 28 88% 52%;
+    --cut-levelling: 0 72% 51%;
     --cut-levelling-foreground: 0 0% 100%;
+    --cut-restoration: 28 88% 52%;
+    --cut-restoration-foreground: 0 0% 100%;
 
     /* External estimation request (calendar) */
     --estimation-request: 217 91% 55%;
