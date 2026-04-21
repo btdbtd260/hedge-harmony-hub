@@ -23,6 +23,16 @@ export interface EstimationExtra {
   price: number;
 }
 
+export type DiscountType = "percent" | "fixed";
+
+export interface EstimationDiscount {
+  id: string;
+  description: string;
+  type: DiscountType;
+  /** percent: 0-100, fixed: dollar amount */
+  value: number;
+}
+
 export interface Estimation {
   id: string;
   clientId: string;

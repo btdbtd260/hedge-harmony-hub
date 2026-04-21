@@ -10,7 +10,7 @@ import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInse
 import { Calculator, Plus, Trash2, Search, UserPlus, Download, Mail } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import type { CutType, HeightMode, EstimationExtra } from "@/types";
+import type { CutType, HeightMode, EstimationExtra, EstimationDiscount, DiscountType } from "@/types";
 import EstimationPreview from "@/components/estimation/EstimationPreview";
 import EstimationHistory from "@/components/estimation/EstimationHistory";
 import { downloadEstimationPdf, getEstimationNumber, type EstimationPdfData } from "@/lib/generateEstimationPdf";
@@ -68,6 +68,7 @@ const EstimationPage = () => {
   const [heightBackRight, setHeightBackRight] = useState("");
   const [width, setWidth] = useState("");
   const [extras, setExtras] = useState<EstimationExtra[]>([]);
+  const [discounts, setDiscounts] = useState<EstimationDiscount[]>([]);
   const [bushItems, setBushItems] = useState<BushItem[]>([]);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [emailTo, setEmailTo] = useState("");
@@ -131,7 +132,19 @@ const EstimationPage = () => {
   const bushesTotal = bushItems.reduce((sum, b) => sum + b.count * b.price, 0);
   const totalBushesCount = bushItems.reduce((sum, b) => sum + b.count, 0);
   const extrasPrice = extras.reduce((sum, e) => sum + e.price, 0);
-  const totalPrice = basePrice + bushesTotal + extrasPrice;
+  const subtotalBeforeDiscounts = basePrice + bushesTotal + extrasPrice;
+
+  // Apply discounts in the order added. Percentages always apply to the subtotal
+  // before any discounts (predictable & explainable). Fixed amounts deduct directly.
+  const discountAmounts = discounts.map((d) => {
+    if (d.type === "percent") {
+      const pct = Math.max(0, Math.min(100, Number(d.value) || 0));
+      return (subtotalBeforeDiscounts * pct) / 100;
+    }
+    return Math.max(0, Number(d.value) || 0);
+  });
+  const discountTotal = discountAmounts.reduce((s, n) => s + n, 0);
+  const totalPrice = Math.max(0, subtotalBeforeDiscounts - discountTotal);
 
   const cutTypeLabel =
     cutType === "trim" ? "Taillage" : cutType === "levelling" ? "Nivelage" : "Restauration";
@@ -139,6 +152,11 @@ const EstimationPage = () => {
   const addExtra = () => setExtras([...extras, { id: `ext-${Date.now()}`, description: "", price: 0 }]);
   const removeExtra = (id: string) => setExtras(extras.filter((e) => e.id !== id));
   const updateExtra = (id: string, field: "description" | "price", value: string | number) => setExtras(extras.map((e) => e.id === id ? { ...e, [field]: value } : e));
+
+  const addDiscount = () => setDiscounts([...discounts, { id: `disc-${Date.now()}`, description: "", type: "percent", value: 0 }]);
+  const removeDiscount = (id: string) => setDiscounts(discounts.filter((d) => d.id !== id));
+  const updateDiscount = (id: string, field: keyof EstimationDiscount, value: string | number) =>
+    setDiscounts(discounts.map((d) => d.id === id ? { ...d, [field]: value } : d));
 
   const addBush = () => setBushItems([...bushItems, { id: `bush-${Date.now()}`, description: "", count: 1, price: p.bush_price }]);
   const removeBush = (id: string) => setBushItems(bushItems.filter((b) => b.id !== id));
@@ -172,6 +190,7 @@ const EstimationPage = () => {
     width: numWidth, basePrice,
     bushItems: bushItems.map(b => ({ description: b.description, count: b.count, price: b.price })),
     extras,
+    discounts,
     heightMultiplierApplied, widthMultiplierApplied,
     heightMultiplier: p.height_multiplier, widthMultiplier: p.width_multiplier,
     totalPrice,
@@ -215,6 +234,13 @@ const EstimationPage = () => {
           ? [{ id: `meta-price-${Date.now()}`, description: `__PRICE_META__:${numCustomPrice}`, price: 0 }]
           : []),
         { id: `meta-sides-${Date.now()}`, description: `__SIDES_META__:${[twoSidesLeft, twoSidesFacade, twoSidesRight, twoSidesBackLeft, twoSidesBack, twoSidesBackRight].map(b => b ? "1" : "0").join("")}`, price: 0 },
+        // Persist discounts as meta entries (price = computed deducted amount, negative for clarity).
+        // The official total_price already includes them — these entries are for traceability/reload.
+        ...discounts.map((d, i) => ({
+          id: `meta-discount-${Date.now()}-${i}`,
+          description: `__DISCOUNT_META__:${d.type}:${d.value}:${(d.description || "").replace(/[:|]/g, " ")}`,
+          price: -discountAmounts[i],
+        })),
       ];
 
       const estimation = await insertEstimation.mutateAsync({
@@ -264,7 +290,7 @@ const EstimationPage = () => {
     setBackLeftLength(""); setBackRightLength("");
     setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
     setHeightBackLeft(""); setHeightBackRight("");
-    setWidth(""); setBushItems([]); setExtras([]);
+    setWidth(""); setBushItems([]); setExtras([]); setDiscounts([]);
     setUseCustomPrice(false); setCustomCutPrice("");
     setTwoSidesFacade(false); setTwoSidesLeft(false); setTwoSidesRight(false);
     setTwoSidesBack(false); setTwoSidesBackLeft(false); setTwoSidesBackRight(false);
@@ -467,6 +493,51 @@ const EstimationPage = () => {
                   </div>
                 ))}
               </div>
+
+              {/* Rabais — only displayed if user adds one. Mirrors the Extras pattern. */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Rabais</Label>
+                  <Button variant="outline" size="sm" onClick={addDiscount}>
+                    <Plus className="h-3 w-3 mr-1" /> Ajouter
+                  </Button>
+                </div>
+                {discounts.map((d, i) => (
+                  <div key={d.id} className="flex gap-2 items-center">
+                    <Input
+                      placeholder="Raison (optionnel)"
+                      value={d.description}
+                      onChange={(e) => updateDiscount(d.id, "description", e.target.value)}
+                      className="flex-1"
+                    />
+                    <Select
+                      value={d.type}
+                      onValueChange={(v) => updateDiscount(d.id, "type", v as DiscountType)}
+                    >
+                      <SelectTrigger className="w-28"><SelectValue /></SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="percent">%</SelectItem>
+                        <SelectItem value="fixed">Montant $</SelectItem>
+                      </SelectContent>
+                    </Select>
+                    <Input
+                      type="number"
+                      min={0}
+                      step="0.01"
+                      placeholder="0"
+                      value={d.value || ""}
+                      onChange={(e) => updateDiscount(d.id, "value", Number(e.target.value))}
+                      className="w-24"
+                    />
+                    <span className="text-xs text-muted-foreground w-16 text-right">
+                      −${(discountAmounts[i] ?? 0).toFixed(2)}
+                    </span>
+                    <Button variant="ghost" size="icon" onClick={() => removeDiscount(d.id)}>
+                      <Trash2 className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
             </CardContent>
           </Card>
         </div>
@@ -486,6 +557,12 @@ const EstimationPage = () => {
               )}
               {heightMultiplierApplied && <div className="flex justify-between text-sm text-amber-600"><span>Mult. hauteur (×{p.height_multiplier})</span><span>Appliqué</span></div>}
               {widthMultiplierApplied && <div className="flex justify-between text-sm text-amber-600"><span>Mult. largeur (×{p.width_multiplier})</span><span>Appliqué</span></div>}
+              {discountTotal > 0 && (
+                <div className="flex justify-between text-sm text-emerald-600">
+                  <span>Rabais ({discounts.length})</span>
+                  <span>−${discountTotal.toFixed(2)}</span>
+                </div>
+              )}
               <div className="border-t pt-3 flex justify-between font-bold text-lg"><span>Total</span><span className="text-primary">${totalPrice.toFixed(2)}</span></div>
 
               <Button variant="outline" className="w-full" onClick={handleDownloadPdf}>
@@ -519,6 +596,7 @@ const EstimationPage = () => {
               heightBackLeft={numHeightBackLeft} heightBackRight={numHeightBackRight}
               width={numWidth}
               basePrice={basePrice} bushItems={bushItems} extras={extras}
+              discounts={discounts} discountAmounts={discountAmounts} discountTotal={discountTotal}
               heightMultiplierApplied={heightMultiplierApplied} widthMultiplierApplied={widthMultiplierApplied}
               heightMultiplier={p.height_multiplier} widthMultiplier={p.width_multiplier}
               bushesTotal={bushesTotal} extrasPrice={extrasPrice} totalPrice={totalPrice}

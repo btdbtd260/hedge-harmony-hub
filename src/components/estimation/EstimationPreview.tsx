@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { DbCustomer, DbParameters } from "@/hooks/useSupabaseData";
-import type { EstimationExtra } from "@/types";
+import type { EstimationExtra, EstimationDiscount } from "@/types";
 import { getEstimationNumber } from "@/lib/generateEstimationPdf";
 import { formatDateQC } from "@/lib/utils";
 
@@ -36,6 +36,9 @@ interface Props {
   basePrice: number;
   bushItems: BushItem[];
   extras: EstimationExtra[];
+  discounts?: EstimationDiscount[];
+  discountAmounts?: number[];
+  discountTotal?: number;
   heightMultiplierApplied: boolean;
   widthMultiplierApplied: boolean;
   heightMultiplier: number;
@@ -51,7 +54,9 @@ export default function EstimationPreview({
   backLeftLength, backRightLength,
   heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
   heightBackLeft, heightBackRight,
-  width, basePrice, bushItems, extras, heightMultiplierApplied, widthMultiplierApplied,
+  width, basePrice, bushItems, extras,
+  discounts = [], discountAmounts = [], discountTotal = 0,
+  heightMultiplierApplied, widthMultiplierApplied,
   heightMultiplier, widthMultiplier, bushesTotal, extrasPrice, totalPrice, estimationCount,
 }: Props) {
   const totalFeet = facadeLength + leftLength + rightLength + backLength + backLeftLength + backRightLength;
@@ -163,6 +168,16 @@ export default function EstimationPreview({
             <div key={i} className="flex justify-between text-muted-foreground">
               <span>Extra: {e.description || "—"}</span>
               <span>${e.price.toFixed(2)}</span>
+            </div>
+          ))}
+
+          {discounts.length > 0 && discounts.map((d, i) => (
+            <div key={`disc-${i}`} className="flex justify-between text-emerald-600">
+              <span>
+                Rabais{d.description ? `: ${d.description}` : ""}{" "}
+                {d.type === "percent" ? `(${d.value}%)` : `($${Number(d.value).toFixed(2)})`}
+              </span>
+              <span>−${(discountAmounts[i] ?? 0).toFixed(2)}</span>
             </div>
           ))}
         </div>
