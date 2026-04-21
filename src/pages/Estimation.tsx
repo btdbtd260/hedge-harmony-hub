@@ -153,6 +153,11 @@ const EstimationPage = () => {
   const removeExtra = (id: string) => setExtras(extras.filter((e) => e.id !== id));
   const updateExtra = (id: string, field: "description" | "price", value: string | number) => setExtras(extras.map((e) => e.id === id ? { ...e, [field]: value } : e));
 
+  const addDiscount = () => setDiscounts([...discounts, { id: `disc-${Date.now()}`, description: "", type: "percent", value: 0 }]);
+  const removeDiscount = (id: string) => setDiscounts(discounts.filter((d) => d.id !== id));
+  const updateDiscount = (id: string, field: keyof EstimationDiscount, value: string | number) =>
+    setDiscounts(discounts.map((d) => d.id === id ? { ...d, [field]: value } : d));
+
   const addBush = () => setBushItems([...bushItems, { id: `bush-${Date.now()}`, description: "", count: 1, price: p.bush_price }]);
   const removeBush = (id: string) => setBushItems(bushItems.filter((b) => b.id !== id));
   const updateBush = (id: string, field: keyof BushItem, value: string | number) => setBushItems(bushItems.map((b) => b.id === id ? { ...b, [field]: value } : b));
