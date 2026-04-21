@@ -10,7 +10,7 @@ import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInse
 import { Calculator, Plus, Trash2, Search, UserPlus, Download, Mail } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
-import type { CutType, HeightMode, EstimationExtra } from "@/types";
+import type { CutType, HeightMode, EstimationExtra, EstimationDiscount, DiscountType } from "@/types";
 import EstimationPreview from "@/components/estimation/EstimationPreview";
 import EstimationHistory from "@/components/estimation/EstimationHistory";
 import { downloadEstimationPdf, getEstimationNumber, type EstimationPdfData } from "@/lib/generateEstimationPdf";
