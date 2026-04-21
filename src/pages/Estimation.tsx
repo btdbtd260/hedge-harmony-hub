@@ -73,6 +73,10 @@ const EstimationPage = () => {
   const [emailTo, setEmailTo] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
+  // Dialog for "Custom" cut-type choice (pick a real type + custom price)
+  const [showCustomDialog, setShowCustomDialog] = useState(false);
+  const [pendingCustomType, setPendingCustomType] = useState<CutType>("trim");
+  const [pendingCustomPrice, setPendingCustomPrice] = useState("");
 
   const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, price_per_foot_restoration: 8, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3, two_sides_multiplier: 1.5 };
   const twoSidesMult = (p as any).two_sides_multiplier ?? 1.5;
@@ -306,42 +310,49 @@ const EstimationPage = () => {
 
               <div className="space-y-2">
                 <Label>Type de coupe</Label>
-                <Select value={cutType} onValueChange={(v) => setCutType(v as CutType)}>
+                <Select
+                  value={useCustomPrice ? "custom" : cutType}
+                  onValueChange={(v) => {
+                    if (v === "custom") {
+                      // Open dialog to pick the real cut type + custom price
+                      setPendingCustomType(cutType);
+                      setPendingCustomPrice(customCutPrice);
+                      setShowCustomDialog(true);
+                    } else {
+                      setCutType(v as CutType);
+                      setUseCustomPrice(false);
+                      setCustomCutPrice("");
+                    }
+                  }}
+                >
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
                     <SelectItem value="trim">Taillage</SelectItem>
                     <SelectItem value="levelling">Nivelage</SelectItem>
                     <SelectItem value="restoration">Restauration</SelectItem>
+                    <SelectItem value="custom">Custom (prix personnalisé)</SelectItem>
                   </SelectContent>
                 </Select>
 
-                {/* Per-estimation custom price-per-foot — does NOT change the cut type */}
-                <div className="rounded-lg border bg-muted/30 p-3 space-y-2 mt-2">
-                  <label className="flex items-center gap-2 text-sm cursor-pointer">
-                    <input
-                      type="checkbox"
-                      checked={useCustomPrice}
-                      onChange={(e) => setUseCustomPrice(e.target.checked)}
-                      className="h-4 w-4"
-                    />
-                    <span className="font-medium">Prix par pied personnalisé</span>
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    Surcharge le prix standard du type sélectionné — uniquement pour cette estimation. Le type de coupe ({cutTypeLabel}) reste inchangé pour le calendrier et l'analyse.
-                  </p>
-                  {useCustomPrice && (
-                    <div className="grid grid-cols-2 gap-2 pt-1">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Prix standard</Label>
-                        <Input value={`$${standardPricePerFoot}/pi`} disabled />
-                      </div>
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Prix personnalisé ($/pi)</Label>
-                        <Input type="number" min={0} step="0.01" placeholder="0" value={customCutPrice} onChange={(e) => setCustomCutPrice(e.target.value)} />
-                      </div>
-                    </div>
-                  )}
-                </div>
+                {useCustomPrice && numCustomPrice > 0 && (
+                  <div className="flex items-center justify-between rounded-md border bg-muted/30 px-3 py-2 text-xs">
+                    <span className="text-muted-foreground">
+                      <span className="font-medium text-foreground">{cutTypeLabel}</span> · prix perso{" "}
+                      <span className="font-medium text-foreground">${numCustomPrice}/pi</span>
+                    </span>
+                    <button
+                      type="button"
+                      className="text-primary hover:underline"
+                      onClick={() => {
+                        setPendingCustomType(cutType);
+                        setPendingCustomPrice(customCutPrice);
+                        setShowCustomDialog(true);
+                      }}
+                    >
+                      Modifier
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-3">
@@ -595,6 +606,76 @@ const EstimationPage = () => {
               </Button>
             </div>
           </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom cut-type dialog: pick real type + custom price-per-foot */}
+      <Dialog open={showCustomDialog} onOpenChange={setShowCustomDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Coupe personnalisée</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Choisissez le type de coupe réel et un prix par pied personnalisé pour cette estimation. Le type sélectionné est conservé pour le calendrier et l'analyse.
+            </p>
+            <div className="space-y-2">
+              <Label>Type de coupe réel</Label>
+              <Select value={pendingCustomType} onValueChange={(v) => setPendingCustomType(v as CutType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="trim">Taillage</SelectItem>
+                  <SelectItem value="levelling">Nivelage</SelectItem>
+                  <SelectItem value="restoration">Restauration</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Prix standard</Label>
+                <Input
+                  value={`$${
+                    pendingCustomType === "trim"
+                      ? p.price_per_foot_trim
+                      : pendingCustomType === "levelling"
+                        ? p.price_per_foot_levelling
+                        : priceRestoration
+                  }/pi`}
+                  disabled
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Prix personnalisé ($/pi)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="0"
+                  value={pendingCustomPrice}
+                  onChange={(e) => setPendingCustomPrice(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCustomDialog(false)}>Annuler</Button>
+            <Button
+              onClick={() => {
+                const v = Number(pendingCustomPrice);
+                if (!v || v <= 0) {
+                  toast.error("Entrez un prix par pied valide");
+                  return;
+                }
+                setCutType(pendingCustomType);
+                setCustomCutPrice(pendingCustomPrice);
+                setUseCustomPrice(true);
+                setShowCustomDialog(false);
+              }}
+            >
+              Appliquer
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
