@@ -36,6 +36,9 @@ interface Props {
   basePrice: number;
   bushItems: BushItem[];
   extras: EstimationExtra[];
+  discounts?: EstimationDiscount[];
+  discountAmounts?: number[];
+  discountTotal?: number;
   heightMultiplierApplied: boolean;
   widthMultiplierApplied: boolean;
   heightMultiplier: number;
