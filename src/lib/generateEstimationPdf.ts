@@ -2,7 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { DbCustomer, DbParameters } from "@/hooks/useSupabaseData";
 import { formatDateQC } from "@/lib/utils";
-import type { EstimationExtra } from "@/types";
+import type { EstimationExtra, EstimationDiscount } from "@/types";
 
 export interface EstimationPdfData {
   customer: DbCustomer | null;
