@@ -31,6 +31,7 @@ export interface EstimationPdfData {
   basePrice: number;
   bushItems: { description: string; count: number; price: number }[];
   extras: EstimationExtra[];
+  discounts?: EstimationDiscount[];
   heightMultiplierApplied: boolean;
   widthMultiplierApplied: boolean;
   heightMultiplier: number;
