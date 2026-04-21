@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import type { DbCustomer, DbParameters } from "@/hooks/useSupabaseData";
-import type { EstimationExtra } from "@/types";
+import type { EstimationExtra, EstimationDiscount } from "@/types";
 import { getEstimationNumber } from "@/lib/generateEstimationPdf";
 import { formatDateQC } from "@/lib/utils";
 
