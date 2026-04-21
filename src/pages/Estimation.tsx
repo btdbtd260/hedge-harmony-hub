@@ -596,6 +596,7 @@ const EstimationPage = () => {
               heightBackLeft={numHeightBackLeft} heightBackRight={numHeightBackRight}
               width={numWidth}
               basePrice={basePrice} bushItems={bushItems} extras={extras}
+              discounts={discounts} discountAmounts={discountAmounts} discountTotal={discountTotal}
               heightMultiplierApplied={heightMultiplierApplied} widthMultiplierApplied={widthMultiplierApplied}
               heightMultiplier={p.height_multiplier} widthMultiplier={p.width_multiplier}
               bushesTotal={bushesTotal} extrasPrice={extrasPrice} totalPrice={totalPrice}
