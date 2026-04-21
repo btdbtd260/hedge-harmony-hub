@@ -54,7 +54,9 @@ export default function EstimationPreview({
   backLeftLength, backRightLength,
   heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
   heightBackLeft, heightBackRight,
-  width, basePrice, bushItems, extras, heightMultiplierApplied, widthMultiplierApplied,
+  width, basePrice, bushItems, extras,
+  discounts = [], discountAmounts = [], discountTotal = 0,
+  heightMultiplierApplied, widthMultiplierApplied,
   heightMultiplier, widthMultiplier, bushesTotal, extrasPrice, totalPrice, estimationCount,
 }: Props) {
   const totalFeet = facadeLength + leftLength + rightLength + backLength + backLeftLength + backRightLength;
