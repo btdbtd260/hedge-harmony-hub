@@ -14,7 +14,7 @@ export interface Customer {
 }
 
 // === ESTIMATION ===
-export type CutType = "trim" | "levelling";
+export type CutType = "trim" | "levelling" | "restoration";
 export type HeightMode = "global" | "per_side";
 
 export interface EstimationExtra {
