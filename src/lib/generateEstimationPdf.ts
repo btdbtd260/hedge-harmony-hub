@@ -195,6 +195,24 @@ export function generateEstimationPdf(data: EstimationPdfData): jsPDF {
     }
   });
 
+  // Discounts — only printed if any were defined for this estimation.
+  // Percentages apply on the subtotal before any discounts (matches the live calc).
+  const subtotalBeforeDiscounts =
+    basePrice +
+    bushItems.reduce((s, b) => s + b.count * b.price, 0) +
+    extras.reduce((s, e) => s + e.price, 0);
+  (data.discounts ?? []).forEach((d) => {
+    const amount =
+      d.type === "percent"
+        ? (subtotalBeforeDiscounts * Math.max(0, Math.min(100, Number(d.value) || 0))) / 100
+        : Math.max(0, Number(d.value) || 0);
+    const label =
+      d.type === "percent"
+        ? `Rabais${d.description ? `: ${d.description}` : ""} (${d.value}%)`
+        : `Rabais${d.description ? `: ${d.description}` : ""} ($${Number(d.value).toFixed(2)})`;
+    priceRows.push([label, `-$${amount.toFixed(2)}`]);
+  });
+
   autoTable(doc, {
     startY: y,
     body: priceRows,
