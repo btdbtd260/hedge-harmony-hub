@@ -170,6 +170,16 @@ export default function EstimationPreview({
               <span>${e.price.toFixed(2)}</span>
             </div>
           ))}
+
+          {discounts.length > 0 && discounts.map((d, i) => (
+            <div key={`disc-${i}`} className="flex justify-between text-emerald-600">
+              <span>
+                Rabais{d.description ? `: ${d.description}` : ""}{" "}
+                {d.type === "percent" ? `(${d.value}%)` : `($${Number(d.value).toFixed(2)})`}
+              </span>
+              <span>−${(discountAmounts[i] ?? 0).toFixed(2)}</span>
+            </div>
+          ))}
         </div>
 
         <Separator />
