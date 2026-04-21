@@ -36,8 +36,9 @@ import type { DbJob } from "@/hooks/useSupabaseData";
 
 // Tunable constants — kept in one place for clarity / future tuning
 const BASE_MIN_PER_FOOT = {
-  trim: 0.9,        // ~54 sec per linear foot for a basic trim
-  levelling: 1.6,   // levelling is heavier work
+  trim: 0.9,        // ~54 sec per linear foot for a basic trim ("Taillage")
+  levelling: 1.6,   // levelling is heavier work ("Nivelage")
+  restoration: 2.2, // restoration is the heaviest — overgrown / re-shaping work
   default: 1.1,
 };
 const MIN_PER_BUSH = 6;
