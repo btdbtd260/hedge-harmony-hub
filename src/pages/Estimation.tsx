@@ -40,8 +40,10 @@ const EstimationPage = () => {
   const [newClientEmail, setNewClientEmail] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
 
-  const [cutType, setCutType] = useState<CutType | "custom">("trim");
-  const [customCutName, setCustomCutName] = useState("");
+  // cutType is ALWAYS one of the 3 real business types — never "custom".
+  const [cutType, setCutType] = useState<CutType>("trim");
+  // Per-estimation override of price-per-foot. Does NOT change the cut type.
+  const [useCustomPrice, setUseCustomPrice] = useState(false);
   const [customCutPrice, setCustomCutPrice] = useState("");
   const [facadeLength, setFacadeLength] = useState("");
   const [leftLength, setLeftLength] = useState("");
@@ -72,8 +74,9 @@ const EstimationPage = () => {
   const [emailMessage, setEmailMessage] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3, two_sides_multiplier: 1.5 };
+  const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, price_per_foot_restoration: 8, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3, two_sides_multiplier: 1.5 };
   const twoSidesMult = (p as any).two_sides_multiplier ?? 1.5;
+  const priceRestoration = (p as any).price_per_foot_restoration ?? 8;
 
   const numFacade = Number(facadeLength) || 0;
   const numLeft = Number(leftLength) || 0;
@@ -91,12 +94,17 @@ const EstimationPage = () => {
   const numWidth = Number(width) || 2;
   const numCustomPrice = Number(customCutPrice) || 0;
 
+  // Standard price for the chosen real cut type (always available)
+  const standardPricePerFoot =
+    cutType === "trim"
+      ? p.price_per_foot_trim
+      : cutType === "levelling"
+        ? p.price_per_foot_levelling
+        : priceRestoration;
+
+  // The price actually used for this estimation: standard or per-estimation override
   const totalLinearFeet = numFacade + numLeft + numRight + numBack + numBackLeft + numBackRight;
-  const pricePerFoot = cutType === "trim"
-    ? p.price_per_foot_trim
-    : cutType === "levelling"
-      ? p.price_per_foot_levelling
-      : numCustomPrice;
+  const pricePerFoot = useCustomPrice && numCustomPrice > 0 ? numCustomPrice : standardPricePerFoot;
 
   // Per-side base price with optional two-sides multiplier
   const sideBase = (length: number, twoSides: boolean) =>
@@ -121,7 +129,8 @@ const EstimationPage = () => {
   const extrasPrice = extras.reduce((sum, e) => sum + e.price, 0);
   const totalPrice = basePrice + bushesTotal + extrasPrice;
 
-  const cutTypeLabel = cutType === "trim" ? "Trim" : cutType === "levelling" ? "Levelling" : (customCutName.trim() || "Custom");
+  const cutTypeLabel =
+    cutType === "trim" ? "Taillage" : cutType === "levelling" ? "Nivelage" : "Restauration";
 
   const addExtra = () => setExtras([...extras, { id: `ext-${Date.now()}`, description: "", price: 0 }]);
   const removeExtra = (id: string) => setExtras(extras.filter((e) => e.id !== id));
