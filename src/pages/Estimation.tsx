@@ -608,6 +608,76 @@ const EstimationPage = () => {
           </div>
         </DialogContent>
       </Dialog>
+
+      {/* Custom cut-type dialog: pick real type + custom price-per-foot */}
+      <Dialog open={showCustomDialog} onOpenChange={setShowCustomDialog}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Coupe personnalisée</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Choisissez le type de coupe réel et un prix par pied personnalisé pour cette estimation. Le type sélectionné est conservé pour le calendrier et l'analyse.
+            </p>
+            <div className="space-y-2">
+              <Label>Type de coupe réel</Label>
+              <Select value={pendingCustomType} onValueChange={(v) => setPendingCustomType(v as CutType)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="trim">Taillage</SelectItem>
+                  <SelectItem value="levelling">Nivelage</SelectItem>
+                  <SelectItem value="restoration">Restauration</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Prix standard</Label>
+                <Input
+                  value={`$${
+                    pendingCustomType === "trim"
+                      ? p.price_per_foot_trim
+                      : pendingCustomType === "levelling"
+                        ? p.price_per_foot_levelling
+                        : priceRestoration
+                  }/pi`}
+                  disabled
+                />
+              </div>
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Prix personnalisé ($/pi)</Label>
+                <Input
+                  type="number"
+                  min={0}
+                  step="0.01"
+                  placeholder="0"
+                  value={pendingCustomPrice}
+                  onChange={(e) => setPendingCustomPrice(e.target.value)}
+                  autoFocus
+                />
+              </div>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowCustomDialog(false)}>Annuler</Button>
+            <Button
+              onClick={() => {
+                const v = Number(pendingCustomPrice);
+                if (!v || v <= 0) {
+                  toast.error("Entrez un prix par pied valide");
+                  return;
+                }
+                setCutType(pendingCustomType);
+                setCustomCutPrice(pendingCustomPrice);
+                setUseCustomPrice(true);
+                setShowCustomDialog(false);
+              }}
+            >
+              Appliquer
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
