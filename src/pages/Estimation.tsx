@@ -73,6 +73,10 @@ const EstimationPage = () => {
   const [emailTo, setEmailTo] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
+  // Dialog for "Custom" cut-type choice (pick a real type + custom price)
+  const [showCustomDialog, setShowCustomDialog] = useState(false);
+  const [pendingCustomType, setPendingCustomType] = useState<CutType>("trim");
+  const [pendingCustomPrice, setPendingCustomPrice] = useState("");
 
   const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, price_per_foot_restoration: 8, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3, two_sides_multiplier: 1.5 };
   const twoSidesMult = (p as any).two_sides_multiplier ?? 1.5;
