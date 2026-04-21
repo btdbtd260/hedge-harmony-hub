@@ -234,6 +234,13 @@ const EstimationPage = () => {
           ? [{ id: `meta-price-${Date.now()}`, description: `__PRICE_META__:${numCustomPrice}`, price: 0 }]
           : []),
         { id: `meta-sides-${Date.now()}`, description: `__SIDES_META__:${[twoSidesLeft, twoSidesFacade, twoSidesRight, twoSidesBackLeft, twoSidesBack, twoSidesBackRight].map(b => b ? "1" : "0").join("")}`, price: 0 },
+        // Persist discounts as meta entries (price = computed deducted amount, negative for clarity).
+        // The official total_price already includes them — these entries are for traceability/reload.
+        ...discounts.map((d, i) => ({
+          id: `meta-discount-${Date.now()}-${i}`,
+          description: `__DISCOUNT_META__:${d.type}:${d.value}:${(d.description || "").replace(/[:|]/g, " ")}`,
+          price: -discountAmounts[i],
+        })),
       ];
 
       const estimation = await insertEstimation.mutateAsync({
