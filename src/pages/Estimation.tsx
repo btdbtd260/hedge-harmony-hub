@@ -557,6 +557,12 @@ const EstimationPage = () => {
               )}
               {heightMultiplierApplied && <div className="flex justify-between text-sm text-amber-600"><span>Mult. hauteur (×{p.height_multiplier})</span><span>Appliqué</span></div>}
               {widthMultiplierApplied && <div className="flex justify-between text-sm text-amber-600"><span>Mult. largeur (×{p.width_multiplier})</span><span>Appliqué</span></div>}
+              {discountTotal > 0 && (
+                <div className="flex justify-between text-sm text-emerald-600">
+                  <span>Rabais ({discounts.length})</span>
+                  <span>−${discountTotal.toFixed(2)}</span>
+                </div>
+              )}
               <div className="border-t pt-3 flex justify-between font-bold text-lg"><span>Total</span><span className="text-primary">${totalPrice.toFixed(2)}</span></div>
 
               <Button variant="outline" className="w-full" onClick={handleDownloadPdf}>
