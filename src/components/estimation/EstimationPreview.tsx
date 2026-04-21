@@ -15,7 +15,7 @@ interface BushItem {
 interface Props {
   customer: DbCustomer | null;
   params: DbParameters | null;
-  cutType: "trim" | "levelling" | "custom";
+  cutType: "trim" | "levelling" | "restoration";
   customCutLabel?: string;
   customPricePerFoot?: number;
   facadeLength: number;
@@ -55,12 +55,16 @@ export default function EstimationPreview({
   heightMultiplier, widthMultiplier, bushesTotal, extrasPrice, totalPrice, estimationCount,
 }: Props) {
   const totalFeet = facadeLength + leftLength + rightLength + backLength + backLeftLength + backRightLength;
-  const pricePerFoot = cutType === "trim"
-    ? (params?.price_per_foot_trim ?? 4.5)
-    : cutType === "levelling"
-      ? (params?.price_per_foot_levelling ?? 6)
-      : (customPricePerFoot ?? 0);
-  const cutLabel = cutType === "levelling" ? "Nivelage" : cutType === "custom" ? (customCutLabel || "Custom") : "Taille";
+  const standardPrice =
+    cutType === "trim" ? (params?.price_per_foot_trim ?? 4.5) :
+    cutType === "levelling" ? (params?.price_per_foot_levelling ?? 6) :
+    ((params as any)?.price_per_foot_restoration ?? 8);
+  const pricePerFoot = customPricePerFoot && customPricePerFoot > 0 ? customPricePerFoot : standardPrice;
+  const baseLabel =
+    cutType === "levelling" ? "Nivelage" :
+    cutType === "restoration" ? "Restauration" :
+    "Taillage";
+  const cutLabel = customPricePerFoot && customPricePerFoot > 0 ? `${baseLabel} (prix perso)` : baseLabel;
   const estNumber = getEstimationNumber(estimationCount, new Date().toISOString());
 
   return (

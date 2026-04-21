@@ -25,16 +25,30 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
   const [emailMessage, setEmailMessage] = useState("");
   const [emailEstimation, setEmailEstimation] = useState<{ est: DbEstimation; idx: number } | null>(null);
 
-  const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3 };
+  const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, price_per_foot_restoration: 8, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3 };
 
   const handleDownload = (est: DbEstimation, index: number) => {
     const client = customers.find(c => c.id === est.client_id) ?? null;
     const extras = Array.isArray(est.extras) ? (est.extras as any[]) : [];
     const bushExtras = extras.filter((e: any) => e.description?.startsWith("Bush:"));
-    const otherExtras = extras.filter((e: any) => !e.description?.startsWith("Bush:"));
+    const otherExtras = extras.filter((e: any) =>
+      !e.description?.startsWith("Bush:") &&
+      !e.description?.startsWith("__PRICE_META__") &&
+      !e.description?.startsWith("__SIDES_META__") &&
+      !e.description?.startsWith("__CUT_META__"),
+    );
+
+    // Recover any per-estimation custom price stored in extras metadata
+    const priceMeta = extras.find((e: any) => e.description?.startsWith("__PRICE_META__"));
+    const customPriceFromMeta = priceMeta ? Number(String(priceMeta.description).split(":")[1]) || 0 : 0;
 
     const totalFeet = Number(est.facade_length) + Number(est.left_length) + Number(est.right_length) + Number(est.back_length) + Number((est as any).back_left_length || 0) + Number((est as any).back_right_length || 0);
-    const pricePerFoot = est.cut_type === "trim" ? p.price_per_foot_trim : p.price_per_foot_levelling;
+    const standardPrice =
+      est.cut_type === "trim" ? p.price_per_foot_trim :
+      est.cut_type === "levelling" ? p.price_per_foot_levelling :
+      est.cut_type === "restoration" ? ((p as any).price_per_foot_restoration ?? 8) :
+      p.price_per_foot_trim;
+    const pricePerFoot = customPriceFromMeta > 0 ? customPriceFromMeta : standardPrice;
     let basePrice = totalFeet * pricePerFoot;
     const effH = est.height_mode === "global" ? Number(est.height_global) : Math.max(Number(est.height_facade), Number(est.height_left), Number(est.height_right), Number(est.height_back));
     const hApplied = effH >= p.height_multiplier_threshold;
@@ -46,7 +60,8 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
       customer: client,
       params: params ?? null,
       estimationNumber: getEstimationNumber(index, est.created_at),
-      cutType: est.cut_type as "trim" | "levelling",
+      cutType: (est.cut_type === "levelling" || est.cut_type === "restoration" || est.cut_type === "trim" ? est.cut_type : "trim") as "trim" | "levelling" | "restoration",
+      customPricePerFoot: customPriceFromMeta > 0 ? customPriceFromMeta : undefined,
       facadeLength: Number(est.facade_length),
       leftLength: Number(est.left_length),
       rightLength: Number(est.right_length),
@@ -151,7 +166,7 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
                 </div>
 
                 <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div><span className="text-muted-foreground">Type:</span> <span className="font-medium">{selected.cut_type === "levelling" ? "Nivelage" : "Taille"}</span></div>
+                  <div><span className="text-muted-foreground">Type:</span> <span className="font-medium">{selected.cut_type === "levelling" ? "Nivelage" : selected.cut_type === "restoration" ? "Restauration" : "Taillage"}</span></div>
                   <div><span className="text-muted-foreground">Date:</span> <span className="font-medium">{formatDateQC(selected.created_at)}</span></div>
                   <div><span className="text-muted-foreground">Pieds linéaires:</span> <span className="font-medium">{totalFeet} pi</span></div>
                   <div><span className="text-muted-foreground">Largeur:</span> <span className="font-medium">{selected.width} pi</span></div>
