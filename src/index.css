@@ -109,8 +109,10 @@
 
     --cut-trim: 152 55% 50%;
     --cut-trim-foreground: 0 0% 100%;
-    --cut-levelling: 28 88% 58%;
+    --cut-levelling: 0 72% 55%;
     --cut-levelling-foreground: 0 0% 100%;
+    --cut-restoration: 28 88% 58%;
+    --cut-restoration-foreground: 0 0% 100%;
 
     --estimation-request: 217 91% 60%;
     --estimation-request-foreground: 0 0% 100%;
