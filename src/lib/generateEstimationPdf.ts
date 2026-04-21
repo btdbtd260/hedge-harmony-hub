@@ -8,8 +8,10 @@ export interface EstimationPdfData {
   customer: DbCustomer | null;
   params: DbParameters | null;
   estimationNumber: string;
-  cutType: "trim" | "levelling" | "custom";
+  cutType: "trim" | "levelling" | "restoration";
+  /** @deprecated kept for backward-compat with older saved estimations */
   customCutLabel?: string;
+  /** Per-estimation override of the price-per-foot. Cut type is unchanged. */
   customPricePerFoot?: number;
   facadeLength: number;
   leftLength: number;
@@ -119,12 +121,18 @@ export function generateEstimationPdf(data: EstimationPdfData): jsPDF {
   y += 2;
 
   const totalFeet = facadeLength + leftLength + rightLength + backLength + backLeftLength + backRightLength;
-  const cutLabel = cutType === "levelling" ? "Nivelage" : cutType === "custom" ? (data.customCutLabel || "Custom") : "Taille";
-  const pricePerFoot = cutType === "trim"
-    ? (params?.price_per_foot_trim ?? 4.5)
-    : cutType === "levelling"
-      ? (params?.price_per_foot_levelling ?? 6)
-      : (data.customPricePerFoot ?? 0);
+  const baseLabel =
+    cutType === "levelling" ? "Nivelage" :
+    cutType === "restoration" ? "Restauration" :
+    cutType === "trim" ? "Taillage" :
+    (data.customCutLabel || "Taillage");
+  const cutLabel = data.customPricePerFoot && data.customPricePerFoot > 0 ? `${baseLabel} (prix personnalisé)` : baseLabel;
+  const standardPrice =
+    cutType === "trim" ? (params?.price_per_foot_trim ?? 4.5) :
+    cutType === "levelling" ? (params?.price_per_foot_levelling ?? 6) :
+    cutType === "restoration" ? ((params as any)?.price_per_foot_restoration ?? 8) :
+    0;
+  const pricePerFoot = data.customPricePerFoot && data.customPricePerFoot > 0 ? data.customPricePerFoot : standardPrice;
 
   const measureRows = [
     ["", "Gauche", "Centre", "Droite"],

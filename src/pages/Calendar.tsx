@@ -63,10 +63,15 @@ function projectedEndTime(j: DbJob): string | null {
   return minutesToHHmm(start + est);
 }
 
-// Color classes per cut type — uses semantic tokens from index.css
+// Color classes per cut type — uses semantic tokens from index.css.
+// Note: cut_type is always one of the 3 real types (trim/levelling/restoration).
+// A custom price-per-foot does NOT change the color — it stays tied to the chosen cut type.
 function cutTypeClasses(cutType: string | null | undefined): string {
   if (cutType === "levelling") {
     return "bg-cut-levelling/15 text-cut-levelling hover:bg-cut-levelling/25 border-l-2 border-cut-levelling";
+  }
+  if (cutType === "restoration") {
+    return "bg-cut-restoration/15 text-cut-restoration hover:bg-cut-restoration/25 border-l-2 border-cut-restoration";
   }
   if (cutType === "trim") {
     return "bg-cut-trim/15 text-cut-trim hover:bg-cut-trim/25 border-l-2 border-cut-trim";
@@ -75,7 +80,8 @@ function cutTypeClasses(cutType: string | null | undefined): string {
 }
 function cutTypeLabel(cutType: string | null | undefined): string {
   if (cutType === "levelling") return "Nivelage";
-  if (cutType === "trim") return "Taille";
+  if (cutType === "restoration") return "Restauration";
+  if (cutType === "trim") return "Taillage";
   return cutType || "Autre";
 }
 
@@ -578,14 +584,18 @@ function DayHourlyDialog({
 // ─── Legend ───
 function CutTypeLegend() {
   return (
-    <div className="flex items-center gap-3 text-xs text-muted-foreground">
+    <div className="flex items-center gap-3 text-xs text-muted-foreground flex-wrap">
       <div className="flex items-center gap-1.5">
         <span className="inline-block w-3 h-3 rounded-sm bg-cut-trim" />
-        <span>Taille</span>
+        <span>Taillage</span>
       </div>
       <div className="flex items-center gap-1.5">
         <span className="inline-block w-3 h-3 rounded-sm bg-cut-levelling" />
         <span>Nivelage</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="inline-block w-3 h-3 rounded-sm bg-cut-restoration" />
+        <span>Restauration</span>
       </div>
       <div className="flex items-center gap-1.5">
         <span className="inline-block w-3 h-3 rounded-sm bg-estimation-request" />

@@ -15,11 +15,12 @@ import {
 } from "recharts";
 import { TrendingDown, TrendingUp, Target, Activity } from "lucide-react";
 
-type CutFilter = "all" | "trim" | "levelling";
+type CutFilter = "all" | "trim" | "levelling" | "restoration";
 
 const CUT_LABEL: Record<string, string> = {
   trim: "Taillage",
-  levelling: "Levelling",
+  levelling: "Nivelage",
+  restoration: "Restauration",
 };
 function cutLabel(c: string | null | undefined): string {
   if (!c) return "—";
@@ -56,10 +57,11 @@ export default function Analytics() {
 
   // Counts per cut type (for the filter tabs)
   const counts = useMemo(() => {
-    const c = { all: allCompleted.length, trim: 0, levelling: 0 };
+    const c = { all: allCompleted.length, trim: 0, levelling: 0, restoration: 0 };
     for (const j of allCompleted) {
       if (j.cut_type === "trim") c.trim++;
       else if (j.cut_type === "levelling") c.levelling++;
+      else if (j.cut_type === "restoration") c.restoration++;
     }
     return c;
   }, [allCompleted]);
@@ -142,15 +144,18 @@ export default function Analytics() {
               Taillage <Badge variant="secondary" className="ml-2">{counts.trim}</Badge>
             </TabsTrigger>
             <TabsTrigger value="levelling">
-              Levelling <Badge variant="secondary" className="ml-2">{counts.levelling}</Badge>
+              Nivelage <Badge variant="secondary" className="ml-2">{counts.levelling}</Badge>
+            </TabsTrigger>
+            <TabsTrigger value="restoration">
+              Restauration <Badge variant="secondary" className="ml-2">{counts.restoration}</Badge>
             </TabsTrigger>
           </TabsList>
         </Tabs>
       </div>
 
-      {cutFilter === "all" && counts.trim > 0 && counts.levelling > 0 && (
+      {cutFilter === "all" && (counts.trim > 0 ? 1 : 0) + (counts.levelling > 0 ? 1 : 0) + (counts.restoration > 0 ? 1 : 0) > 1 && (
         <p className="text-xs text-muted-foreground -mt-2">
-          ⚠ Vue combinée : taillage et levelling ont des durées de référence très différentes. Filtre par type pour une analyse précise.
+          ⚠ Vue combinée : les types de coupe ont des durées de référence très différentes. Filtre par type pour une analyse précise.
         </p>
       )}
 

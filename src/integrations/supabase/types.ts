@@ -483,6 +483,7 @@ export type Database = {
           id: string
           maintenance_interval_days: number
           price_per_foot_levelling: number
+          price_per_foot_restoration: number
           price_per_foot_trim: number
           reminder_notification_time: string
           social_links: Json
@@ -505,6 +506,7 @@ export type Database = {
           id?: string
           maintenance_interval_days?: number
           price_per_foot_levelling?: number
+          price_per_foot_restoration?: number
           price_per_foot_trim?: number
           reminder_notification_time?: string
           social_links?: Json
@@ -527,6 +529,7 @@ export type Database = {
           id?: string
           maintenance_interval_days?: number
           price_per_foot_levelling?: number
+          price_per_foot_restoration?: number
           price_per_foot_trim?: number
           reminder_notification_time?: string
           social_links?: Json

@@ -40,8 +40,10 @@ const EstimationPage = () => {
   const [newClientEmail, setNewClientEmail] = useState("");
   const [newClientAddress, setNewClientAddress] = useState("");
 
-  const [cutType, setCutType] = useState<CutType | "custom">("trim");
-  const [customCutName, setCustomCutName] = useState("");
+  // cutType is ALWAYS one of the 3 real business types — never "custom".
+  const [cutType, setCutType] = useState<CutType>("trim");
+  // Per-estimation override of price-per-foot. Does NOT change the cut type.
+  const [useCustomPrice, setUseCustomPrice] = useState(false);
   const [customCutPrice, setCustomCutPrice] = useState("");
   const [facadeLength, setFacadeLength] = useState("");
   const [leftLength, setLeftLength] = useState("");
@@ -72,8 +74,9 @@ const EstimationPage = () => {
   const [emailMessage, setEmailMessage] = useState("");
   const [showConfirmation, setShowConfirmation] = useState(false);
 
-  const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3, two_sides_multiplier: 1.5 };
+  const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, price_per_foot_restoration: 8, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3, two_sides_multiplier: 1.5 };
   const twoSidesMult = (p as any).two_sides_multiplier ?? 1.5;
+  const priceRestoration = (p as any).price_per_foot_restoration ?? 8;
 
   const numFacade = Number(facadeLength) || 0;
   const numLeft = Number(leftLength) || 0;
@@ -91,12 +94,17 @@ const EstimationPage = () => {
   const numWidth = Number(width) || 2;
   const numCustomPrice = Number(customCutPrice) || 0;
 
+  // Standard price for the chosen real cut type (always available)
+  const standardPricePerFoot =
+    cutType === "trim"
+      ? p.price_per_foot_trim
+      : cutType === "levelling"
+        ? p.price_per_foot_levelling
+        : priceRestoration;
+
+  // The price actually used for this estimation: standard or per-estimation override
   const totalLinearFeet = numFacade + numLeft + numRight + numBack + numBackLeft + numBackRight;
-  const pricePerFoot = cutType === "trim"
-    ? p.price_per_foot_trim
-    : cutType === "levelling"
-      ? p.price_per_foot_levelling
-      : numCustomPrice;
+  const pricePerFoot = useCustomPrice && numCustomPrice > 0 ? numCustomPrice : standardPricePerFoot;
 
   // Per-side base price with optional two-sides multiplier
   const sideBase = (length: number, twoSides: boolean) =>
@@ -121,7 +129,8 @@ const EstimationPage = () => {
   const extrasPrice = extras.reduce((sum, e) => sum + e.price, 0);
   const totalPrice = basePrice + bushesTotal + extrasPrice;
 
-  const cutTypeLabel = cutType === "trim" ? "Trim" : cutType === "levelling" ? "Levelling" : (customCutName.trim() || "Custom");
+  const cutTypeLabel =
+    cutType === "trim" ? "Taillage" : cutType === "levelling" ? "Nivelage" : "Restauration";
 
   const addExtra = () => setExtras([...extras, { id: `ext-${Date.now()}`, description: "", price: 0 }]);
   const removeExtra = (id: string) => setExtras(extras.filter((e) => e.id !== id));
@@ -150,9 +159,8 @@ const EstimationPage = () => {
     customer: selectedClient,
     params: params ?? null,
     estimationNumber: getEstimationNumber(estimations.length),
-    cutType: cutType as "trim" | "levelling" | "custom",
-    customCutLabel: cutType === "custom" ? (customCutName.trim() || "Custom") : undefined,
-    customPricePerFoot: cutType === "custom" ? numCustomPrice : undefined,
+    cutType,
+    customPricePerFoot: useCustomPrice && numCustomPrice > 0 ? numCustomPrice : undefined,
     facadeLength: numFacade, leftLength: numLeft, rightLength: numRight, backLength: numBack,
     backLeftLength: numBackLeft, backRightLength: numBackRight,
     heightMode: heightMode as "global" | "per_side",
@@ -190,26 +198,23 @@ const EstimationPage = () => {
       toast.error("Sélectionnez un client");
       return;
     }
-    if (cutType === "custom") {
-      if (!customCutName.trim()) {
-        toast.error("Entrez un nom pour le type Custom");
-        return;
-      }
-      if (numCustomPrice <= 0) {
-        toast.error("Entrez un prix par pied valide pour le type Custom");
-        return;
-      }
+    if (useCustomPrice && numCustomPrice <= 0) {
+      toast.error("Entrez un prix par pied valide pour le prix personnalisé");
+      return;
     }
     try {
-      // Persist custom cut name + per-side two-sides flags inside extras (schema-compatible)
+      // The cut_type is ALWAYS one of the 3 real business types — never "custom".
+      // The custom price (if any) is stored as metadata so the original cut_type
+      // stays clean for the calendar, duration estimator and analytics.
       const metaExtras = [
-        ...(cutType === "custom" ? [{ id: `meta-cut-${Date.now()}`, description: `__CUT_META__:${customCutName.trim() || "Custom"}|${numCustomPrice}`, price: 0 }] : []),
+        ...(useCustomPrice && numCustomPrice > 0
+          ? [{ id: `meta-price-${Date.now()}`, description: `__PRICE_META__:${numCustomPrice}`, price: 0 }]
+          : []),
         { id: `meta-sides-${Date.now()}`, description: `__SIDES_META__:${[twoSidesLeft, twoSidesFacade, twoSidesRight, twoSidesBackLeft, twoSidesBack, twoSidesBackRight].map(b => b ? "1" : "0").join("")}`, price: 0 },
       ];
-      const persistedCutType = cutType === "custom" ? "custom" : cutType;
 
       const estimation = await insertEstimation.mutateAsync({
-        client_id: clientId, cut_type: persistedCutType,
+        client_id: clientId, cut_type: cutType,
         facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
         back_left_length: numBackLeft, back_right_length: numBackRight,
         height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
@@ -225,7 +230,7 @@ const EstimationPage = () => {
       });
 
       const job = await insertJob.mutateAsync({
-        client_id: clientId, estimation_id: estimation.id, cut_type: persistedCutType,
+        client_id: clientId, estimation_id: estimation.id, cut_type: cutType,
         status: "pending", estimated_profit: totalPrice,
         measurement_snapshot: {
           facade_length: numFacade, left_length: numLeft, right_length: numRight, back_length: numBack,
@@ -233,8 +238,8 @@ const EstimationPage = () => {
           height_mode: heightMode, height_global: numHeightGlobal, height_facade: numHeightFacade,
           height_left: numHeightLeft, height_right: numHeightRight, height_back: numHeightBack,
           height_back_left: numHeightBackLeft, height_back_right: numHeightBackRight, width: numWidth,
-          custom_cut_name: cutType === "custom" ? customCutName.trim() : null,
-          custom_cut_price: cutType === "custom" ? numCustomPrice : null,
+          // Per-estimation custom price override (does NOT change the cut type)
+          custom_price_per_foot: useCustomPrice && numCustomPrice > 0 ? numCustomPrice : null,
           two_sides: {
             facade: twoSidesFacade, left: twoSidesLeft, right: twoSidesRight,
             back: twoSidesBack, back_left: twoSidesBackLeft, back_right: twoSidesBackRight,
@@ -256,7 +261,7 @@ const EstimationPage = () => {
     setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
     setHeightBackLeft(""); setHeightBackRight("");
     setWidth(""); setBushItems([]); setExtras([]);
-    setCustomCutName(""); setCustomCutPrice("");
+    setUseCustomPrice(false); setCustomCutPrice("");
     setTwoSidesFacade(false); setTwoSidesLeft(false); setTwoSidesRight(false);
     setTwoSidesBack(false); setTwoSidesBackLeft(false); setTwoSidesBackRight(false);
   };
@@ -301,26 +306,42 @@ const EstimationPage = () => {
 
               <div className="space-y-2">
                 <Label>Type de coupe</Label>
-                <Select value={cutType} onValueChange={(v) => setCutType(v as CutType | "custom")}>
+                <Select value={cutType} onValueChange={(v) => setCutType(v as CutType)}>
                   <SelectTrigger><SelectValue /></SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="trim">Trim</SelectItem>
-                    <SelectItem value="levelling">Levelling</SelectItem>
-                    <SelectItem value="custom">Custom</SelectItem>
+                    <SelectItem value="trim">Taillage</SelectItem>
+                    <SelectItem value="levelling">Nivelage</SelectItem>
+                    <SelectItem value="restoration">Restauration</SelectItem>
                   </SelectContent>
                 </Select>
-                {cutType === "custom" && (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2 pt-2">
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Nom du type</Label>
-                      <Input placeholder="Ex: Sculpture" value={customCutName} onChange={(e) => setCustomCutName(e.target.value)} />
+
+                {/* Per-estimation custom price-per-foot — does NOT change the cut type */}
+                <div className="rounded-lg border bg-muted/30 p-3 space-y-2 mt-2">
+                  <label className="flex items-center gap-2 text-sm cursor-pointer">
+                    <input
+                      type="checkbox"
+                      checked={useCustomPrice}
+                      onChange={(e) => setUseCustomPrice(e.target.checked)}
+                      className="h-4 w-4"
+                    />
+                    <span className="font-medium">Prix par pied personnalisé</span>
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    Surcharge le prix standard du type sélectionné — uniquement pour cette estimation. Le type de coupe ({cutTypeLabel}) reste inchangé pour le calendrier et l'analyse.
+                  </p>
+                  {useCustomPrice && (
+                    <div className="grid grid-cols-2 gap-2 pt-1">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Prix standard</Label>
+                        <Input value={`$${standardPricePerFoot}/pi`} disabled />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Prix personnalisé ($/pi)</Label>
+                        <Input type="number" min={0} step="0.01" placeholder="0" value={customCutPrice} onChange={(e) => setCustomCutPrice(e.target.value)} />
+                      </div>
                     </div>
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Prix par pied ($)</Label>
-                      <Input type="number" min={0} step="0.01" placeholder="0" value={customCutPrice} onChange={(e) => setCustomCutPrice(e.target.value)} />
-                    </div>
-                  </div>
-                )}
+                  )}
+                </div>
               </div>
 
               <div className="space-y-3">
@@ -477,9 +498,8 @@ const EstimationPage = () => {
             <EstimationPreview
               customer={selectedClient}
               params={params ?? null}
-              cutType={cutType as "trim" | "levelling" | "custom"}
-              customCutLabel={cutType === "custom" ? (customCutName.trim() || "Custom") : undefined}
-              customPricePerFoot={cutType === "custom" ? numCustomPrice : undefined}
+              cutType={cutType}
+              customPricePerFoot={useCustomPrice && numCustomPrice > 0 ? numCustomPrice : undefined}
               facadeLength={numFacade} leftLength={numLeft} rightLength={numRight} backLength={numBack}
               backLeftLength={numBackLeft} backRightLength={numBackRight}
               heightMode={heightMode as "global" | "per_side"}

@@ -65,6 +65,10 @@ export default {
           DEFAULT: "hsl(var(--cut-levelling))",
           foreground: "hsl(var(--cut-levelling-foreground))",
         },
+        "cut-restoration": {
+          DEFAULT: "hsl(var(--cut-restoration))",
+          foreground: "hsl(var(--cut-restoration-foreground))",
+        },
         "estimation-request": {
           DEFAULT: "hsl(var(--estimation-request))",
           foreground: "hsl(var(--estimation-request-foreground))",
