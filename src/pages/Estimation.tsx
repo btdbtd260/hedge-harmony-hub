@@ -68,6 +68,7 @@ const EstimationPage = () => {
   const [heightBackRight, setHeightBackRight] = useState("");
   const [width, setWidth] = useState("");
   const [extras, setExtras] = useState<EstimationExtra[]>([]);
+  const [discounts, setDiscounts] = useState<EstimationDiscount[]>([]);
   const [bushItems, setBushItems] = useState<BushItem[]>([]);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [emailTo, setEmailTo] = useState("");
