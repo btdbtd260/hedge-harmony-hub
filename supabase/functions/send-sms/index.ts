@@ -84,13 +84,17 @@ Deno.serve(async (req) => {
       else normalizedTo = "+" + normalizedTo;
     }
 
-    // Vérifier la liste des numéros bloqués (10 derniers chiffres)
+    // Vérifier la liste des numéros bloqués
+    // On compare à la fois sur les 10 derniers chiffres ET sur les chiffres bruts
+    // (utile pour les numéros courts comme 911)
     const adminClientPre = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const rawDigits = (to ?? "").replace(/\D/g, "");
     const toDigits = normalizedTo.replace(/\D/g, "").slice(-10);
+    const candidates = Array.from(new Set([toDigits, rawDigits].filter(Boolean)));
     const { data: blocked } = await adminClientPre
       .from("blocked_numbers")
       .select("id")
-      .eq("phone_normalized", toDigits)
+      .in("phone_normalized", candidates)
       .maybeSingle();
     if (blocked) {
       return new Response(

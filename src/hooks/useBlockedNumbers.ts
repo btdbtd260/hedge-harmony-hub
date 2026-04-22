@@ -5,10 +5,24 @@ import { formatPhone } from "@/lib/phoneFormat";
 
 export type DbBlockedNumber = Tables<"blocked_numbers">;
 
-/** Conserve les 10 derniers chiffres — clef de comparaison côté serveur. */
+/** Numéros protégés qui ne peuvent jamais être débloqués (urgences, frais associés). */
+export const PROTECTED_BLOCKED_NUMBERS = new Set(["911"]);
+
+export function isProtectedBlockedNumber(phone_normalized: string | null | undefined): boolean {
+  if (!phone_normalized) return false;
+  return PROTECTED_BLOCKED_NUMBERS.has(phone_normalized);
+}
+
+/**
+ * Conserve les chiffres significatifs d'un numéro.
+ * - Numéros courts (urgences, ex: 911) : on garde tel quel.
+ * - Numéros nord-américains : on conserve les 10 derniers chiffres.
+ */
 export function normalizeForBlock(input: string | null | undefined): string {
   if (!input) return "";
-  return String(input).replace(/\D+/g, "").slice(-10);
+  const digits = String(input).replace(/\D+/g, "");
+  if (digits.length > 0 && digits.length <= 6) return digits; // numéros courts (911, etc.)
+  return digits.slice(-10);
 }
 
 export function useBlockedNumbers() {
@@ -30,13 +44,14 @@ export function useAddBlockedNumber() {
   return useMutation({
     mutationFn: async (params: { phone: string; reason?: string }) => {
       const phone_normalized = normalizeForBlock(params.phone);
-      if (phone_normalized.length < 10) {
+      const isShort = phone_normalized.length > 0 && phone_normalized.length <= 6;
+      if (!isShort && phone_normalized.length < 10) {
         throw new Error("Numéro invalide (10 chiffres requis)");
       }
       const { data, error } = await supabase
         .from("blocked_numbers")
         .insert({
-          phone: formatPhone(params.phone),
+          phone: isShort ? phone_normalized : formatPhone(params.phone),
           phone_normalized,
           reason: params.reason ?? "",
         })
@@ -56,6 +71,16 @@ export function useRemoveBlockedNumber() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Garde-fou : on récupère la ligne pour vérifier qu'elle n'est pas protégée
+      const { data: row, error: fetchErr } = await supabase
+        .from("blocked_numbers")
+        .select("phone_normalized")
+        .eq("id", id)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+      if (row && isProtectedBlockedNumber(row.phone_normalized)) {
+        throw new Error("Ce numéro est protégé et ne peut pas être débloqué");
+      }
       const { error } = await supabase.from("blocked_numbers").delete().eq("id", id);
       if (error) throw error;
     },
