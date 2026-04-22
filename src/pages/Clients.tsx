@@ -28,6 +28,7 @@ const Clients = () => {
   const insertCustomer = useInsertCustomer();
   const hideCustomer = useHideCustomer();
   const restoreCustomer = useRestoreCustomer();
+  const deleteCustomerCascade = useDeleteCustomerCascade();
 
   const [search, setSearch] = useState("");
   const [showHidden, setShowHidden] = useState(false);
@@ -38,8 +39,12 @@ const Clients = () => {
   const [formEmail, setFormEmail] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [clientToDelete, setClientToDelete] = useState<DbCustomer | null>(null);
+  const [clientToPurge, setClientToPurge] = useState<DbCustomer | null>(null);
+  const [purgeConfirmText, setPurgeConfirmText] = useState("");
 
   const filtered = customers
+    // Always hide the technical archive customer used to preserve Finance history
+    .filter((c) => c.id !== ARCHIVE_CUSTOMER_ID)
     .filter((c) => showHidden || !c.hidden)
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.address.toLowerCase().includes(search.toLowerCase()));
 
