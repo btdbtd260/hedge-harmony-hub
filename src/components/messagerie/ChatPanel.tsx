@@ -24,7 +24,19 @@ export function ChatPanel({ client }: ChatPanelProps) {
   const markRead = useMarkConversationRead();
   const isBlocked = useIsBlocked(client.phone);
   const [text, setText] = useState("");
+  const [attachments, setAttachments] = useState<File[]>([]);
+  const [uploading, setUploading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
+  // Limites de sécurité
+  const MAX_FILES = 5;
+  const MAX_FILE_SIZE = 5 * 1024 * 1024; // 5 Mo (limite MMS Twilio)
+  const ALLOWED_TYPES = [
+    "image/jpeg", "image/png", "image/gif", "image/webp",
+    "application/pdf",
+    "video/mp4", "video/quicktime",
+  ];
 
   // Marquer lu à l'ouverture / changement de client
   useEffect(() => {
@@ -42,27 +54,91 @@ export function ChatPanel({ client }: ChatPanelProps) {
   }, [hasUnreadInbound, client.id]);
 
   // Auto-scroll en bas: useLayoutEffect pour scroller AVANT la peinture
-  // (évite le flash où on voit le haut de la conversation à l'ouverture)
   useLayoutEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
   }, [messages.length, client.id]);
 
+  // Reset attachments quand on change de client
+  useEffect(() => {
+    setAttachments([]);
+  }, [client.id]);
+
+  const handleFilesSelected = (files: FileList | null) => {
+    if (!files || files.length === 0) return;
+    const incoming = Array.from(files);
+    const errors: string[] = [];
+    const accepted: File[] = [];
+
+    for (const f of incoming) {
+      if (!ALLOWED_TYPES.includes(f.type)) {
+        errors.push(`${f.name}: type non supporté`);
+        continue;
+      }
+      if (f.size > MAX_FILE_SIZE) {
+        errors.push(`${f.name}: dépasse 5 Mo`);
+        continue;
+      }
+      accepted.push(f);
+    }
+
+    setAttachments((prev) => {
+      const combined = [...prev, ...accepted];
+      if (combined.length > MAX_FILES) {
+        errors.push(`Maximum ${MAX_FILES} fichiers`);
+        return combined.slice(0, MAX_FILES);
+      }
+      return combined;
+    });
+
+    if (errors.length > 0) toast.error(errors.join(" · "));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeAttachment = (idx: number) => {
+    setAttachments((prev) => prev.filter((_, i) => i !== idx));
+  };
+
+  const uploadAttachments = async (): Promise<string[]> => {
+    if (attachments.length === 0) return [];
+    const urls: string[] = [];
+    for (const file of attachments) {
+      const safeName = file.name.replace(/[^a-zA-Z0-9._-]/g, "_");
+      const path = `${client.id}/${Date.now()}-${crypto.randomUUID()}-${safeName}`;
+      const { error: upErr } = await supabase.storage
+        .from("message-media")
+        .upload(path, file, { contentType: file.type, upsert: false });
+      if (upErr) throw new Error(`Upload échoué: ${upErr.message}`);
+      const { data } = supabase.storage.from("message-media").getPublicUrl(path);
+      urls.push(data.publicUrl);
+    }
+    return urls;
+  };
+
   const handleSend = async () => {
     const body = text.trim();
-    if (!body) return;
+    if (!body && attachments.length === 0) return;
     if (isBlocked) {
       toast.error("Ce numéro est bloqué — débloquez-le pour envoyer un message.");
       return;
     }
     try {
+      let media_urls: string[] = [];
+      if (attachments.length > 0) {
+        setUploading(true);
+        media_urls = await uploadAttachments();
+        setUploading(false);
+      }
       await sendMutation.mutateAsync({
         client_id: client.id,
         to: client.phone,
         message: body,
+        media_urls,
       });
       setText("");
+      setAttachments([]);
     } catch (e) {
+      setUploading(false);
       const msg = e instanceof Error ? e.message : "Échec envoi";
       toast.error(msg);
     }
