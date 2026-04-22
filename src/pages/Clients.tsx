@@ -193,15 +193,24 @@ const Clients = () => {
                     </div>
                   ))}
                 </div>
-                <div className="border-t pt-3">
+                <div className="border-t pt-3 flex flex-wrap gap-2">
                   {!liveSelectedClient.hidden ? (
                     <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setClientToDelete(liveSelectedClient)}>
                       <Trash2 className="h-4 w-4 mr-1" /> Masquer ce client
                     </Button>
                   ) : (
-                    <Button variant="outline" size="sm" onClick={() => handleRestoreClient(liveSelectedClient)}>
-                      <RotateCcw className="h-4 w-4 mr-1" /> Restaurer ce client
-                    </Button>
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => handleRestoreClient(liveSelectedClient)}>
+                        <RotateCcw className="h-4 w-4 mr-1" /> Restaurer ce client
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => { setPurgeConfirmText(""); setClientToPurge(liveSelectedClient); }}
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-1" /> Supprimer définitivement
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
