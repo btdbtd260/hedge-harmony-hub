@@ -101,17 +101,19 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
     doc.text(line, infoX, y + verticalOffset + 12 + i * 4.5);
   });
 
-  // Title (right aligned)
+  // Title and estimation details (right aligned, vertically centered)
+  const rightVerticalOffset = (LOGO_BOX_H - 22) / 2; // 22 = height of title+number+date block
+
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 30, 30);
-  doc.text("ESTIMATION", pageW - 14, y + 8, { align: "right" });
+  doc.text("ESTIMATION", pageW - 14, y + rightVerticalOffset + 6, { align: "right" });
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80);
-  doc.text(`N° ${estimationNumber}`, pageW - 14, y + 16, { align: "right" });
-  doc.text(`Date: ${date || formatDateQC(new Date().toISOString())}`, pageW - 14, y + 22, { align: "right" });
+  doc.text(`N° ${estimationNumber}`, pageW - 14, y + rightVerticalOffset + 14, { align: "right" });
+  doc.text(`Date: ${date || formatDateQC(new Date().toISOString())}`, pageW - 14, y + rightVerticalOffset + 20, { align: "right" });
 
   y += LOGO_BOX_H + 8;
   doc.setDrawColor(200);
