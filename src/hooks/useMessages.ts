@@ -26,9 +26,41 @@ export function useMessages(clientId?: string) {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "messages" },
-        () => {
+        (payload) => {
           qc.invalidateQueries({ queryKey: ["messages"] });
           qc.invalidateQueries({ queryKey: ["messages-unread"] });
+
+          // OneSignal push for new inbound (received) messages
+          if (
+            payload.eventType === "INSERT" &&
+            (payload.new as DbMessage | undefined)?.direction === "inbound"
+          ) {
+            const body =
+              (payload.new as DbMessage | undefined)?.body ??
+              "Vous avez un nouveau message";
+            const url = window.location.origin + "/messagerie";
+            try {
+              // SDK v16 — show a local notification if permission granted
+              const OneSignal = (window as any).OneSignal;
+              if (OneSignal?.Notifications?.permission) {
+                if ("Notification" in window && Notification.permission === "granted") {
+                  new Notification("💬 Nouveau message reçu", {
+                    body,
+                    icon: "/favicon.ico",
+                    data: { url },
+                  });
+                }
+              } else if ("Notification" in window && Notification.permission === "granted") {
+                new Notification("💬 Nouveau message reçu", {
+                  body,
+                  icon: "/favicon.ico",
+                  data: { url },
+                });
+              }
+            } catch (err) {
+              console.warn("OneSignal notification failed:", err);
+            }
+          }
         },
       )
       .subscribe();

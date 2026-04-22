@@ -243,6 +243,37 @@ Deno.serve(async (req) => {
     return json(500, { error: "Server error during creation" });
   }
 
+  // 9) Fire-and-forget OneSignal push notification to all subscribers
+  const oneSignalKey = Deno.env.get("ONESIGNAL_REST_API_KEY");
+  if (oneSignalKey) {
+    try {
+      const res = await fetch("https://onesignal.com/api/v1/notifications", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: "Basic " + oneSignalKey,
+        },
+        body: JSON.stringify({
+          app_id: "be15e864-54ba-4398-8f50-200db07200ff",
+          included_segments: ["All"],
+          headings: { en: "📋 Nouvelle soumission reçue", fr: "📋 Nouvelle soumission reçue" },
+          contents: {
+            en: `${data.first_name} ${data.last_name} — ${data.service_type}`,
+            fr: `${data.first_name} ${data.last_name} — ${data.service_type}`,
+          },
+          url: "https://haieacf.lovable.app/calendar",
+        }),
+      });
+      if (!res.ok) {
+        console.warn("OneSignal push failed:", res.status, await res.text());
+      }
+    } catch (err) {
+      console.warn("OneSignal push error:", err);
+    }
+  } else {
+    console.warn("ONESIGNAL_REST_API_KEY not configured — skipping push");
+  }
+
   return json(201, {
     success: true,
     id: inserted.id,
