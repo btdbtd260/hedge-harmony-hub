@@ -74,6 +74,33 @@ export type Database = {
         }
         Relationships: []
       }
+      blocked_numbers: {
+        Row: {
+          created_at: string
+          id: string
+          phone: string
+          phone_normalized: string
+          reason: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phone: string
+          phone_normalized: string
+          reason?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phone?: string
+          phone_normalized?: string
+          reason?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       customers: {
         Row: {
           active_year: number
