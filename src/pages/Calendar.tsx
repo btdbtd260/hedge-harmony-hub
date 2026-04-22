@@ -457,6 +457,8 @@ function MonthView({
   onDayClick,
   onJobClick,
   onRequestClick,
+  onJobComplete,
+  onRequestComplete,
 }: {
   days: Date[];
   currentMonth: number;
@@ -467,6 +469,8 @@ function MonthView({
   onDayClick: (d: Date) => void;
   onJobClick: (id: string) => void;
   onRequestClick: (id: string) => void;
+  onJobComplete: (j: DbJob) => void;
+  onRequestComplete: (r: DbEstimationRequest) => void;
 }) {
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -502,22 +506,48 @@ function MonthView({
                   <div
                     key={r.id}
                     onClick={(e) => { e.stopPropagation(); onRequestClick(r.id); }}
-                    className={cn("text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer", REQUEST_CLASSES)}
+                    className={cn(
+                      "group/event text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer flex items-center gap-1",
+                      requestClasses(r),
+                    )}
                     title={`Estimation à faire · ${r.client_name || "Sans nom"}`}
                   >
-                    {r.requested_time && <span className="font-medium mr-1">{r.requested_time.slice(0, 5)}</span>}
-                    {r.client_name || "Estimation à faire"}
+                    <span className="truncate flex-1 min-w-0">
+                      {r.requested_time && <span className="font-medium mr-1">{r.requested_time.slice(0, 5)}</span>}
+                      {r.client_name || "Estimation à faire"}
+                    </span>
+                    {r.status !== "done" && (
+                      <CompleteIconButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRequestComplete(r);
+                        }}
+                      />
+                    )}
                   </div>
                 ))}
                 {dayJobs.slice(0, Math.max(0, 2 - dayRequests.length)).map((j) => (
                   <div
                     key={j.id}
                     onClick={(e) => { e.stopPropagation(); onJobClick(j.id); }}
-                    className={cn("text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer", cutTypeClasses(j.cut_type))}
+                    className={cn(
+                      "group/event text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer flex items-center gap-1",
+                      jobClasses(j),
+                    )}
                     title={`${cutTypeLabel(j.cut_type)} · ${getClientNameFromList(customers, j.client_id)}`}
                   >
-                    {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}</span>}
-                    {getClientNameFromList(customers, j.client_id)}
+                    <span className="truncate flex-1 min-w-0">
+                      {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}</span>}
+                      {getClientNameFromList(customers, j.client_id)}
+                    </span>
+                    {j.status !== "completed" && (
+                      <CompleteIconButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onJobComplete(j);
+                        }}
+                      />
+                    )}
                   </div>
                 ))}
                 {totalEntries > 2 && (
@@ -529,6 +559,21 @@ function MonthView({
         })}
       </div>
     </div>
+  );
+}
+
+// Small green icon-only "Compléter" button used in compact month cells.
+function CompleteIconButton({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Compléter"
+      aria-label="Compléter"
+      className="shrink-0 inline-flex items-center justify-center h-4 w-4 rounded-sm bg-success text-success-foreground opacity-0 group-hover/event:opacity-100 hover:bg-success/90 transition-opacity"
+    >
+      <Check className="h-3 w-3" />
+    </button>
   );
 }
 
