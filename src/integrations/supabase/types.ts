@@ -679,6 +679,10 @@ export type Database = {
     }
     Functions: {
       current_user_approved: { Args: never; Returns: boolean }
+      delete_customer_cascade: {
+        Args: { _customer_id: string }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
