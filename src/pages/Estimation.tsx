@@ -197,8 +197,8 @@ const EstimationPage = () => {
     totalPrice,
   });
 
-  const handleDownloadPdf = () => {
-    downloadEstimationPdf(buildPdfData());
+  const handleDownloadPdf = async () => {
+    await downloadEstimationPdf(buildPdfData());
     toast.success("PDF estimation téléchargé");
   };
 
