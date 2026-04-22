@@ -6,10 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useCustomers, useJobs, useInsertCustomer, useHideCustomer, useRestoreCustomer, type DbCustomer } from "@/hooks/useSupabaseData";
-import { Search, Eye, EyeOff, Plus, Trash2, RotateCcw } from "lucide-react";
+import { useCustomers, useJobs, useInsertCustomer, useHideCustomer, useRestoreCustomer, useDeleteCustomerCascade, type DbCustomer } from "@/hooks/useSupabaseData";
+import { Search, Eye, EyeOff, Plus, Trash2, RotateCcw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { formatPhone, formatPhoneLive } from "@/lib/phoneFormat";
+
+// Technical archive customer used to preserve Finance history.
+// Hidden from every list — never editable from the UI.
+const ARCHIVE_CUSTOMER_ID = "00000000-0000-0000-0000-0000000d3137";
 
 const statusColor: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
