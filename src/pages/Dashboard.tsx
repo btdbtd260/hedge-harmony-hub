@@ -17,19 +17,31 @@ const Dashboard = () => {
   const { data: jobs = [] } = useJobs();
   const { data: invoices = [] } = useInvoices();
   const { data: reminders = [] } = useReminders();
+  const { data: estimationRequests = [] } = useEstimationRequests();
 
   const today = new Date().toISOString().split("T")[0];
-  const todayJobs = jobs.filter((j) => j.scheduled_date === today);
-  const upcomingJobs = jobs
-    .filter((j) => j.status === "scheduled" && j.scheduled_date && j.scheduled_date >= today)
-    .sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""))
-    .slice(0, 5);
-  const totalRevenue = invoices.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
-
-  // Only count reminders due within next 7 days
   const inOneWeek = new Date();
   inOneWeek.setDate(inOneWeek.getDate() + 7);
   const inOneWeekStr = inOneWeek.toISOString().split("T")[0];
+
+  const todayJobs = jobs.filter((j) => j.scheduled_date === today);
+  // Prochains jobs: tous les jobs planifiés entre aujourd'hui et +7 jours
+  const upcomingJobs = jobs
+    .filter(
+      (j) =>
+        j.status === "scheduled" &&
+        j.scheduled_date &&
+        j.scheduled_date >= today &&
+        j.scheduled_date <= inOneWeekStr,
+    )
+    .sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""));
+  const totalRevenue = invoices.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
+
+  // Estimations restantes à faire = demandes non traitées (status === "pending", non masquées)
+  // useEstimationRequests filtre déjà hidden = false
+  const pendingEstimations = estimationRequests.filter((r) => r.status === "pending").length;
+
+  // Only count reminders due within next 7 days
   const activeReminders = reminders.filter((r) => !r.is_completed && r.due_date <= inOneWeekStr).length;
 
   return (
