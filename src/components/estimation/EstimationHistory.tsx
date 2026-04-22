@@ -35,6 +35,7 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
       !e.description?.startsWith("Bush:") &&
       !e.description?.startsWith("__PRICE_META__") &&
       !e.description?.startsWith("__SIDES_META__") &&
+      !e.description?.startsWith("__DISCOUNT_META__") &&
       !e.description?.startsWith("__CUT_META__"),
     );
 
@@ -42,14 +43,44 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
     const priceMeta = extras.find((e: any) => e.description?.startsWith("__PRICE_META__"));
     const customPriceFromMeta = priceMeta ? Number(String(priceMeta.description).split(":")[1]) || 0 : 0;
 
-    const totalFeet = Number(est.facade_length) + Number(est.left_length) + Number(est.right_length) + Number(est.back_length) + Number((est as any).back_left_length || 0) + Number((est as any).back_right_length || 0);
+    // Recover per-side "2 côtés" flags (order: left, facade, right, backLeft, back, backRight)
+    const sidesMeta = extras.find((e: any) => e.description?.startsWith("__SIDES_META__"));
+    const sidesBits = sidesMeta ? String(sidesMeta.description).split(":")[1] || "" : "";
+    const ts = {
+      left:       sidesBits[0] === "1",
+      facade:     sidesBits[1] === "1",
+      right:      sidesBits[2] === "1",
+      back_left:  sidesBits[3] === "1",
+      back:       sidesBits[4] === "1",
+      back_right: sidesBits[5] === "1",
+    };
+    const twoSidesMult = (p as any).two_sides_multiplier ?? 1.5;
+
+    // Recover discounts from meta entries (format: __DISCOUNT_META__:type:value:description)
+    const discounts = extras
+      .filter((e: any) => e.description?.startsWith("__DISCOUNT_META__"))
+      .map((e: any, i: number) => {
+        const parts = String(e.description).split(":");
+        const type = (parts[1] === "fixed" ? "fixed" : "percent") as "percent" | "fixed";
+        const value = Number(parts[2]) || 0;
+        const description = parts.slice(3).join(":") || "";
+        return { id: `disc-${i}`, type, value, description };
+      });
+
     const standardPrice =
       est.cut_type === "trim" ? p.price_per_foot_trim :
       est.cut_type === "levelling" ? p.price_per_foot_levelling :
       est.cut_type === "restoration" ? ((p as any).price_per_foot_restoration ?? 8) :
       p.price_per_foot_trim;
     const pricePerFoot = customPriceFromMeta > 0 ? customPriceFromMeta : standardPrice;
-    let basePrice = totalFeet * pricePerFoot;
+    const sideBase = (len: number, two: boolean) => Number(len) * pricePerFoot * (two ? twoSidesMult : 1);
+    let basePrice =
+      sideBase(Number(est.left_length), ts.left) +
+      sideBase(Number(est.facade_length), ts.facade) +
+      sideBase(Number(est.right_length), ts.right) +
+      sideBase(Number((est as any).back_left_length || 0), ts.back_left) +
+      sideBase(Number(est.back_length), ts.back) +
+      sideBase(Number((est as any).back_right_length || 0), ts.back_right);
     const effH = est.height_mode === "global" ? Number(est.height_global) : Math.max(Number(est.height_facade), Number(est.height_left), Number(est.height_right), Number(est.height_back));
     const hApplied = effH >= p.height_multiplier_threshold;
     const wApplied = Number(est.width) >= p.width_multiplier_threshold;
@@ -80,12 +111,15 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
       basePrice,
       bushItems: bushExtras.map((e: any) => ({ description: e.description?.replace("Bush: ", "") || "", count: 1, price: Number(e.price) })),
       extras: otherExtras.map((e: any) => ({ id: e.id, description: e.description || "", price: Number(e.price) })),
+      discounts,
       heightMultiplierApplied: hApplied,
       widthMultiplierApplied: wApplied,
       heightMultiplier: p.height_multiplier,
       widthMultiplier: p.width_multiplier,
       totalPrice: Number(est.total_price),
       date: formatDateQC(est.created_at),
+      twoSides: ts,
+      twoSidesMultiplier: twoSidesMult,
     };
     await downloadEstimationPdf(data);
     toast.success("PDF estimation téléchargé");
