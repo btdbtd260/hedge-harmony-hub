@@ -1,8 +1,8 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, FileText, Plus, Clock, DollarSign, Briefcase, Bell } from "lucide-react";
-import { useCustomers, useJobs, useInvoices, useReminders, getClientNameFromList } from "@/hooks/useSupabaseData";
+import { Calendar, Users, FileText, Plus, Clock, DollarSign, Briefcase, Bell, ClipboardList } from "lucide-react";
+import { useCustomers, useJobs, useInvoices, useReminders, useEstimationRequests, getClientNameFromList } from "@/hooks/useSupabaseData";
 import { useNavigate } from "react-router-dom";
 
 const statusColor: Record<string, string> = {
