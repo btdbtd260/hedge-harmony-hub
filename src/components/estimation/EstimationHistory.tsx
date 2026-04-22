@@ -27,7 +27,7 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
 
   const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, price_per_foot_restoration: 8, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3 };
 
-  const handleDownload = (est: DbEstimation, index: number) => {
+  const handleDownload = async (est: DbEstimation, index: number) => {
     const client = customers.find(c => c.id === est.client_id) ?? null;
     const extras = Array.isArray(est.extras) ? (est.extras as any[]) : [];
     const bushExtras = extras.filter((e: any) => e.description?.startsWith("Bush:"));
@@ -87,7 +87,7 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
       totalPrice: Number(est.total_price),
       date: formatDateQC(est.created_at),
     };
-    downloadEstimationPdf(data);
+    await downloadEstimationPdf(data);
     toast.success("PDF estimation téléchargé");
   };
 
