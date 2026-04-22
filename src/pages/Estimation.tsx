@@ -23,6 +23,99 @@ interface BushItem {
   price: number;
 }
 
+// Draft persistence: keep an in-progress estimation alive across navigation,
+// but auto-reset after 10 minutes of inactivity. The whole form state is saved
+// as a single snapshot to localStorage on every change.
+const DRAFT_STORAGE_KEY = "estimation:draft:v1";
+const DRAFT_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+interface DraftSnapshot {
+  clientId: string;
+  cutType: CutType;
+  useCustomPrice: boolean;
+  customCutPrice: string;
+  facadeLength: string;
+  leftLength: string;
+  rightLength: string;
+  backLength: string;
+  backLeftLength: string;
+  backRightLength: string;
+  twoSidesFacade: boolean;
+  twoSidesLeft: boolean;
+  twoSidesRight: boolean;
+  twoSidesBack: boolean;
+  twoSidesBackLeft: boolean;
+  twoSidesBackRight: boolean;
+  heightMode: HeightMode;
+  heightGlobal: string;
+  heightFacade: string;
+  heightLeft: string;
+  heightRight: string;
+  heightBack: string;
+  heightBackLeft: string;
+  heightBackRight: string;
+  width: string;
+  extras: EstimationExtra[];
+  discounts: EstimationDiscount[];
+  bushItems: BushItem[];
+}
+
+const DRAFT_DEFAULTS: DraftSnapshot = {
+  clientId: "",
+  cutType: "trim",
+  useCustomPrice: false,
+  customCutPrice: "",
+  facadeLength: "",
+  leftLength: "",
+  rightLength: "",
+  backLength: "",
+  backLeftLength: "",
+  backRightLength: "",
+  twoSidesFacade: false,
+  twoSidesLeft: false,
+  twoSidesRight: false,
+  twoSidesBack: false,
+  twoSidesBackLeft: false,
+  twoSidesBackRight: false,
+  heightMode: "global",
+  heightGlobal: "",
+  heightFacade: "",
+  heightLeft: "",
+  heightRight: "",
+  heightBack: "",
+  heightBackLeft: "",
+  heightBackRight: "",
+  width: "",
+  extras: [],
+  discounts: [],
+  bushItems: [],
+};
+
+/**
+ * Loads a draft from localStorage if it is younger than DRAFT_TTL_MS.
+ * Older drafts (>10min inactivity) are discarded so the user starts fresh.
+ */
+function loadInitialDraft(): DraftSnapshot {
+  if (typeof window === "undefined") return DRAFT_DEFAULTS;
+  try {
+    const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return DRAFT_DEFAULTS;
+    const parsed = JSON.parse(raw) as { savedAt?: number; value?: Partial<DraftSnapshot> };
+    if (
+      !parsed ||
+      typeof parsed.savedAt !== "number" ||
+      Date.now() - parsed.savedAt > DRAFT_TTL_MS
+    ) {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+      return DRAFT_DEFAULTS;
+    }
+    // Merge with defaults so missing keys (older draft schemas) stay safe.
+    return { ...DRAFT_DEFAULTS, ...(parsed.value ?? {}) };
+  } catch {
+    return DRAFT_DEFAULTS;
+  }
+}
+
 const EstimationPage = () => {
   const { data: customers = [] } = useCustomers();
   const { data: estimations = [] } = useEstimations();
@@ -32,7 +125,10 @@ const EstimationPage = () => {
   const insertJob = useInsertJob();
   const insertInvoice = useInsertInvoice();
 
-  const [clientId, setClientId] = useState("");
+  // Hydrate from draft (or defaults if expired/missing). Computed once per mount.
+  const initialDraft = loadInitialDraft();
+
+  const [clientId, setClientId] = useState(initialDraft.clientId);
   const [clientSearch, setClientSearch] = useState("");
   const [showClientDropdown, setShowClientDropdown] = useState(false);
   const [showNewClientDialog, setShowNewClientDialog] = useState(false);
@@ -42,35 +138,35 @@ const EstimationPage = () => {
   const [newClientAddress, setNewClientAddress] = useState("");
 
   // cutType is ALWAYS one of the 3 real business types — never "custom".
-  const [cutType, setCutType] = useState<CutType>("trim");
+  const [cutType, setCutType] = useState<CutType>(initialDraft.cutType);
   // Per-estimation override of price-per-foot. Does NOT change the cut type.
-  const [useCustomPrice, setUseCustomPrice] = useState(false);
-  const [customCutPrice, setCustomCutPrice] = useState("");
-  const [facadeLength, setFacadeLength] = useState("");
-  const [leftLength, setLeftLength] = useState("");
-  const [rightLength, setRightLength] = useState("");
-  const [backLength, setBackLength] = useState("");
-  const [backLeftLength, setBackLeftLength] = useState("");
-  const [backRightLength, setBackRightLength] = useState("");
+  const [useCustomPrice, setUseCustomPrice] = useState(initialDraft.useCustomPrice);
+  const [customCutPrice, setCustomCutPrice] = useState(initialDraft.customCutPrice);
+  const [facadeLength, setFacadeLength] = useState(initialDraft.facadeLength);
+  const [leftLength, setLeftLength] = useState(initialDraft.leftLength);
+  const [rightLength, setRightLength] = useState(initialDraft.rightLength);
+  const [backLength, setBackLength] = useState(initialDraft.backLength);
+  const [backLeftLength, setBackLeftLength] = useState(initialDraft.backLeftLength);
+  const [backRightLength, setBackRightLength] = useState(initialDraft.backRightLength);
   // "Deux côtés" toggles per side — multiplies that side's price by two_sides_multiplier
-  const [twoSidesFacade, setTwoSidesFacade] = useState(false);
-  const [twoSidesLeft, setTwoSidesLeft] = useState(false);
-  const [twoSidesRight, setTwoSidesRight] = useState(false);
-  const [twoSidesBack, setTwoSidesBack] = useState(false);
-  const [twoSidesBackLeft, setTwoSidesBackLeft] = useState(false);
-  const [twoSidesBackRight, setTwoSidesBackRight] = useState(false);
-  const [heightMode, setHeightMode] = useState<HeightMode>("global");
-  const [heightGlobal, setHeightGlobal] = useState("");
-  const [heightFacade, setHeightFacade] = useState("");
-  const [heightLeft, setHeightLeft] = useState("");
-  const [heightRight, setHeightRight] = useState("");
-  const [heightBack, setHeightBack] = useState("");
-  const [heightBackLeft, setHeightBackLeft] = useState("");
-  const [heightBackRight, setHeightBackRight] = useState("");
-  const [width, setWidth] = useState("");
-  const [extras, setExtras] = useState<EstimationExtra[]>([]);
-  const [discounts, setDiscounts] = useState<EstimationDiscount[]>([]);
-  const [bushItems, setBushItems] = useState<BushItem[]>([]);
+  const [twoSidesFacade, setTwoSidesFacade] = useState(initialDraft.twoSidesFacade);
+  const [twoSidesLeft, setTwoSidesLeft] = useState(initialDraft.twoSidesLeft);
+  const [twoSidesRight, setTwoSidesRight] = useState(initialDraft.twoSidesRight);
+  const [twoSidesBack, setTwoSidesBack] = useState(initialDraft.twoSidesBack);
+  const [twoSidesBackLeft, setTwoSidesBackLeft] = useState(initialDraft.twoSidesBackLeft);
+  const [twoSidesBackRight, setTwoSidesBackRight] = useState(initialDraft.twoSidesBackRight);
+  const [heightMode, setHeightMode] = useState<HeightMode>(initialDraft.heightMode);
+  const [heightGlobal, setHeightGlobal] = useState(initialDraft.heightGlobal);
+  const [heightFacade, setHeightFacade] = useState(initialDraft.heightFacade);
+  const [heightLeft, setHeightLeft] = useState(initialDraft.heightLeft);
+  const [heightRight, setHeightRight] = useState(initialDraft.heightRight);
+  const [heightBack, setHeightBack] = useState(initialDraft.heightBack);
+  const [heightBackLeft, setHeightBackLeft] = useState(initialDraft.heightBackLeft);
+  const [heightBackRight, setHeightBackRight] = useState(initialDraft.heightBackRight);
+  const [width, setWidth] = useState(initialDraft.width);
+  const [extras, setExtras] = useState<EstimationExtra[]>(initialDraft.extras);
+  const [discounts, setDiscounts] = useState<EstimationDiscount[]>(initialDraft.discounts);
+  const [bushItems, setBushItems] = useState<BushItem[]>(initialDraft.bushItems);
   const [showEmailDialog, setShowEmailDialog] = useState(false);
   const [emailTo, setEmailTo] = useState("");
   const [emailMessage, setEmailMessage] = useState("");
@@ -304,7 +400,36 @@ const EstimationPage = () => {
     setUseCustomPrice(false); setCustomCutPrice("");
     setTwoSidesFacade(false); setTwoSidesLeft(false); setTwoSidesRight(false);
     setTwoSidesBack(false); setTwoSidesBackLeft(false); setTwoSidesBackRight(false);
+    // Estimation submitted → discard the persisted draft so a fresh form appears next time.
+    try { window.localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* noop */ }
   };
+
+  // Persist the entire form snapshot whenever any tracked field changes.
+  // The TTL is enforced on hydration (loadInitialDraft): drafts older than
+  // DRAFT_TTL_MS are discarded and the form resets to defaults.
+  useEffect(() => {
+    const snapshot: DraftSnapshot = {
+      clientId, cutType, useCustomPrice, customCutPrice,
+      facadeLength, leftLength, rightLength, backLength, backLeftLength, backRightLength,
+      twoSidesFacade, twoSidesLeft, twoSidesRight, twoSidesBack, twoSidesBackLeft, twoSidesBackRight,
+      heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
+      heightBackLeft, heightBackRight, width, extras, discounts, bushItems,
+    };
+    try {
+      window.localStorage.setItem(
+        DRAFT_STORAGE_KEY,
+        JSON.stringify({ savedAt: Date.now(), value: snapshot }),
+      );
+    } catch {
+      // localStorage may be full / unavailable — fail silently, the form still works.
+    }
+  }, [
+    clientId, cutType, useCustomPrice, customCutPrice,
+    facadeLength, leftLength, rightLength, backLength, backLeftLength, backRightLength,
+    twoSidesFacade, twoSidesLeft, twoSidesRight, twoSidesBack, twoSidesBackLeft, twoSidesBackRight,
+    heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
+    heightBackLeft, heightBackRight, width, extras, discounts, bushItems,
+  ]);
 
   return (
     <div className="space-y-6">
