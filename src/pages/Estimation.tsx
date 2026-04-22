@@ -26,6 +26,7 @@ import EstimationPreview from "@/components/estimation/EstimationPreview";
 import EstimationHistory from "@/components/estimation/EstimationHistory";
 import { downloadEstimationPdf, getEstimationNumber, type EstimationPdfData } from "@/lib/generateEstimationPdf";
 import { applyTotalRounding } from "@/lib/roundingTotal";
+import { formatPhoneLive } from "@/lib/phoneFormat";
 
 interface BushItem {
   id: string;
@@ -795,7 +796,7 @@ const EstimationPage = () => {
           <DialogHeader><DialogTitle>Nouveau client</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1"><Label>Nom *</Label><Input value={newClientName} onChange={(e) => setNewClientName(e.target.value)} placeholder="Nom complet" /></div>
-            <div className="space-y-1"><Label>Téléphone</Label><Input value={newClientPhone} onChange={(e) => setNewClientPhone(e.target.value)} placeholder="514-555-0000" /></div>
+            <div className="space-y-1"><Label>Téléphone</Label><Input value={newClientPhone} onChange={(e) => setNewClientPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
             <div className="space-y-1"><Label>Email</Label><Input value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)} placeholder="email@exemple.com" /></div>
             <div className="space-y-1"><Label>Adresse</Label><Input value={newClientAddress} onChange={(e) => setNewClientAddress(e.target.value)} placeholder="123 Rue Exemple" /></div>
           </div>
