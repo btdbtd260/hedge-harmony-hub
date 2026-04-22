@@ -461,7 +461,37 @@ const EstimationPage = () => {
         {/* Form – left */}
         <div className="lg:col-span-5 space-y-4">
           <Card>
-            <CardHeader><CardTitle>Nouvelle estimation</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle>Nouvelle estimation</CardTitle>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Réinitialiser le brouillon
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Réinitialiser le brouillon ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Toutes les données saisies dans le formulaire seront effacées,
+                      ainsi que le brouillon enregistré localement. Cette action est irréversible.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => {
+                        resetDraft();
+                        toast.success("Brouillon réinitialisé");
+                      }}
+                    >
+                      Réinitialiser
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardHeader>
             <CardContent className="space-y-4">
               {/* Client Picker */}
               <div className="space-y-2">
