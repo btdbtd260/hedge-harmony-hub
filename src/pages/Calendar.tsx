@@ -3,11 +3,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
-import { useJobs, useCustomers, useEstimationRequests, getClientNameFromList, type DbJob, type DbEstimationRequest } from "@/hooks/useSupabaseData";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ChevronLeft, ChevronRight, CalendarDays, Check } from "lucide-react";
+import {
+  useJobs,
+  useCustomers,
+  useEstimationRequests,
+  useUpdateJob,
+  useUpdateEstimationRequest,
+  getClientNameFromList,
+  type DbJob,
+  type DbEstimationRequest,
+} from "@/hooks/useSupabaseData";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
 import { EstimationRequestDialog } from "@/components/calendar/EstimationRequestDialog";
+import { addMinutesToTime, computeRealDuration } from "@/lib/jobDurationEstimator";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type ViewMode = "month" | "week";
 
