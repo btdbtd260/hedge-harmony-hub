@@ -99,6 +99,16 @@ function cutTypeClasses(cutType: string | null | undefined): string {
   }
   return "bg-muted text-muted-foreground hover:bg-muted/80 border-l-2 border-muted-foreground/40";
 }
+// Pick the right color block for a job — completed jobs use gray.
+function jobClasses(j: DbJob): string {
+  if (j.status === "completed") return COMPLETED_CLASSES;
+  return cutTypeClasses(j.cut_type);
+}
+// Pick the right color block for an estimation request — done = gray, otherwise blue.
+function requestClasses(r: DbEstimationRequest): string {
+  if (r.status === "done") return COMPLETED_CLASSES;
+  return REQUEST_CLASSES;
+}
 function cutTypeLabel(cutType: string | null | undefined): string {
   if (cutType === "levelling") return "Nivelage";
   if (cutType === "restoration") return "Restauration";
