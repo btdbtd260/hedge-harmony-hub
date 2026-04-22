@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, MessageSquare, ShieldOff } from "lucide-react";
+import { Search, MessageSquare, ShieldOff, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useCustomers } from "@/hooks/useSupabaseData";
@@ -12,6 +13,7 @@ import { ChatPanel } from "@/components/messagerie/ChatPanel";
 import { BlockedNumbersTab } from "@/components/messagerie/BlockedNumbersTab";
 import { formatPhone } from "@/lib/phoneFormat";
 import { useBlockedNumbers, normalizeForBlock } from "@/hooks/useBlockedNumbers";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Messagerie() {
   const { data: customers = [] } = useCustomers();
