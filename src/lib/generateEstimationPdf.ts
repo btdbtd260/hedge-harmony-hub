@@ -58,9 +58,9 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   let y = 18;
 
   // ── Company header ──
-  // Logo: enlarged box (was 40×20, now 60×30)
-  const LOGO_BOX_W = 60;
-  const LOGO_BOX_H = 30;
+  // Logo: enlarged box for better presence (was 60×30, now 75×42)
+  const LOGO_BOX_W = 75;
+  const LOGO_BOX_H = 42;
   const logo = await loadLogoForPdf(params?.company_logo_url);
   if (logo) {
     const { w, h } = fitLogo(logo, LOGO_BOX_W, LOGO_BOX_H);
