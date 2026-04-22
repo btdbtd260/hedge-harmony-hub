@@ -111,8 +111,8 @@ export default function Messagerie() {
   const selectedClient = customers.find((c) => c.id === selectedId) ?? null;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-6 py-4 border-b">
+    <div className="flex flex-col h-full min-h-0">
+      <div className="px-6 py-4 border-b shrink-0">
         <h1 className="text-2xl font-bold">Messagerie</h1>
         <p className="text-sm text-muted-foreground">
           Envoyez et recevez des SMS avec vos clients
