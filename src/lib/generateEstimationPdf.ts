@@ -75,8 +75,8 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
     doc.text("LOGO", 14 + LOGO_BOX_W / 2, y + LOGO_BOX_H / 2 + 2, { align: "center" });
   }
 
-  // Company info - positioned with more space after logo and vertically centered
-  const infoX = 14 + LOGO_BOX_W + 15; // Increased from 8 to 15 for better spacing
+  // Company info - moved closer to logo (left) to avoid overlap with right-aligned title
+  const infoX = 14 + LOGO_BOX_W + 6; // Tight spacing right after logo
   const companyName = params?.company_name || "HedgePro";
 
   // Build company info lines first for height calculation
@@ -85,26 +85,34 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   if (params?.company_phone) companyLines.push(`Tél: ${params.company_phone}`);
   if (params?.company_email) companyLines.push(params.company_email);
 
+  // Reserve right side for title block (≈55mm wide). Cap company name width accordingly.
+  const rightBlockWidth = 55;
+  const maxCompanyTextWidth = pageW - 14 - rightBlockWidth - infoX - 4;
+
   // Calculate vertical centering within the logo box height
   const contentHeight = 8 + (companyLines.length * 4.5); // name + lines
   const verticalOffset = (LOGO_BOX_H - contentHeight) / 2;
 
-  doc.setFontSize(18);
+  // Company name: smaller font (was 18 → now 13) so long names don't collide with "ESTIMATION"
+  doc.setFontSize(13);
   doc.setTextColor(30, 30, 30);
   doc.setFont("helvetica", "bold");
-  doc.text(companyName, infoX, y + verticalOffset + 6);
+  const nameLines = doc.splitTextToSize(companyName, maxCompanyTextWidth);
+  doc.text(nameLines, infoX, y + verticalOffset + 5);
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80);
+  const nameBlockHeight = (Array.isArray(nameLines) ? nameLines.length : 1) * 5;
   companyLines.forEach((line, i) => {
-    doc.text(line, infoX, y + verticalOffset + 12 + i * 4.5);
+    const wrapped = doc.splitTextToSize(line, maxCompanyTextWidth);
+    doc.text(wrapped, infoX, y + verticalOffset + 5 + nameBlockHeight + 2 + i * 4.5);
   });
 
   // Title and estimation details (right aligned, vertically centered)
   const rightVerticalOffset = (LOGO_BOX_H - 22) / 2; // 22 = height of title+number+date block
 
-  doc.setFontSize(24);
+  doc.setFontSize(20);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 30, 30);
   doc.text("ESTIMATION", pageW - 14, y + rightVerticalOffset + 6, { align: "right" });
