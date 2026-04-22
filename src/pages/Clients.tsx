@@ -84,6 +84,19 @@ const Clients = () => {
     }
   };
 
+  const handlePurgeClient = async () => {
+    if (!clientToPurge) return;
+    try {
+      await deleteCustomerCascade.mutateAsync(clientToPurge.id);
+      setClientToPurge(null);
+      setPurgeConfirmText("");
+      setSelectedClient(null);
+      toast.success("Client supprimé définitivement");
+    } catch (e: any) {
+      toast.error(e.message ?? "Échec de la suppression");
+    }
+  };
+
   const clientJobs = selectedClient ? jobs.filter((j) => j.client_id === selectedClient.id) : [];
 
   // Keep selectedClient in sync with fresh data
