@@ -16,6 +16,7 @@ import Employees from "./pages/Employees";
 import Reminders from "./pages/Reminders";
 import Analytics from "./pages/Analytics";
 import Settings from "./pages/Settings";
+import Messagerie from "./pages/Messagerie";
 import Auth from "./pages/Auth";
 import Unauthorized from "./pages/Unauthorized";
 import NotFound from "./pages/NotFound";
@@ -46,6 +47,7 @@ const App = () => (
                     <Route path="/finance" element={<Finance />} />
                     <Route path="/employees" element={<Employees />} />
                     <Route path="/reminders" element={<Reminders />} />
+                    <Route path="/messagerie" element={<Messagerie />} />
                     <Route path="/analytics" element={<Analytics />} />
                     <Route path="/settings" element={<Settings />} />
                     <Route path="*" element={<NotFound />} />
