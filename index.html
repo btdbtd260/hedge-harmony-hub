@@ -22,6 +22,17 @@
   <meta property="og:description" content="Haie ACF - Gestion de taille de haies">
   <meta name="twitter:description" content="Haie ACF - Gestion de taille de haies">
   <link rel="icon" type="image/x-icon" href="/favicon.ico">
+
+  <!-- OneSignal Web Push SDK -->
+  <script src="https://cdn.onesignal.com/sdks/web/v16/OneSignalSDK.page.js" defer></script>
+  <script>
+    window.OneSignalDeferred = window.OneSignalDeferred || [];
+    OneSignalDeferred.push(async function(OneSignal) {
+      await OneSignal.init({
+        appId: "be15e864-54ba-4398-8f50-200db07200ff",
+      });
+    });
+  </script>
 </head>
 
   <body>
