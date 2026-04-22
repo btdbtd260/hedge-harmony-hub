@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { Send, Loader2 } from "lucide-react";
+import { Send, Loader2, Paperclip, X, FileText, ShieldOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { cn } from "@/lib/utils";
@@ -12,7 +12,7 @@ import {
 import type { DbCustomer } from "@/hooks/useSupabaseData";
 import { formatPhone } from "@/lib/phoneFormat";
 import { useIsBlocked } from "@/hooks/useBlockedNumbers";
-import { ShieldOff } from "lucide-react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface ChatPanelProps {
   client: DbCustomer;
