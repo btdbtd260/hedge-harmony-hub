@@ -106,24 +106,38 @@ function cutTypeLabel(cutType: string | null | undefined): string {
   return cutType || "Autre";
 }
 
+// Gray styling for completed events (jobs with status=completed, requests with status=done)
+const COMPLETED_CLASSES =
+  "bg-muted text-muted-foreground hover:bg-muted/80 border-l-2 border-muted-foreground/40 opacity-70";
+
 const CalendarPage = () => {
   const { data: jobs = [] } = useJobs();
   const { data: customers = [] } = useCustomers();
   const { data: estimationRequests = [] } = useEstimationRequests();
+  const updateJob = useUpdateJob();
+  const updateRequest = useUpdateEstimationRequest();
 
   const [view, setView] = useState<ViewMode>("month");
   const [cursor, setCursor] = useState<Date>(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  // Confirmation state for "Compléter" button — single source of truth across views
+  const [pendingComplete, setPendingComplete] = useState<
+    | { kind: "job"; id: string; label: string }
+    | { kind: "request"; id: string; label: string }
+    | null
+  >(null);
   const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) ?? null : null;
   const selectedRequest = selectedRequestId ? estimationRequests.find((r) => r.id === selectedRequestId) ?? null : null;
 
-  // Index scheduled jobs by date string — pending jobs are explicitly excluded.
+  // Index scheduled + completed jobs by date — completed remain visible in gray.
   const scheduledByDate = useMemo(() => {
     const map = new Map<string, DbJob[]>();
     jobs
-      .filter((j) => j.status === "scheduled" && j.scheduled_date)
+      .filter(
+        (j) => (j.status === "scheduled" || j.status === "completed") && j.scheduled_date,
+      )
       .forEach((j) => {
         const k = j.scheduled_date as string;
         if (!map.has(k)) map.set(k, []);
