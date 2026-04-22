@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Tables, TablesInsert } from "@/integrations/supabase/types";
+import { formatPhone } from "@/lib/phoneFormat";
 
 // ─── Types from DB ───
 export type DbCustomer = Tables<"customers">;
@@ -30,7 +31,10 @@ export function useInsertCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (c: TablesInsert<"customers">) => {
-      const { data, error } = await supabase.from("customers").insert(c).select().single();
+      // Normalize phone to "514-708-8976" format on every insert path
+      // (manual creation, estimation request conversion, etc.).
+      const payload = { ...c, phone: c.phone !== undefined ? formatPhone(c.phone) : c.phone };
+      const { data, error } = await supabase.from("customers").insert(payload).select().single();
       if (error) throw error;
       return data;
     },
