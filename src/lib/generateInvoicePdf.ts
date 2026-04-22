@@ -36,7 +36,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
     doc.text("LOGO", 14 + LOGO_BOX_W / 2, y + LOGO_BOX_H / 2 + 2, { align: "center" });
   }
 
-  // Company info - tight to logo, capped width to avoid overlap with right title
+  // Company info - tight to logo, dynamic width based on right block actual size
   const infoX = 14 + LOGO_BOX_W + 6;
   const companyName = params?.company_name || "HedgePro";
 
@@ -45,25 +45,55 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
   if (params?.company_phone) companyLines.push(`Tél: ${params.company_phone}`);
   if (params?.company_email) companyLines.push(params.company_email);
 
-  const rightBlockWidth = 55;
-  const maxCompanyTextWidth = pageW - 14 - rightBlockWidth - infoX - 4;
+  // ── Right block: title + number + date (+ payée) ──
+  // Pre-measure to get the actual width needed; left block adapts dynamically.
+  const numberText = `N° ${invoiceNumber}`;
+  const dateText = `Date: ${formatDateQC(invoice.issued_at)}`;
+  const paidText = invoice.paid_at ? `Payée: ${formatDateQC(invoice.paid_at)}` : "";
 
-  const contentHeight = 8 + (companyLines.length * 4.5);
-  const verticalOffset = (LOGO_BOX_H - contentHeight) / 2;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  const titleW = doc.getTextWidth("FACTURE");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  const numberW = doc.getTextWidth(numberText);
+  const dateW = doc.getTextWidth(dateText);
+  const paidW = paidText ? doc.getTextWidth(paidText) : 0;
+  const rightBlockWidth = Math.max(titleW, numberW, dateW, paidW);
 
+  // Dynamic max width for company info (with 4mm safety gap from right block)
+  const maxCompanyTextWidth = Math.max(40, pageW - 14 - rightBlockWidth - infoX - 4);
+
+  // Pre-wrap to compute total content height for vertical centering
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  const nameLines = doc.splitTextToSize(companyName, maxCompanyTextWidth) as string[];
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  const wrappedInfoLines: string[][] = companyLines.map(line =>
+    doc.splitTextToSize(line, maxCompanyTextWidth) as string[]
+  );
+  const totalInfoLines = wrappedInfoLines.reduce((s, arr) => s + arr.length, 0);
+
+  const contentHeight = nameLines.length * 5 + 2 + totalInfoLines * 4.5;
+  const verticalOffset = Math.max(0, (LOGO_BOX_H - contentHeight) / 2);
+
+  // Render company name
   doc.setFontSize(13);
   doc.setTextColor(30, 30, 30);
   doc.setFont("helvetica", "bold");
-  const nameLines = doc.splitTextToSize(companyName, maxCompanyTextWidth);
   doc.text(nameLines, infoX, y + verticalOffset + 5);
 
+  // Render company info lines
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80);
-  const nameBlockHeight = (Array.isArray(nameLines) ? nameLines.length : 1) * 5;
-  companyLines.forEach((line, i) => {
-    const wrapped = doc.splitTextToSize(line, maxCompanyTextWidth);
-    doc.text(wrapped, infoX, y + verticalOffset + 5 + nameBlockHeight + 2 + i * 4.5);
+  const nameBlockHeight = nameLines.length * 5;
+  let infoLineY = y + verticalOffset + 5 + nameBlockHeight + 2;
+  wrappedInfoLines.forEach(arr => {
+    doc.text(arr, infoX, infoLineY);
+    infoLineY += arr.length * 4.5;
   });
 
   // Title block right - vertically centered (matches estimation)
@@ -77,10 +107,10 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80);
-  doc.text(`N° ${invoiceNumber}`, pageW - 14, y + rightVerticalOffset + 14, { align: "right" });
-  doc.text(`Date: ${formatDateQC(invoice.issued_at)}`, pageW - 14, y + rightVerticalOffset + 20, { align: "right" });
-  if (invoice.paid_at) {
-    doc.text(`Payée: ${formatDateQC(invoice.paid_at)}`, pageW - 14, y + rightVerticalOffset + 26, { align: "right" });
+  doc.text(numberText, pageW - 14, y + rightVerticalOffset + 14, { align: "right" });
+  doc.text(dateText, pageW - 14, y + rightVerticalOffset + 20, { align: "right" });
+  if (paidText) {
+    doc.text(paidText, pageW - 14, y + rightVerticalOffset + 26, { align: "right" });
   }
 
   y += LOGO_BOX_H + 8;
