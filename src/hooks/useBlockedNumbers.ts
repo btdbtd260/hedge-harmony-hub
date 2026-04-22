@@ -44,13 +44,14 @@ export function useAddBlockedNumber() {
   return useMutation({
     mutationFn: async (params: { phone: string; reason?: string }) => {
       const phone_normalized = normalizeForBlock(params.phone);
-      if (phone_normalized.length < 10) {
+      const isShort = phone_normalized.length > 0 && phone_normalized.length <= 6;
+      if (!isShort && phone_normalized.length < 10) {
         throw new Error("Numéro invalide (10 chiffres requis)");
       }
       const { data, error } = await supabase
         .from("blocked_numbers")
         .insert({
-          phone: formatPhone(params.phone),
+          phone: isShort ? phone_normalized : formatPhone(params.phone),
           phone_normalized,
           reason: params.reason ?? "",
         })
@@ -70,6 +71,16 @@ export function useRemoveBlockedNumber() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
+      // Garde-fou : on récupère la ligne pour vérifier qu'elle n'est pas protégée
+      const { data: row, error: fetchErr } = await supabase
+        .from("blocked_numbers")
+        .select("phone_normalized")
+        .eq("id", id)
+        .maybeSingle();
+      if (fetchErr) throw fetchErr;
+      if (row && isProtectedBlockedNumber(row.phone_normalized)) {
+        throw new Error("Ce numéro est protégé et ne peut pas être débloqué");
+      }
       const { error } = await supabase.from("blocked_numbers").delete().eq("id", id);
       if (error) throw error;
     },
