@@ -469,6 +469,51 @@ export type Database = {
           },
         ]
       }
+      messages: {
+        Row: {
+          body: string
+          client_id: string
+          created_at: string
+          direction: string
+          error_message: string | null
+          from_number: string
+          id: string
+          media_urls: string[]
+          read: boolean
+          status: string
+          to_number: string
+          twilio_sid: string | null
+        }
+        Insert: {
+          body?: string
+          client_id: string
+          created_at?: string
+          direction: string
+          error_message?: string | null
+          from_number?: string
+          id?: string
+          media_urls?: string[]
+          read?: boolean
+          status?: string
+          to_number?: string
+          twilio_sid?: string | null
+        }
+        Update: {
+          body?: string
+          client_id?: string
+          created_at?: string
+          direction?: string
+          error_message?: string | null
+          from_number?: string
+          id?: string
+          media_urls?: string[]
+          read?: boolean
+          status?: string
+          to_number?: string
+          twilio_sid?: string | null
+        }
+        Relationships: []
+      }
       parameters: {
         Row: {
           bush_price: number
