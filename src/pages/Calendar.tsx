@@ -116,6 +116,10 @@ function cutTypeLabel(cutType: string | null | undefined): string {
   return cutType || "Autre";
 }
 
+// Reusable estimation request style (blue) — shared across views.
+const REQUEST_CLASSES =
+  "bg-estimation-request/15 text-estimation-request hover:bg-estimation-request/25 border-l-2 border-estimation-request";
+
 // Gray styling for completed events (jobs with status=completed, requests with status=done)
 const COMPLETED_CLASSES =
   "bg-muted text-muted-foreground hover:bg-muted/80 border-l-2 border-muted-foreground/40 opacity-70";
@@ -164,7 +168,7 @@ const CalendarPage = () => {
   const requestsByDate = useMemo(() => {
     const map = new Map<string, DbEstimationRequest[]>();
     estimationRequests
-      .filter((r) => r.status !== "done" && r.requested_date)
+      .filter((r) => r.requested_date)
       .forEach((r) => {
         const k = r.requested_date;
         if (!map.has(k)) map.set(k, []);
