@@ -3,6 +3,7 @@ import autoTable from "jspdf-autotable";
 import type { DbCustomer, DbParameters } from "@/hooks/useSupabaseData";
 import { formatDateQC } from "@/lib/utils";
 import { loadLogoForPdf, fitLogo } from "@/lib/loadLogoForPdf";
+import { formatPhone } from "@/lib/phoneFormat";
 import type { EstimationExtra, EstimationDiscount } from "@/types";
 
 export interface EstimationPdfData {
@@ -168,7 +169,7 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   if (customer) {
     doc.text(customer.name, 14, y); y += 5;
     if (customer.address) { doc.text(customer.address, 14, y); y += 5; }
-    if (customer.phone) { doc.text(`Tél: ${customer.phone}`, 14, y); y += 5; }
+    if (customer.phone) { doc.text(`Tél: ${formatPhone(customer.phone)}`, 14, y); y += 5; }
     if (customer.email) { doc.text(customer.email, 14, y); y += 5; }
   } else {
     doc.text("—", 14, y); y += 5;

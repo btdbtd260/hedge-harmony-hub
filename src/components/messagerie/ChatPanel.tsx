@@ -11,6 +11,7 @@ import {
   useMarkConversationRead,
 } from "@/hooks/useMessages";
 import type { DbCustomer } from "@/hooks/useSupabaseData";
+import { formatPhone } from "@/lib/phoneFormat";
 
 interface ChatPanelProps {
   client: DbCustomer;
@@ -64,7 +65,7 @@ export function ChatPanel({ client }: ChatPanelProps) {
       {/* Header */}
       <div className="px-4 py-3 border-b bg-card">
         <div className="font-semibold">{client.name}</div>
-        <div className="text-xs text-muted-foreground">{client.phone}</div>
+        <div className="text-xs text-muted-foreground">{formatPhone(client.phone)}</div>
       </div>
 
       {/* Messages */}

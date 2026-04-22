@@ -12,6 +12,7 @@ import {
   type DbEstimationRequest,
 } from "@/hooks/useSupabaseData";
 import { toast } from "sonner";
+import { formatPhone } from "@/lib/phoneFormat";
 
 const norm = (s?: string | null) => (s || "").trim().toLowerCase();
 
@@ -144,7 +145,7 @@ export function EstimationRequestDialog({ request, onOpenChange }: Props) {
               )}
             </div>
             {request.client_phone && (
-              <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" />{request.client_phone}</div>
+              <div className="flex items-center gap-2"><Phone className="h-4 w-4 text-muted-foreground" />{formatPhone(request.client_phone)}</div>
             )}
             {request.client_email && (
               <div className="flex items-center gap-2"><Mail className="h-4 w-4 text-muted-foreground" />{request.client_email}</div>
