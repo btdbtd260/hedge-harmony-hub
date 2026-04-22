@@ -14,6 +14,7 @@ import type { CutType, HeightMode, EstimationExtra, EstimationDiscount, Discount
 import EstimationPreview from "@/components/estimation/EstimationPreview";
 import EstimationHistory from "@/components/estimation/EstimationHistory";
 import { downloadEstimationPdf, getEstimationNumber, type EstimationPdfData } from "@/lib/generateEstimationPdf";
+import { applyTotalRounding } from "@/lib/roundingTotal";
 
 interface BushItem {
   id: string;
@@ -148,10 +149,7 @@ const EstimationPage = () => {
   // Optional rounding (configured in Paramètres). Disabled or invalid multiple → no rounding.
   const roundingEnabled = (params as any)?.rounding_enabled ?? true;
   const roundingMultiple = Number((params as any)?.rounding_multiple ?? 5);
-  const totalPrice =
-    roundingEnabled && roundingMultiple > 0
-      ? Math.floor(rawTotal / roundingMultiple) * roundingMultiple
-      : rawTotal;
+  const totalPrice = applyTotalRounding(rawTotal, roundingEnabled, roundingMultiple);
 
   const cutTypeLabel =
     cutType === "trim" ? "Taillage" : cutType === "levelling" ? "Nivelage" : "Restauration";
