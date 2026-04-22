@@ -13,19 +13,25 @@ export interface InvoicePdfData {
   description?: string;
 }
 
-export function generateInvoicePdf(data: InvoicePdfData): jsPDF {
+export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
   const { invoice, customer, job, params, invoiceNumber, description } = data;
   const doc = new jsPDF();
   const pageW = doc.internal.pageSize.getWidth();
   let y = 20;
 
   // ── Company header ──
-  // Logo placeholder
-  doc.setFillColor(230, 230, 230);
-  doc.roundedRect(14, y - 5, 40, 20, 3, 3, "F");
-  doc.setFontSize(8);
-  doc.setTextColor(120);
-  doc.text("LOGO", 34, y + 7, { align: "center" });
+  // Logo (from parameters) or placeholder
+  const logo = await loadLogoForPdf(params?.company_logo_url);
+  if (logo) {
+    const { w, h } = fitLogo(logo, 40, 20);
+    doc.addImage(logo.dataUrl, logo.format, 14, y - 5, w, h);
+  } else {
+    doc.setFillColor(230, 230, 230);
+    doc.roundedRect(14, y - 5, 40, 20, 3, 3, "F");
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text("LOGO", 34, y + 7, { align: "center" });
+  }
 
   // Company info
   const companyName = params?.company_name || "HedgePro";
