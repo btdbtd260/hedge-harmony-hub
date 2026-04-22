@@ -9,6 +9,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { useCustomers, useJobs, useInsertCustomer, useHideCustomer, useRestoreCustomer, type DbCustomer } from "@/hooks/useSupabaseData";
 import { Search, Eye, EyeOff, Plus, Trash2, RotateCcw } from "lucide-react";
 import { toast } from "sonner";
+import { formatPhone, formatPhoneLive } from "@/lib/phoneFormat";
 
 const statusColor: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -107,7 +108,7 @@ const Clients = () => {
               <div>
                 <p className="font-medium">{c.name}</p>
                 <p className="text-sm text-muted-foreground">{c.address}</p>
-                <p className="text-xs text-muted-foreground">{c.phone} · {c.email}</p>
+                <p className="text-xs text-muted-foreground">{formatPhone(c.phone)} · {c.email}</p>
                 <p className="text-xs text-muted-foreground mt-1">{jobs.filter((j) => j.client_id === c.id).length} job(s)</p>
               </div>
               <div className="flex items-center gap-2">
@@ -151,7 +152,7 @@ const Clients = () => {
                 </DialogTitle>
               </DialogHeader>
               <div className="space-y-3">
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Téléphone</span><span>{liveSelectedClient.phone}</span></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Téléphone</span><span>{formatPhone(liveSelectedClient.phone)}</span></div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Email</span><span>{liveSelectedClient.email}</span></div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Adresse</span><span>{liveSelectedClient.address}</span></div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Statut</span><Badge className={statusColor[liveSelectedClient.status]}>{liveSelectedClient.status}</Badge></div>
@@ -192,7 +193,7 @@ const Clients = () => {
           <DialogHeader><DialogTitle>Nouveau client</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1"><Label>Nom *</Label><Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Nom complet" /></div>
-            <div className="space-y-1"><Label>Téléphone</Label><Input value={formPhone} onChange={(e) => setFormPhone(e.target.value)} placeholder="514-555-0000" /></div>
+            <div className="space-y-1"><Label>Téléphone</Label><Input value={formPhone} onChange={(e) => setFormPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
             <div className="space-y-1"><Label>Email</Label><Input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@exemple.com" /></div>
             <div className="space-y-1"><Label>Adresse</Label><Input value={formAddress} onChange={(e) => setFormAddress(e.target.value)} placeholder="123 Rue Exemple" /></div>
           </div>
