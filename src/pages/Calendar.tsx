@@ -587,6 +587,8 @@ function WeekView({
   onDayClick,
   onJobClick,
   onRequestClick,
+  onJobComplete,
+  onRequestComplete,
 }: {
   days: Date[];
   todayStr: string;
@@ -596,6 +598,8 @@ function WeekView({
   onDayClick: (d: Date) => void;
   onJobClick: (id: string) => void;
   onRequestClick: (id: string) => void;
+  onJobComplete: (j: DbJob) => void;
+  onRequestComplete: (r: DbEstimationRequest) => void;
 }) {
   return (
     <div className="grid grid-cols-7 gap-2">
@@ -623,26 +627,50 @@ function WeekView({
               ) : (
                 <>
                   {dayRequests.map((r) => (
-                    <button
+                    <div
                       key={r.id}
                       onClick={() => onRequestClick(r.id)}
-                      className={cn("w-full text-left text-[11px] px-1.5 py-1 rounded", REQUEST_CLASSES)}
+                      className={cn(
+                        "w-full text-left text-[11px] px-1.5 py-1 rounded cursor-pointer",
+                        requestClasses(r),
+                      )}
                       title="Estimation à faire"
                     >
                       {r.requested_time && <div className="font-medium">{r.requested_time.slice(0, 5)}</div>}
                       <div className="truncate">{r.client_name || "Estimation à faire"}</div>
-                    </button>
+                      {r.status !== "done" && (
+                        <CompleteButton
+                          className="mt-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRequestComplete(r);
+                          }}
+                        />
+                      )}
+                    </div>
                   ))}
                   {dayJobs.map((j) => (
-                    <button
+                    <div
                       key={j.id}
                       onClick={() => onJobClick(j.id)}
-                      className={cn("w-full text-left text-[11px] px-1.5 py-1 rounded", cutTypeClasses(j.cut_type))}
+                      className={cn(
+                        "w-full text-left text-[11px] px-1.5 py-1 rounded cursor-pointer",
+                        jobClasses(j),
+                      )}
                       title={cutTypeLabel(j.cut_type)}
                     >
                       {j.start_time && <div className="font-medium">{j.start_time.slice(0, 5)}</div>}
                       <div className="truncate">{getClientNameFromList(customers, j.client_id)}</div>
-                    </button>
+                      {j.status !== "completed" && (
+                        <CompleteButton
+                          className="mt-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onJobComplete(j);
+                          }}
+                        />
+                      )}
+                    </div>
                   ))}
                 </>
               )}
@@ -653,6 +681,32 @@ function WeekView({
     </div>
   );
 }
+
+// Full green "Compléter" button used in week / day-hourly views.
+function CompleteButton({
+  onClick,
+  className,
+}: {
+  onClick: (e: React.MouseEvent) => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Compléter"
+      className={cn(
+        "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
+        "bg-success text-success-foreground hover:bg-success/90 transition-colors",
+        className,
+      )}
+    >
+      <Check className="h-3 w-3" />
+      Compléter
+    </button>
+  );
+}
+
 
 // ─── Day Hourly View (00-23) ───
 function DayHourlyDialog({
