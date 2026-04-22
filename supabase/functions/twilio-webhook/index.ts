@@ -28,8 +28,24 @@ Deno.serve(async (req) => {
 
     const admin = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
+    // Vérifier si le numéro émetteur est bloqué — on ignore complètement le message
+    const fromNorm = normalizePhone(from).slice(-10);
+    if (fromNorm) {
+      const { data: blocked } = await admin
+        .from("blocked_numbers")
+        .select("id")
+        .eq("phone_normalized", fromNorm)
+        .maybeSingle();
+      if (blocked) {
+        console.log(`[twilio-webhook] Message ignoré — numéro bloqué: ${from}`);
+        return new Response(
+          '<?xml version="1.0" encoding="UTF-8"?><Response></Response>',
+          { headers: { "Content-Type": "text/xml" }, status: 200 },
+        );
+      }
+    }
+
     // Trouver le client par numéro de téléphone
-    const fromNorm = normalizePhone(from);
     const { data: customers } = await admin
       .from("customers")
       .select("id, phone")
