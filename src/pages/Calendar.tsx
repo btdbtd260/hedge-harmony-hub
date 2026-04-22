@@ -302,6 +302,20 @@ const CalendarPage = () => {
               onDayClick={(d) => setSelectedDay(d)}
               onJobClick={(id) => setSelectedJobId(id)}
               onRequestClick={(id) => setSelectedRequestId(id)}
+              onJobComplete={(j) =>
+                setPendingComplete({
+                  kind: "job",
+                  id: j.id,
+                  label: getClientNameFromList(customers, j.client_id),
+                })
+              }
+              onRequestComplete={(r) =>
+                setPendingComplete({
+                  kind: "request",
+                  id: r.id,
+                  label: r.client_name || "Estimation à faire",
+                })
+              }
             />
           ) : (
             <WeekView
@@ -313,6 +327,20 @@ const CalendarPage = () => {
               onDayClick={(d) => setSelectedDay(d)}
               onJobClick={(id) => setSelectedJobId(id)}
               onRequestClick={(id) => setSelectedRequestId(id)}
+              onJobComplete={(j) =>
+                setPendingComplete({
+                  kind: "job",
+                  id: j.id,
+                  label: getClientNameFromList(customers, j.client_id),
+                })
+              }
+              onRequestComplete={(r) =>
+                setPendingComplete({
+                  kind: "request",
+                  id: r.id,
+                  label: r.client_name || "Estimation à faire",
+                })
+              }
             />
           )}
         </CardContent>
@@ -327,6 +355,20 @@ const CalendarPage = () => {
         customers={customers}
         onJobClick={(id) => setSelectedJobId(id)}
         onRequestClick={(id) => setSelectedRequestId(id)}
+        onJobComplete={(j) =>
+          setPendingComplete({
+            kind: "job",
+            id: j.id,
+            label: getClientNameFromList(customers, j.client_id),
+          })
+        }
+        onRequestComplete={(r) =>
+          setPendingComplete({
+            kind: "request",
+            id: r.id,
+            label: r.client_name || "Estimation à faire",
+          })
+        }
       />
 
       {/* Job detail — reuses shared dialog */}
@@ -334,6 +376,70 @@ const CalendarPage = () => {
 
       {/* External estimation request detail */}
       <EstimationRequestDialog request={selectedRequest} onOpenChange={(open) => !open && setSelectedRequestId(null)} />
+
+      {/* Confirmation before completing an event from the calendar */}
+      <AlertDialog open={!!pendingComplete} onOpenChange={(open) => !open && setPendingComplete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Compléter cet événement ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingComplete?.kind === "job"
+                ? `Le job de ${pendingComplete.label} sera marqué comme complété et passera en gris dans le calendrier.`
+                : pendingComplete?.kind === "request"
+                  ? `L'estimation à faire pour ${pendingComplete.label} sera marquée comme traitée et passera en gris dans le calendrier.`
+                  : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-success text-success-foreground hover:bg-success/90"
+              onClick={async () => {
+                if (!pendingComplete) return;
+                try {
+                  if (pendingComplete.kind === "job") {
+                    const j = jobs.find((x) => x.id === pendingComplete.id);
+                    if (!j) return;
+                    // Best-effort end_time + total_duration_minutes when start_time exists.
+                    const patch: any = { id: j.id, status: "completed" };
+                    if (j.start_time) {
+                      const estimate = j.estimated_duration_minutes ?? 60;
+                      const end =
+                        j.end_time?.slice(0, 5) ||
+                        addMinutesToTime(j.start_time, estimate) ||
+                        null;
+                      if (end) {
+                        patch.end_time = end;
+                        const real = computeRealDuration(j.start_time, end);
+                        if (real && real > 0) {
+                          patch.total_duration_minutes = real;
+                          if (j.estimated_duration_minutes) {
+                            patch.duration_variance_minutes = real - j.estimated_duration_minutes;
+                          }
+                        }
+                      }
+                    }
+                    await updateJob.mutateAsync(patch);
+                    toast.success("Job complété");
+                  } else {
+                    await updateRequest.mutateAsync({
+                      id: pendingComplete.id,
+                      updates: { status: "done" },
+                    });
+                    toast.success("Estimation marquée comme traitée");
+                  }
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Erreur lors de la complétion");
+                } finally {
+                  setPendingComplete(null);
+                }
+              }}
+            >
+              Compléter
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
