@@ -75,36 +75,45 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
     doc.text("LOGO", 14 + LOGO_BOX_W / 2, y + LOGO_BOX_H / 2 + 2, { align: "center" });
   }
 
-  // Company info to the right of the (now larger) logo
-  const infoX = 14 + LOGO_BOX_W + 8;
+  // Company info - positioned with more space after logo and vertically centered
+  const infoX = 14 + LOGO_BOX_W + 15; // Increased from 8 to 15 for better spacing
   const companyName = params?.company_name || "HedgePro";
-  doc.setFontSize(18);
-  doc.setTextColor(30, 30, 30);
-  doc.setFont("helvetica", "bold");
-  doc.text(companyName, infoX, y + 8);
 
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(80);
+  // Build company info lines first for height calculation
   const companyLines: string[] = [];
   if (params?.company_address) companyLines.push(params.company_address);
   if (params?.company_phone) companyLines.push(`Tél: ${params.company_phone}`);
   if (params?.company_email) companyLines.push(params.company_email);
+
+  // Calculate vertical centering within the logo box height
+  const contentHeight = 8 + (companyLines.length * 4.5); // name + lines
+  const verticalOffset = (LOGO_BOX_H - contentHeight) / 2;
+
+  doc.setFontSize(18);
+  doc.setTextColor(30, 30, 30);
+  doc.setFont("helvetica", "bold");
+  doc.text(companyName, infoX, y + verticalOffset + 6);
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(80);
   companyLines.forEach((line, i) => {
-    doc.text(line, infoX, y + 14 + i * 4.5);
+    doc.text(line, infoX, y + verticalOffset + 12 + i * 4.5);
   });
 
-  // Title (right aligned)
+  // Title and estimation details (right aligned, vertically centered)
+  const rightVerticalOffset = (LOGO_BOX_H - 22) / 2; // 22 = height of title+number+date block
+
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 30, 30);
-  doc.text("ESTIMATION", pageW - 14, y + 8, { align: "right" });
+  doc.text("ESTIMATION", pageW - 14, y + rightVerticalOffset + 6, { align: "right" });
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80);
-  doc.text(`N° ${estimationNumber}`, pageW - 14, y + 16, { align: "right" });
-  doc.text(`Date: ${date || formatDateQC(new Date().toISOString())}`, pageW - 14, y + 22, { align: "right" });
+  doc.text(`N° ${estimationNumber}`, pageW - 14, y + rightVerticalOffset + 14, { align: "right" });
+  doc.text(`Date: ${date || formatDateQC(new Date().toISOString())}`, pageW - 14, y + rightVerticalOffset + 20, { align: "right" });
 
   y += LOGO_BOX_H + 8;
   doc.setDrawColor(200);
