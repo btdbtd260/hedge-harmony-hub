@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { DbInvoice, DbCustomer, DbJob, DbParameters } from "@/hooks/useSupabaseData";
 import { formatDateQC } from "@/lib/utils";
+import { loadLogoForPdf, fitLogo } from "@/lib/loadLogoForPdf";
 
 export interface InvoicePdfData {
   invoice: DbInvoice;
