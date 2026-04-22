@@ -112,10 +112,10 @@ const Dashboard = () => {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Prochains jobs</CardTitle></CardHeader>
+        <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Prochains jobs (7 prochains jours)</CardTitle></CardHeader>
         <CardContent>
           {upcomingJobs.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Aucun job à venir.</p>
+            <p className="text-muted-foreground text-sm">Aucun job prévu dans les 7 prochains jours.</p>
           ) : (
             <div className="space-y-3">
               {upcomingJobs.map((job) => (
