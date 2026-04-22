@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
     if (customers) {
       const match = customers.find((c) => {
         if (!c.phone) return false;
-        return normalizePhone(c.phone) === fromNorm;
+        return normalizePhone(c.phone).slice(-10) === fromNorm;
       });
       if (match) clientId = match.id;
     }
