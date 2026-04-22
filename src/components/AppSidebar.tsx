@@ -10,6 +10,7 @@ import {
   Bell,
   BarChart3,
   Settings,
+  MessageSquare,
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -24,6 +25,7 @@ import {
   SidebarHeader,
 } from "@/components/ui/sidebar";
 import { useReminders, useEstimationRequests } from "@/hooks/useSupabaseData";
+import { useUnreadMessages } from "@/hooks/useMessages";
 import { Badge } from "@/components/ui/badge";
 
 const navItems = [
@@ -36,6 +38,7 @@ const navItems = [
   { title: "Finance", url: "/finance", icon: DollarSign },
   { title: "Employés", url: "/employees", icon: UserCog },
   { title: "Rappels", url: "/reminders", icon: Bell },
+  { title: "Messagerie", url: "/messagerie", icon: MessageSquare },
   { title: "Analytics", url: "/analytics", icon: BarChart3 },
   { title: "Paramètres", url: "/settings", icon: Settings },
 ];
@@ -43,6 +46,7 @@ const navItems = [
 export function AppSidebar() {
   const { data: reminders = [] } = useReminders();
   const { data: estimationRequests = [] } = useEstimationRequests();
+  const { data: unreadMessages = [] } = useUnreadMessages();
 
   // Only count reminders due within next 7 days
   const inOneWeek = new Date();
@@ -96,6 +100,15 @@ export function AppSidebar() {
                           title={`${unseenRequests} nouvelle(s) demande(s) d'estimation`}
                         >
                           {unseenRequests}
+                        </Badge>
+                      )}
+                      {item.title === "Messagerie" && unreadMessages.length > 0 && (
+                        <Badge
+                          variant="destructive"
+                          className="h-5 min-w-5 text-xs flex items-center justify-center"
+                          title={`${unreadMessages.length} message(s) non lu(s)`}
+                        >
+                          {unreadMessages.length}
                         </Badge>
                       )}
                     </NavLink>
