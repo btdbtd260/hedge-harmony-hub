@@ -163,8 +163,8 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
   return doc;
 }
 
-export function downloadInvoicePdf(data: InvoicePdfData) {
-  const doc = generateInvoicePdf(data);
+export async function downloadInvoicePdf(data: InvoicePdfData) {
+  const doc = await generateInvoicePdf(data);
   const fileName = `facture-${data.invoiceNumber}-${data.customer.name.replace(/\s+/g, "_")}.pdf`;
   doc.save(fileName);
 }
