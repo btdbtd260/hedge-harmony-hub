@@ -264,8 +264,8 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   return doc;
 }
 
-export function downloadEstimationPdf(data: EstimationPdfData) {
-  const doc = generateEstimationPdf(data);
+export async function downloadEstimationPdf(data: EstimationPdfData) {
+  const doc = await generateEstimationPdf(data);
   const clientName = data.customer?.name?.replace(/\s+/g, "_") || "client";
   const d = new Date();
   const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
