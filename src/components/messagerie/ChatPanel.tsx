@@ -222,33 +222,100 @@ export function ChatPanel({ client }: ChatPanelProps) {
       </div>
 
       {/* Composer */}
-      <div className="border-t p-3 bg-card">
-        <div className="flex gap-2 max-w-3xl mx-auto">
-          <Textarea
-            value={text}
-            onChange={(e) => setText(e.target.value)}
-            placeholder="Écrire un message..."
-            className="min-h-[48px] max-h-32 resize-none"
-            onKeyDown={(e) => {
-              if (e.key === "Enter" && !e.shiftKey) {
-                e.preventDefault();
-                handleSend();
+      <div className="border-t p-3 bg-card shrink-0">
+        <div className="max-w-3xl mx-auto space-y-2">
+          {/* Aperçu des pièces jointes */}
+          {attachments.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {attachments.map((file, idx) => {
+                const isImage = file.type.startsWith("image/");
+                const previewUrl = isImage ? URL.createObjectURL(file) : null;
+                return (
+                  <div
+                    key={`${file.name}-${idx}`}
+                    className="relative group border border-border rounded-md overflow-hidden bg-muted"
+                  >
+                    {isImage && previewUrl ? (
+                      <img
+                        src={previewUrl}
+                        alt={file.name}
+                        className="h-16 w-16 object-cover"
+                        onLoad={() => URL.revokeObjectURL(previewUrl)}
+                      />
+                    ) : (
+                      <div className="h-16 w-16 flex flex-col items-center justify-center px-1 text-[10px] text-muted-foreground">
+                        <FileText className="h-5 w-5 mb-0.5" />
+                        <span className="truncate max-w-full" title={file.name}>
+                          {file.name.length > 10 ? file.name.slice(0, 8) + "…" : file.name}
+                        </span>
+                      </div>
+                    )}
+                    <button
+                      type="button"
+                      onClick={() => removeAttachment(idx)}
+                      className="absolute top-0.5 right-0.5 bg-background/90 hover:bg-background border border-border rounded-full p-0.5 shadow"
+                      aria-label={`Retirer ${file.name}`}
+                    >
+                      <X className="h-3 w-3" />
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Ligne d'envoi */}
+          <div className="flex gap-2">
+            <input
+              ref={fileInputRef}
+              type="file"
+              multiple
+              accept="image/jpeg,image/png,image/gif,image/webp,application/pdf,video/mp4,video/quicktime"
+              className="hidden"
+              onChange={(e) => handleFilesSelected(e.target.files)}
+            />
+            <Button
+              type="button"
+              variant="outline"
+              size="icon"
+              className="h-12 w-12 shrink-0"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isBlocked || uploading || sendMutation.isPending || attachments.length >= MAX_FILES}
+              aria-label="Joindre un fichier"
+            >
+              <Paperclip className="h-4 w-4" />
+            </Button>
+            <Textarea
+              value={text}
+              onChange={(e) => setText(e.target.value)}
+              placeholder="Écrire un message..."
+              className="min-h-[48px] max-h-32 resize-none"
+              onKeyDown={(e) => {
+                if (e.key === "Enter" && !e.shiftKey) {
+                  e.preventDefault();
+                  handleSend();
+                }
+              }}
+            />
+            <Button
+              type="button"
+              onClick={handleSend}
+              disabled={
+                (!text.trim() && attachments.length === 0) ||
+                sendMutation.isPending ||
+                uploading ||
+                isBlocked
               }
-            }}
-          />
-          <Button
-            type="button"
-            onClick={handleSend}
-            disabled={!text.trim() || sendMutation.isPending || isBlocked}
-            size="icon"
-            className="h-12 w-12 shrink-0"
-          >
-            {sendMutation.isPending ? (
-              <Loader2 className="h-4 w-4 animate-spin" />
-            ) : (
-              <Send className="h-4 w-4" />
-            )}
-          </Button>
+              size="icon"
+              className="h-12 w-12 shrink-0"
+            >
+              {sendMutation.isPending || uploading ? (
+                <Loader2 className="h-4 w-4 animate-spin" />
+              ) : (
+                <Send className="h-4 w-4" />
+              )}
+            </Button>
+          </div>
         </div>
       </div>
     </div>
