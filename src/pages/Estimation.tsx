@@ -195,6 +195,11 @@ const EstimationPage = () => {
     heightMultiplierApplied, widthMultiplierApplied,
     heightMultiplier: p.height_multiplier, widthMultiplier: p.width_multiplier,
     totalPrice,
+    twoSides: {
+      facade: twoSidesFacade, left: twoSidesLeft, right: twoSidesRight,
+      back: twoSidesBack, back_left: twoSidesBackLeft, back_right: twoSidesBackRight,
+    },
+    twoSidesMultiplier: twoSidesMult,
   });
 
   const handleDownloadPdf = async () => {
