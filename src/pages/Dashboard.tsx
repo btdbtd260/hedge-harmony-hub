@@ -58,31 +58,31 @@ const Dashboard = () => {
       </div>
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/clients")}>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Users className="h-5 w-5 text-primary" /></div>
             <div><p className="text-sm text-muted-foreground">Clients</p><p className="text-2xl font-bold">{customers.filter(c => !c.hidden).length}</p></div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/jobs")}>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Briefcase className="h-5 w-5 text-primary" /></div>
             <div><p className="text-sm text-muted-foreground">Jobs actifs</p><p className="text-2xl font-bold">{jobs.filter(j => j.status !== "completed" && j.status !== "hidden").length}</p></div>
           </CardContent>
         </Card>
-        <Card className="cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => navigate("/calendar")}>
+        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/calendar")}>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><ClipboardList className="h-5 w-5 text-primary" /></div>
             <div><p className="text-sm text-muted-foreground">Estimations à faire</p><p className="text-2xl font-bold">{pendingEstimations}</p></div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/finance")}>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><DollarSign className="h-5 w-5 text-primary" /></div>
             <div><p className="text-sm text-muted-foreground">Revenus (payé)</p><p className="text-2xl font-bold">${totalRevenue}</p></div>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/reminders")}>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Bell className="h-5 w-5 text-primary" /></div>
             <div><p className="text-sm text-muted-foreground">Rappels</p><p className="text-2xl font-bold">{activeReminders}</p></div>
