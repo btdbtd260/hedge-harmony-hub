@@ -23,6 +23,99 @@ interface BushItem {
   price: number;
 }
 
+// Draft persistence: keep an in-progress estimation alive across navigation,
+// but auto-reset after 10 minutes of inactivity. The whole form state is saved
+// as a single snapshot to localStorage on every change.
+const DRAFT_STORAGE_KEY = "estimation:draft:v1";
+const DRAFT_TTL_MS = 10 * 60 * 1000; // 10 minutes
+
+interface DraftSnapshot {
+  clientId: string;
+  cutType: CutType;
+  useCustomPrice: boolean;
+  customCutPrice: string;
+  facadeLength: string;
+  leftLength: string;
+  rightLength: string;
+  backLength: string;
+  backLeftLength: string;
+  backRightLength: string;
+  twoSidesFacade: boolean;
+  twoSidesLeft: boolean;
+  twoSidesRight: boolean;
+  twoSidesBack: boolean;
+  twoSidesBackLeft: boolean;
+  twoSidesBackRight: boolean;
+  heightMode: HeightMode;
+  heightGlobal: string;
+  heightFacade: string;
+  heightLeft: string;
+  heightRight: string;
+  heightBack: string;
+  heightBackLeft: string;
+  heightBackRight: string;
+  width: string;
+  extras: EstimationExtra[];
+  discounts: EstimationDiscount[];
+  bushItems: BushItem[];
+}
+
+const DRAFT_DEFAULTS: DraftSnapshot = {
+  clientId: "",
+  cutType: "trim",
+  useCustomPrice: false,
+  customCutPrice: "",
+  facadeLength: "",
+  leftLength: "",
+  rightLength: "",
+  backLength: "",
+  backLeftLength: "",
+  backRightLength: "",
+  twoSidesFacade: false,
+  twoSidesLeft: false,
+  twoSidesRight: false,
+  twoSidesBack: false,
+  twoSidesBackLeft: false,
+  twoSidesBackRight: false,
+  heightMode: "global",
+  heightGlobal: "",
+  heightFacade: "",
+  heightLeft: "",
+  heightRight: "",
+  heightBack: "",
+  heightBackLeft: "",
+  heightBackRight: "",
+  width: "",
+  extras: [],
+  discounts: [],
+  bushItems: [],
+};
+
+/**
+ * Loads a draft from localStorage if it is younger than DRAFT_TTL_MS.
+ * Older drafts (>10min inactivity) are discarded so the user starts fresh.
+ */
+function loadInitialDraft(): DraftSnapshot {
+  if (typeof window === "undefined") return DRAFT_DEFAULTS;
+  try {
+    const raw = window.localStorage.getItem(DRAFT_STORAGE_KEY);
+    if (!raw) return DRAFT_DEFAULTS;
+    const parsed = JSON.parse(raw) as { savedAt?: number; value?: Partial<DraftSnapshot> };
+    if (
+      !parsed ||
+      typeof parsed.savedAt !== "number" ||
+      Date.now() - parsed.savedAt > DRAFT_TTL_MS
+    ) {
+      window.localStorage.removeItem(DRAFT_STORAGE_KEY);
+      return DRAFT_DEFAULTS;
+    }
+    // Merge with defaults so missing keys (older draft schemas) stay safe.
+    return { ...DRAFT_DEFAULTS, ...(parsed.value ?? {}) };
+  } catch {
+    return DRAFT_DEFAULTS;
+  }
+}
+
 const EstimationPage = () => {
   const { data: customers = [] } = useCustomers();
   const { data: estimations = [] } = useEstimations();
