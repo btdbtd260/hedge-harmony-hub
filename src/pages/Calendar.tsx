@@ -3,11 +3,32 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
-import { ChevronLeft, ChevronRight, CalendarDays } from "lucide-react";
-import { useJobs, useCustomers, useEstimationRequests, getClientNameFromList, type DbJob, type DbEstimationRequest } from "@/hooks/useSupabaseData";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
+import { ChevronLeft, ChevronRight, CalendarDays, Check } from "lucide-react";
+import {
+  useJobs,
+  useCustomers,
+  useEstimationRequests,
+  useUpdateJob,
+  useUpdateEstimationRequest,
+  getClientNameFromList,
+  type DbJob,
+  type DbEstimationRequest,
+} from "@/hooks/useSupabaseData";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
 import { EstimationRequestDialog } from "@/components/calendar/EstimationRequestDialog";
+import { addMinutesToTime, computeRealDuration } from "@/lib/jobDurationEstimator";
 import { cn } from "@/lib/utils";
+import { toast } from "sonner";
 
 type ViewMode = "month" | "week";
 
@@ -78,6 +99,16 @@ function cutTypeClasses(cutType: string | null | undefined): string {
   }
   return "bg-muted text-muted-foreground hover:bg-muted/80 border-l-2 border-muted-foreground/40";
 }
+// Pick the right color block for a job — completed jobs use gray.
+function jobClasses(j: DbJob): string {
+  if (j.status === "completed") return COMPLETED_CLASSES;
+  return cutTypeClasses(j.cut_type);
+}
+// Pick the right color block for an estimation request — done = gray, otherwise blue.
+function requestClasses(r: DbEstimationRequest): string {
+  if (r.status === "done") return COMPLETED_CLASSES;
+  return REQUEST_CLASSES;
+}
 function cutTypeLabel(cutType: string | null | undefined): string {
   if (cutType === "levelling") return "Nivelage";
   if (cutType === "restoration") return "Restauration";
@@ -85,24 +116,42 @@ function cutTypeLabel(cutType: string | null | undefined): string {
   return cutType || "Autre";
 }
 
+// Reusable estimation request style (blue) — shared across views.
+const REQUEST_CLASSES =
+  "bg-estimation-request/15 text-estimation-request hover:bg-estimation-request/25 border-l-2 border-estimation-request";
+
+// Gray styling for completed events (jobs with status=completed, requests with status=done)
+const COMPLETED_CLASSES =
+  "bg-muted text-muted-foreground hover:bg-muted/80 border-l-2 border-muted-foreground/40 opacity-70";
+
 const CalendarPage = () => {
   const { data: jobs = [] } = useJobs();
   const { data: customers = [] } = useCustomers();
   const { data: estimationRequests = [] } = useEstimationRequests();
+  const updateJob = useUpdateJob();
+  const updateRequest = useUpdateEstimationRequest();
 
   const [view, setView] = useState<ViewMode>("month");
   const [cursor, setCursor] = useState<Date>(new Date());
   const [selectedDay, setSelectedDay] = useState<Date | null>(null);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const [selectedRequestId, setSelectedRequestId] = useState<string | null>(null);
+  // Confirmation state for "Compléter" button — single source of truth across views
+  const [pendingComplete, setPendingComplete] = useState<
+    | { kind: "job"; id: string; label: string }
+    | { kind: "request"; id: string; label: string }
+    | null
+  >(null);
   const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) ?? null : null;
   const selectedRequest = selectedRequestId ? estimationRequests.find((r) => r.id === selectedRequestId) ?? null : null;
 
-  // Index scheduled jobs by date string — pending jobs are explicitly excluded.
+  // Index scheduled + completed jobs by date — completed remain visible in gray.
   const scheduledByDate = useMemo(() => {
     const map = new Map<string, DbJob[]>();
     jobs
-      .filter((j) => j.status === "scheduled" && j.scheduled_date)
+      .filter(
+        (j) => (j.status === "scheduled" || j.status === "completed") && j.scheduled_date,
+      )
       .forEach((j) => {
         const k = j.scheduled_date as string;
         if (!map.has(k)) map.set(k, []);
@@ -119,7 +168,7 @@ const CalendarPage = () => {
   const requestsByDate = useMemo(() => {
     const map = new Map<string, DbEstimationRequest[]>();
     estimationRequests
-      .filter((r) => r.status !== "done" && r.requested_date)
+      .filter((r) => r.requested_date)
       .forEach((r) => {
         const k = r.requested_date;
         if (!map.has(k)) map.set(k, []);
@@ -253,6 +302,20 @@ const CalendarPage = () => {
               onDayClick={(d) => setSelectedDay(d)}
               onJobClick={(id) => setSelectedJobId(id)}
               onRequestClick={(id) => setSelectedRequestId(id)}
+              onJobComplete={(j) =>
+                setPendingComplete({
+                  kind: "job",
+                  id: j.id,
+                  label: getClientNameFromList(customers, j.client_id),
+                })
+              }
+              onRequestComplete={(r) =>
+                setPendingComplete({
+                  kind: "request",
+                  id: r.id,
+                  label: r.client_name || "Estimation à faire",
+                })
+              }
             />
           ) : (
             <WeekView
@@ -264,6 +327,20 @@ const CalendarPage = () => {
               onDayClick={(d) => setSelectedDay(d)}
               onJobClick={(id) => setSelectedJobId(id)}
               onRequestClick={(id) => setSelectedRequestId(id)}
+              onJobComplete={(j) =>
+                setPendingComplete({
+                  kind: "job",
+                  id: j.id,
+                  label: getClientNameFromList(customers, j.client_id),
+                })
+              }
+              onRequestComplete={(r) =>
+                setPendingComplete({
+                  kind: "request",
+                  id: r.id,
+                  label: r.client_name || "Estimation à faire",
+                })
+              }
             />
           )}
         </CardContent>
@@ -278,6 +355,20 @@ const CalendarPage = () => {
         customers={customers}
         onJobClick={(id) => setSelectedJobId(id)}
         onRequestClick={(id) => setSelectedRequestId(id)}
+        onJobComplete={(j) =>
+          setPendingComplete({
+            kind: "job",
+            id: j.id,
+            label: getClientNameFromList(customers, j.client_id),
+          })
+        }
+        onRequestComplete={(r) =>
+          setPendingComplete({
+            kind: "request",
+            id: r.id,
+            label: r.client_name || "Estimation à faire",
+          })
+        }
       />
 
       {/* Job detail — reuses shared dialog */}
@@ -285,13 +376,75 @@ const CalendarPage = () => {
 
       {/* External estimation request detail */}
       <EstimationRequestDialog request={selectedRequest} onOpenChange={(open) => !open && setSelectedRequestId(null)} />
+
+      {/* Confirmation before completing an event from the calendar */}
+      <AlertDialog open={!!pendingComplete} onOpenChange={(open) => !open && setPendingComplete(null)}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Compléter cet événement ?</AlertDialogTitle>
+            <AlertDialogDescription>
+              {pendingComplete?.kind === "job"
+                ? `Le job de ${pendingComplete.label} sera marqué comme complété et passera en gris dans le calendrier.`
+                : pendingComplete?.kind === "request"
+                  ? `L'estimation à faire pour ${pendingComplete.label} sera marquée comme traitée et passera en gris dans le calendrier.`
+                  : ""}
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-success text-success-foreground hover:bg-success/90"
+              onClick={async () => {
+                if (!pendingComplete) return;
+                try {
+                  if (pendingComplete.kind === "job") {
+                    const j = jobs.find((x) => x.id === pendingComplete.id);
+                    if (!j) return;
+                    // Best-effort end_time + total_duration_minutes when start_time exists.
+                    const patch: any = { id: j.id, status: "completed" };
+                    if (j.start_time) {
+                      const estimate = j.estimated_duration_minutes ?? 60;
+                      const end =
+                        j.end_time?.slice(0, 5) ||
+                        addMinutesToTime(j.start_time, estimate) ||
+                        null;
+                      if (end) {
+                        patch.end_time = end;
+                        const real = computeRealDuration(j.start_time, end);
+                        if (real && real > 0) {
+                          patch.total_duration_minutes = real;
+                          if (j.estimated_duration_minutes) {
+                            patch.duration_variance_minutes = real - j.estimated_duration_minutes;
+                          }
+                        }
+                      }
+                    }
+                    await updateJob.mutateAsync(patch);
+                    toast.success("Job complété");
+                  } else {
+                    await updateRequest.mutateAsync({
+                      id: pendingComplete.id,
+                      updates: { status: "done" },
+                    });
+                    toast.success("Estimation marquée comme traitée");
+                  }
+                } catch (err: any) {
+                  toast.error(err?.message ?? "Erreur lors de la complétion");
+                } finally {
+                  setPendingComplete(null);
+                }
+              }}
+            >
+              Compléter
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
 
-// ─── Reusable estimation request style (blue) ───
-const REQUEST_CLASSES =
-  "bg-estimation-request/15 text-estimation-request hover:bg-estimation-request/25 border-l-2 border-estimation-request";
+
 
 // ─── Month View ───
 function MonthView({
@@ -304,6 +457,8 @@ function MonthView({
   onDayClick,
   onJobClick,
   onRequestClick,
+  onJobComplete,
+  onRequestComplete,
 }: {
   days: Date[];
   currentMonth: number;
@@ -314,6 +469,8 @@ function MonthView({
   onDayClick: (d: Date) => void;
   onJobClick: (id: string) => void;
   onRequestClick: (id: string) => void;
+  onJobComplete: (j: DbJob) => void;
+  onRequestComplete: (r: DbEstimationRequest) => void;
 }) {
   return (
     <div className="border rounded-lg overflow-hidden">
@@ -349,22 +506,48 @@ function MonthView({
                   <div
                     key={r.id}
                     onClick={(e) => { e.stopPropagation(); onRequestClick(r.id); }}
-                    className={cn("text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer", REQUEST_CLASSES)}
+                    className={cn(
+                      "group/event text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer flex items-center gap-1",
+                      requestClasses(r),
+                    )}
                     title={`Estimation à faire · ${r.client_name || "Sans nom"}`}
                   >
-                    {r.requested_time && <span className="font-medium mr-1">{r.requested_time.slice(0, 5)}</span>}
-                    {r.client_name || "Estimation à faire"}
+                    <span className="truncate flex-1 min-w-0">
+                      {r.requested_time && <span className="font-medium mr-1">{r.requested_time.slice(0, 5)}</span>}
+                      {r.client_name || "Estimation à faire"}
+                    </span>
+                    {r.status !== "done" && (
+                      <CompleteIconButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRequestComplete(r);
+                        }}
+                      />
+                    )}
                   </div>
                 ))}
                 {dayJobs.slice(0, Math.max(0, 2 - dayRequests.length)).map((j) => (
                   <div
                     key={j.id}
                     onClick={(e) => { e.stopPropagation(); onJobClick(j.id); }}
-                    className={cn("text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer", cutTypeClasses(j.cut_type))}
+                    className={cn(
+                      "group/event text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer flex items-center gap-1",
+                      jobClasses(j),
+                    )}
                     title={`${cutTypeLabel(j.cut_type)} · ${getClientNameFromList(customers, j.client_id)}`}
                   >
-                    {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}</span>}
-                    {getClientNameFromList(customers, j.client_id)}
+                    <span className="truncate flex-1 min-w-0">
+                      {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}</span>}
+                      {getClientNameFromList(customers, j.client_id)}
+                    </span>
+                    {j.status !== "completed" && (
+                      <CompleteIconButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onJobComplete(j);
+                        }}
+                      />
+                    )}
                   </div>
                 ))}
                 {totalEntries > 2 && (
@@ -379,6 +562,21 @@ function MonthView({
   );
 }
 
+// Small green icon-only "Compléter" button used in compact month cells.
+function CompleteIconButton({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Compléter"
+      aria-label="Compléter"
+      className="shrink-0 inline-flex items-center justify-center h-4 w-4 rounded-sm bg-success text-success-foreground opacity-0 group-hover/event:opacity-100 hover:bg-success/90 transition-opacity"
+    >
+      <Check className="h-3 w-3" />
+    </button>
+  );
+}
+
 // ─── Week View ───
 function WeekView({
   days,
@@ -389,6 +587,8 @@ function WeekView({
   onDayClick,
   onJobClick,
   onRequestClick,
+  onJobComplete,
+  onRequestComplete,
 }: {
   days: Date[];
   todayStr: string;
@@ -398,6 +598,8 @@ function WeekView({
   onDayClick: (d: Date) => void;
   onJobClick: (id: string) => void;
   onRequestClick: (id: string) => void;
+  onJobComplete: (j: DbJob) => void;
+  onRequestComplete: (r: DbEstimationRequest) => void;
 }) {
   return (
     <div className="grid grid-cols-7 gap-2">
@@ -425,26 +627,50 @@ function WeekView({
               ) : (
                 <>
                   {dayRequests.map((r) => (
-                    <button
+                    <div
                       key={r.id}
                       onClick={() => onRequestClick(r.id)}
-                      className={cn("w-full text-left text-[11px] px-1.5 py-1 rounded", REQUEST_CLASSES)}
+                      className={cn(
+                        "w-full text-left text-[11px] px-1.5 py-1 rounded cursor-pointer",
+                        requestClasses(r),
+                      )}
                       title="Estimation à faire"
                     >
                       {r.requested_time && <div className="font-medium">{r.requested_time.slice(0, 5)}</div>}
                       <div className="truncate">{r.client_name || "Estimation à faire"}</div>
-                    </button>
+                      {r.status !== "done" && (
+                        <CompleteButton
+                          className="mt-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onRequestComplete(r);
+                          }}
+                        />
+                      )}
+                    </div>
                   ))}
                   {dayJobs.map((j) => (
-                    <button
+                    <div
                       key={j.id}
                       onClick={() => onJobClick(j.id)}
-                      className={cn("w-full text-left text-[11px] px-1.5 py-1 rounded", cutTypeClasses(j.cut_type))}
+                      className={cn(
+                        "w-full text-left text-[11px] px-1.5 py-1 rounded cursor-pointer",
+                        jobClasses(j),
+                      )}
                       title={cutTypeLabel(j.cut_type)}
                     >
                       {j.start_time && <div className="font-medium">{j.start_time.slice(0, 5)}</div>}
                       <div className="truncate">{getClientNameFromList(customers, j.client_id)}</div>
-                    </button>
+                      {j.status !== "completed" && (
+                        <CompleteButton
+                          className="mt-1"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            onJobComplete(j);
+                          }}
+                        />
+                      )}
+                    </div>
                   ))}
                 </>
               )}
@@ -456,6 +682,32 @@ function WeekView({
   );
 }
 
+// Full green "Compléter" button used in week / day-hourly views.
+function CompleteButton({
+  onClick,
+  className,
+}: {
+  onClick: (e: React.MouseEvent) => void;
+  className?: string;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      title="Compléter"
+      className={cn(
+        "inline-flex items-center gap-1 rounded px-1.5 py-0.5 text-[10px] font-medium",
+        "bg-success text-success-foreground hover:bg-success/90 transition-colors",
+        className,
+      )}
+    >
+      <Check className="h-3 w-3" />
+      Compléter
+    </button>
+  );
+}
+
+
 // ─── Day Hourly View (00-23) ───
 function DayHourlyDialog({
   day,
@@ -465,6 +717,8 @@ function DayHourlyDialog({
   customers,
   onJobClick,
   onRequestClick,
+  onJobComplete,
+  onRequestComplete,
 }: {
   day: Date | null;
   onOpenChange: (open: boolean) => void;
@@ -473,6 +727,8 @@ function DayHourlyDialog({
   customers: any[];
   onJobClick: (id: string) => void;
   onRequestClick: (id: string) => void;
+  onJobComplete: (j: DbJob) => void;
+  onRequestComplete: (r: DbEstimationRequest) => void;
 }) {
   const dayJobs = day ? scheduledByDate.get(ymd(day)) ?? [] : [];
   const dayRequests = day ? requestsByDate.get(ymd(day)) ?? [] : [];
@@ -500,24 +756,50 @@ function DayHourlyDialog({
               <div className="space-y-1">
                 <p className="text-xs font-medium text-muted-foreground uppercase">Sans heure</p>
                 {unscheduledRequests.map((r) => (
-                  <button
+                  <div
                     key={r.id}
                     onClick={() => onRequestClick(r.id)}
-                    className={cn("w-full text-left p-2 rounded text-sm transition-colors", REQUEST_CLASSES)}
+                    className={cn(
+                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer flex items-center justify-between gap-2",
+                      requestClasses(r),
+                    )}
                   >
-                    <div className="font-medium">{r.client_name || "Estimation à faire"}</div>
-                    <div className="text-xs opacity-80">Estimation à faire</div>
-                  </button>
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{r.client_name || "Estimation à faire"}</div>
+                      <div className="text-xs opacity-80">Estimation à faire</div>
+                    </div>
+                    {r.status !== "done" && (
+                      <CompleteButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRequestComplete(r);
+                        }}
+                      />
+                    )}
+                  </div>
                 ))}
                 {unscheduledJobs.map((j) => (
-                  <button
+                  <div
                     key={j.id}
                     onClick={() => onJobClick(j.id)}
-                    className={cn("w-full text-left p-2 rounded text-sm transition-colors", cutTypeClasses(j.cut_type))}
+                    className={cn(
+                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer flex items-center justify-between gap-2",
+                      jobClasses(j),
+                    )}
                   >
-                    <div className="font-medium">{getClientNameFromList(customers, j.client_id)}</div>
-                    <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
-                  </button>
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{getClientNameFromList(customers, j.client_id)}</div>
+                      <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
+                    </div>
+                    {j.status !== "completed" && (
+                      <CompleteButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onJobComplete(j);
+                        }}
+                      />
+                    )}
+                  </div>
                 ))}
               </div>
             )}
@@ -539,34 +821,60 @@ function DayHourlyDialog({
                     </div>
                     <div className="flex-1 p-1.5 space-y-1">
                       {hourRequests.map((r) => (
-                        <button
+                        <div
                           key={r.id}
                           onClick={() => onRequestClick(r.id)}
-                          className={cn("w-full text-left px-2 py-1.5 rounded text-sm", REQUEST_CLASSES)}
+                          className={cn(
+                            "w-full text-left px-2 py-1.5 rounded text-sm cursor-pointer flex items-center justify-between gap-2",
+                            requestClasses(r),
+                          )}
                         >
-                          <div className="font-medium">
-                            {r.requested_time?.slice(0, 5)} · {r.client_name || "Estimation à faire"}
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">
+                              {r.requested_time?.slice(0, 5)} · {r.client_name || "Estimation à faire"}
+                            </div>
+                            <div className="text-xs opacity-80">Estimation à faire</div>
                           </div>
-                          <div className="text-xs opacity-80">Estimation à faire</div>
-                        </button>
+                          {r.status !== "done" && (
+                            <CompleteButton
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRequestComplete(r);
+                              }}
+                            />
+                          )}
+                        </div>
                       ))}
                       {hourJobs.map((j) => {
                         const end = projectedEndTime(j);
                         return (
-                          <button
+                          <div
                             key={j.id}
                             onClick={() => onJobClick(j.id)}
-                            className={cn("w-full text-left px-2 py-1.5 rounded text-sm", cutTypeClasses(j.cut_type))}
+                            className={cn(
+                              "w-full text-left px-2 py-1.5 rounded text-sm cursor-pointer flex items-center justify-between gap-2",
+                              jobClasses(j),
+                            )}
                           >
-                            <div className="font-medium">
-                              {j.start_time?.slice(0, 5)}
-                              {end && ` – ${end}`}
-                              {!j.end_time && end && <span className="text-[10px] opacity-70 ml-1">(estimé)</span>}
-                              {" · "}
-                              {getClientNameFromList(customers, j.client_id)}
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">
+                                {j.start_time?.slice(0, 5)}
+                                {end && ` – ${end}`}
+                                {!j.end_time && end && <span className="text-[10px] opacity-70 ml-1">(estimé)</span>}
+                                {" · "}
+                                {getClientNameFromList(customers, j.client_id)}
+                              </div>
+                              <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
                             </div>
-                            <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
-                          </button>
+                            {j.status !== "completed" && (
+                              <CompleteButton
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onJobComplete(j);
+                                }}
+                              />
+                            )}
+                          </div>
                         );
                       })}
                     </div>
@@ -580,6 +888,7 @@ function DayHourlyDialog({
     </Dialog>
   );
 }
+
 
 // ─── Legend ───
 function CutTypeLegend() {
@@ -600,6 +909,10 @@ function CutTypeLegend() {
       <div className="flex items-center gap-1.5">
         <span className="inline-block w-3 h-3 rounded-sm bg-estimation-request" />
         <span>Estimation à faire</span>
+      </div>
+      <div className="flex items-center gap-1.5">
+        <span className="inline-block w-3 h-3 rounded-sm bg-muted-foreground/40" />
+        <span>Complété</span>
       </div>
     </div>
   );
