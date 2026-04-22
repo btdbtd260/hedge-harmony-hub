@@ -20,8 +20,11 @@ import {
   useBlockedNumbers,
   useAddBlockedNumber,
   useRemoveBlockedNumber,
+  isProtectedBlockedNumber,
   type DbBlockedNumber,
 } from "@/hooks/useBlockedNumbers";
+import { Badge } from "@/components/ui/badge";
+import { ShieldAlert } from "lucide-react";
 import { formatDateQC } from "@/lib/utils";
 
 export function BlockedNumbersTab() {
