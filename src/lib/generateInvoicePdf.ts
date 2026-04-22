@@ -17,56 +17,73 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
   const { invoice, customer, job, params, invoiceNumber, description } = data;
   const doc = new jsPDF();
   const pageW = doc.internal.pageSize.getWidth();
-  let y = 20;
+  let y = 18;
 
-  // ── Company header ──
-  // Logo (from parameters) or placeholder
+  // ── Company header (aligned with estimation PDF) ──
+  // Logo: enlarged box (75×42) for stronger brand presence
+  const LOGO_BOX_W = 75;
+  const LOGO_BOX_H = 42;
   const logo = await loadLogoForPdf(params?.company_logo_url);
   if (logo) {
-    const { w, h } = fitLogo(logo, 40, 20);
-    doc.addImage(logo.dataUrl, logo.format, 14, y - 5, w, h);
+    const { w, h } = fitLogo(logo, LOGO_BOX_W, LOGO_BOX_H);
+    const offsetY = (LOGO_BOX_H - h) / 2;
+    doc.addImage(logo.dataUrl, logo.format, 14, y + offsetY, w, h);
   } else {
     doc.setFillColor(230, 230, 230);
-    doc.roundedRect(14, y - 5, 40, 20, 3, 3, "F");
-    doc.setFontSize(8);
+    doc.roundedRect(14, y, LOGO_BOX_W, LOGO_BOX_H, 3, 3, "F");
+    doc.setFontSize(10);
     doc.setTextColor(120);
-    doc.text("LOGO", 34, y + 7, { align: "center" });
+    doc.text("LOGO", 14 + LOGO_BOX_W / 2, y + LOGO_BOX_H / 2 + 2, { align: "center" });
   }
 
-  // Company info
+  // Company info - tight to logo, capped width to avoid overlap with right title
+  const infoX = 14 + LOGO_BOX_W + 6;
   const companyName = params?.company_name || "HedgePro";
-  doc.setFontSize(18);
-  doc.setTextColor(30, 30, 30);
-  doc.setFont("helvetica", "bold");
-  doc.text(companyName, 60, y + 4);
 
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "normal");
-  doc.setTextColor(80);
   const companyLines: string[] = [];
   if (params?.company_address) companyLines.push(params.company_address);
   if (params?.company_phone) companyLines.push(`Tél: ${params.company_phone}`);
   if (params?.company_email) companyLines.push(params.company_email);
+
+  const rightBlockWidth = 55;
+  const maxCompanyTextWidth = pageW - 14 - rightBlockWidth - infoX - 4;
+
+  const contentHeight = 8 + (companyLines.length * 4.5);
+  const verticalOffset = (LOGO_BOX_H - contentHeight) / 2;
+
+  doc.setFontSize(13);
+  doc.setTextColor(30, 30, 30);
+  doc.setFont("helvetica", "bold");
+  const nameLines = doc.splitTextToSize(companyName, maxCompanyTextWidth);
+  doc.text(nameLines, infoX, y + verticalOffset + 5);
+
+  doc.setFontSize(9);
+  doc.setFont("helvetica", "normal");
+  doc.setTextColor(80);
+  const nameBlockHeight = (Array.isArray(nameLines) ? nameLines.length : 1) * 5;
   companyLines.forEach((line, i) => {
-    doc.text(line, 60, y + 10 + i * 4.5);
+    const wrapped = doc.splitTextToSize(line, maxCompanyTextWidth);
+    doc.text(wrapped, infoX, y + verticalOffset + 5 + nameBlockHeight + 2 + i * 4.5);
   });
 
-  // Invoice title right-aligned
-  doc.setFontSize(24);
+  // Title block right - vertically centered (matches estimation)
+  const rightVerticalOffset = (LOGO_BOX_H - 22) / 2;
+
+  doc.setFontSize(20);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 30, 30);
-  doc.text("FACTURE", pageW - 14, y + 5, { align: "right" });
+  doc.text("FACTURE", pageW - 14, y + rightVerticalOffset + 6, { align: "right" });
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80);
-  doc.text(`N° ${invoiceNumber}`, pageW - 14, y + 13, { align: "right" });
-  doc.text(`Date: ${formatDateQC(invoice.issued_at)}`, pageW - 14, y + 19, { align: "right" });
+  doc.text(`N° ${invoiceNumber}`, pageW - 14, y + rightVerticalOffset + 14, { align: "right" });
+  doc.text(`Date: ${formatDateQC(invoice.issued_at)}`, pageW - 14, y + rightVerticalOffset + 20, { align: "right" });
   if (invoice.paid_at) {
-    doc.text(`Payée: ${formatDateQC(invoice.paid_at)}`, pageW - 14, y + 25, { align: "right" });
+    doc.text(`Payée: ${formatDateQC(invoice.paid_at)}`, pageW - 14, y + rightVerticalOffset + 26, { align: "right" });
   }
 
-  y += 40;
+  y += LOGO_BOX_H + 8;
 
   // ── Divider ──
   doc.setDrawColor(200);
