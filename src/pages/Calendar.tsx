@@ -717,6 +717,8 @@ function DayHourlyDialog({
   customers,
   onJobClick,
   onRequestClick,
+  onJobComplete,
+  onRequestComplete,
 }: {
   day: Date | null;
   onOpenChange: (open: boolean) => void;
@@ -725,7 +727,167 @@ function DayHourlyDialog({
   customers: any[];
   onJobClick: (id: string) => void;
   onRequestClick: (id: string) => void;
+  onJobComplete: (j: DbJob) => void;
+  onRequestComplete: (r: DbEstimationRequest) => void;
 }) {
+  const dayJobs = day ? scheduledByDate.get(ymd(day)) ?? [] : [];
+  const dayRequests = day ? requestsByDate.get(ymd(day)) ?? [] : [];
+  const unscheduledJobs = dayJobs.filter((j) => parseTimeToMinutes(j.start_time) === null);
+  const scheduledJobs = dayJobs.filter((j) => parseTimeToMinutes(j.start_time) !== null);
+  const unscheduledRequests = dayRequests.filter((r) => parseTimeToMinutes(r.requested_time) === null);
+  const scheduledRequests = dayRequests.filter((r) => parseTimeToMinutes(r.requested_time) !== null);
+
+  return (
+    <Dialog open={!!day} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+        {day && (
+          <>
+            <DialogHeader>
+              <DialogTitle>
+                {DAY_NAMES[day.getDay()]} {day.getDate()} {MONTH_NAMES[day.getMonth()]} {day.getFullYear()}
+              </DialogTitle>
+              <DialogDescription>
+                {dayJobs.length} job{dayJobs.length > 1 ? "s" : ""} planifié{dayJobs.length > 1 ? "s" : ""}
+                {dayRequests.length > 0 && ` · ${dayRequests.length} estimation${dayRequests.length > 1 ? "s" : ""} à faire`}
+              </DialogDescription>
+            </DialogHeader>
+
+            {(unscheduledJobs.length > 0 || unscheduledRequests.length > 0) && (
+              <div className="space-y-1">
+                <p className="text-xs font-medium text-muted-foreground uppercase">Sans heure</p>
+                {unscheduledRequests.map((r) => (
+                  <div
+                    key={r.id}
+                    onClick={() => onRequestClick(r.id)}
+                    className={cn(
+                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer flex items-center justify-between gap-2",
+                      requestClasses(r),
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{r.client_name || "Estimation à faire"}</div>
+                      <div className="text-xs opacity-80">Estimation à faire</div>
+                    </div>
+                    {r.status !== "done" && (
+                      <CompleteButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onRequestComplete(r);
+                        }}
+                      />
+                    )}
+                  </div>
+                ))}
+                {unscheduledJobs.map((j) => (
+                  <div
+                    key={j.id}
+                    onClick={() => onJobClick(j.id)}
+                    className={cn(
+                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer flex items-center justify-between gap-2",
+                      jobClasses(j),
+                    )}
+                  >
+                    <div className="min-w-0">
+                      <div className="font-medium truncate">{getClientNameFromList(customers, j.client_id)}</div>
+                      <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
+                    </div>
+                    {j.status !== "completed" && (
+                      <CompleteButton
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          onJobComplete(j);
+                        }}
+                      />
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+
+            <div className="border rounded-lg divide-y max-h-[60vh] overflow-y-auto">
+              {Array.from({ length: 24 }, (_, hour) => {
+                const hourJobs = scheduledJobs.filter((j) => {
+                  const m = parseTimeToMinutes(j.start_time)!;
+                  return Math.floor(m / 60) === hour;
+                });
+                const hourRequests = scheduledRequests.filter((r) => {
+                  const m = parseTimeToMinutes(r.requested_time)!;
+                  return Math.floor(m / 60) === hour;
+                });
+                return (
+                  <div key={hour} className="flex min-h-[48px]">
+                    <div className="w-16 shrink-0 text-xs text-muted-foreground p-2 border-r bg-muted/30 text-right">
+                      {String(hour).padStart(2, "0")}:00
+                    </div>
+                    <div className="flex-1 p-1.5 space-y-1">
+                      {hourRequests.map((r) => (
+                        <div
+                          key={r.id}
+                          onClick={() => onRequestClick(r.id)}
+                          className={cn(
+                            "w-full text-left px-2 py-1.5 rounded text-sm cursor-pointer flex items-center justify-between gap-2",
+                            requestClasses(r),
+                          )}
+                        >
+                          <div className="min-w-0">
+                            <div className="font-medium truncate">
+                              {r.requested_time?.slice(0, 5)} · {r.client_name || "Estimation à faire"}
+                            </div>
+                            <div className="text-xs opacity-80">Estimation à faire</div>
+                          </div>
+                          {r.status !== "done" && (
+                            <CompleteButton
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                onRequestComplete(r);
+                              }}
+                            />
+                          )}
+                        </div>
+                      ))}
+                      {hourJobs.map((j) => {
+                        const end = projectedEndTime(j);
+                        return (
+                          <div
+                            key={j.id}
+                            onClick={() => onJobClick(j.id)}
+                            className={cn(
+                              "w-full text-left px-2 py-1.5 rounded text-sm cursor-pointer flex items-center justify-between gap-2",
+                              jobClasses(j),
+                            )}
+                          >
+                            <div className="min-w-0">
+                              <div className="font-medium truncate">
+                                {j.start_time?.slice(0, 5)}
+                                {end && ` – ${end}`}
+                                {!j.end_time && end && <span className="text-[10px] opacity-70 ml-1">(estimé)</span>}
+                                {" · "}
+                                {getClientNameFromList(customers, j.client_id)}
+                              </div>
+                              <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
+                            </div>
+                            {j.status !== "completed" && (
+                              <CompleteButton
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  onJobComplete(j);
+                                }}
+                              />
+                            )}
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </>
+        )}
+      </DialogContent>
+    </Dialog>
+  );
+}
   const dayJobs = day ? scheduledByDate.get(ymd(day)) ?? [] : [];
   const dayRequests = day ? requestsByDate.get(ymd(day)) ?? [] : [];
   const unscheduledJobs = dayJobs.filter((j) => parseTimeToMinutes(j.start_time) === null);
