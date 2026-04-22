@@ -111,8 +111,8 @@ export default function Messagerie() {
   const selectedClient = customers.find((c) => c.id === selectedId) ?? null;
 
   return (
-    <div className="flex flex-col h-full">
-      <div className="px-6 py-4 border-b">
+    <div className="flex flex-col h-full min-h-0">
+      <div className="px-6 py-4 border-b shrink-0">
         <h1 className="text-2xl font-bold">Messagerie</h1>
         <p className="text-sm text-muted-foreground">
           Envoyez et recevez des SMS avec vos clients
@@ -120,7 +120,7 @@ export default function Messagerie() {
       </div>
 
       <Tabs defaultValue="conversations" className="flex-1 flex flex-col min-h-0">
-        <div className="px-6 pt-3 border-b bg-card">
+        <div className="px-6 pt-3 border-b bg-card shrink-0">
           <TabsList>
             <TabsTrigger value="conversations" className="gap-2">
               <MessageSquare className="h-4 w-4" />
