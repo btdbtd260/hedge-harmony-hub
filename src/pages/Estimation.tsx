@@ -14,6 +14,7 @@ import type { CutType, HeightMode, EstimationExtra, EstimationDiscount, Discount
 import EstimationPreview from "@/components/estimation/EstimationPreview";
 import EstimationHistory from "@/components/estimation/EstimationHistory";
 import { downloadEstimationPdf, getEstimationNumber, type EstimationPdfData } from "@/lib/generateEstimationPdf";
+import { applyTotalRounding } from "@/lib/roundingTotal";
 
 interface BushItem {
   id: string;
