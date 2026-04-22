@@ -39,38 +39,49 @@ export interface EstimationPdfData {
   widthMultiplier: number;
   totalPrice: number;
   date?: string;
+  /** Optional per-side two-sides flags so the PDF can show "(2 côtés)" + ×1.5 */
+  twoSides?: {
+    facade?: boolean; left?: boolean; right?: boolean;
+    back?: boolean; back_left?: boolean; back_right?: boolean;
+  };
+  /** Multiplier used when a side is "2 côtés" (defaults to 1.5) */
+  twoSidesMultiplier?: number;
 }
 
 export async function generateEstimationPdf(data: EstimationPdfData): Promise<jsPDF> {
   const { customer, params, estimationNumber, cutType, facadeLength, leftLength, rightLength, backLength,
     backLeftLength, backRightLength,
-    heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
-    heightBackLeft, heightBackRight, width,
-    basePrice, bushItems, extras, heightMultiplierApplied, widthMultiplierApplied,
-    heightMultiplier, widthMultiplier, totalPrice, date } = data;
+    basePrice, bushItems, extras, totalPrice, date } = data;
 
   const doc = new jsPDF();
   const pageW = doc.internal.pageSize.getWidth();
-  let y = 20;
+  let y = 18;
 
   // ── Company header ──
+  // Logo: enlarged box (was 40×20, now 60×30)
+  const LOGO_BOX_W = 60;
+  const LOGO_BOX_H = 30;
   const logo = await loadLogoForPdf(params?.company_logo_url);
   if (logo) {
-    const { w, h } = fitLogo(logo, 40, 20);
-    doc.addImage(logo.dataUrl, logo.format, 14, y - 5, w, h);
+    const { w, h } = fitLogo(logo, LOGO_BOX_W, LOGO_BOX_H);
+    // Vertically center the logo within the box for a clean look
+    const offsetY = (LOGO_BOX_H - h) / 2;
+    doc.addImage(logo.dataUrl, logo.format, 14, y + offsetY, w, h);
   } else {
     doc.setFillColor(230, 230, 230);
-    doc.roundedRect(14, y - 5, 40, 20, 3, 3, "F");
-    doc.setFontSize(8);
+    doc.roundedRect(14, y, LOGO_BOX_W, LOGO_BOX_H, 3, 3, "F");
+    doc.setFontSize(10);
     doc.setTextColor(120);
-    doc.text("LOGO", 34, y + 7, { align: "center" });
+    doc.text("LOGO", 14 + LOGO_BOX_W / 2, y + LOGO_BOX_H / 2 + 2, { align: "center" });
   }
 
+  // Company info to the right of the (now larger) logo
+  const infoX = 14 + LOGO_BOX_W + 8;
   const companyName = params?.company_name || "HedgePro";
   doc.setFontSize(18);
   doc.setTextColor(30, 30, 30);
   doc.setFont("helvetica", "bold");
-  doc.text(companyName, 60, y + 4);
+  doc.text(companyName, infoX, y + 8);
 
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
@@ -80,28 +91,28 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   if (params?.company_phone) companyLines.push(`Tél: ${params.company_phone}`);
   if (params?.company_email) companyLines.push(params.company_email);
   companyLines.forEach((line, i) => {
-    doc.text(line, 60, y + 10 + i * 4.5);
+    doc.text(line, infoX, y + 14 + i * 4.5);
   });
 
-  // Title
+  // Title (right aligned)
   doc.setFontSize(24);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 30, 30);
-  doc.text("ESTIMATION", pageW - 14, y + 5, { align: "right" });
+  doc.text("ESTIMATION", pageW - 14, y + 8, { align: "right" });
 
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80);
-  doc.text(`N° ${estimationNumber}`, pageW - 14, y + 13, { align: "right" });
-  doc.text(`Date: ${date || formatDateQC(new Date().toISOString())}`, pageW - 14, y + 19, { align: "right" });
+  doc.text(`N° ${estimationNumber}`, pageW - 14, y + 16, { align: "right" });
+  doc.text(`Date: ${date || formatDateQC(new Date().toISOString())}`, pageW - 14, y + 22, { align: "right" });
 
-  y += 40;
+  y += LOGO_BOX_H + 8;
   doc.setDrawColor(200);
   doc.setLineWidth(0.5);
   doc.line(14, y, pageW - 14, y);
-  y += 10;
+  y += 8;
 
-  // ── Client ──
+  // ── Client (unchanged) ──
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 30, 30);
@@ -119,119 +130,204 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   } else {
     doc.text("—", 14, y); y += 5;
   }
-  y += 5;
+  y += 4;
 
-  // ── Measurements ──
+  // ── Détail des coûts (now contains the structured measurement table) ──
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
   doc.setTextColor(30, 30, 30);
-  doc.text("Mesures", 14, y);
-  y += 2;
+  doc.text("Détail des coûts", 14, y);
+  y += 3;
 
-  const totalFeet = facadeLength + leftLength + rightLength + backLength + backLeftLength + backRightLength;
+  // Compute per-side pricing
   const baseLabel =
     cutType === "levelling" ? "Nivelage" :
     cutType === "restoration" ? "Restauration" :
     cutType === "trim" ? "Taillage" :
     (data.customCutLabel || "Taillage");
-  const cutLabel = data.customPricePerFoot && data.customPricePerFoot > 0 ? `${baseLabel} (prix personnalisé)` : baseLabel;
   const standardPrice =
     cutType === "trim" ? (params?.price_per_foot_trim ?? 4.5) :
     cutType === "levelling" ? (params?.price_per_foot_levelling ?? 6) :
     cutType === "restoration" ? ((params as any)?.price_per_foot_restoration ?? 8) :
     0;
   const pricePerFoot = data.customPricePerFoot && data.customPricePerFoot > 0 ? data.customPricePerFoot : standardPrice;
+  const twoSidesMult = data.twoSidesMultiplier ?? 1.5;
+  const ts = data.twoSides ?? {};
 
-  const measureRows = [
-    ["", "Gauche", "Centre", "Droite"],
-    ["Avant", `${leftLength} pi`, `${facadeLength} pi (Façade)`, `${rightLength} pi`],
-    ["Arrière", `${backLeftLength} pi`, `${backLength} pi (Fond)`, `${backRightLength} pi`],
-    ["Total pieds linéaires", `${totalFeet} pi`, "", ""],
-  ];
+  // Build the measurement rows (only sides with length > 0).
+  // Section label is shown only on the first row of each section.
+  type Row = { section: string; sub: string; measure: string; subtotal: string };
+  const rows: Row[] = [];
 
-  if (heightMode === "global") {
-    measureRows.push(["Hauteur (globale)", `${heightGlobal} pi`]);
-  } else {
-    measureRows.push(["Hauteur — Avant gauche", `${heightLeft} pi`]);
-    measureRows.push(["Hauteur — Façade", `${heightFacade} pi`]);
-    measureRows.push(["Hauteur — Avant droite", `${heightRight} pi`]);
-    measureRows.push(["Hauteur — Arrière gauche", `${heightBackLeft} pi`]);
-    measureRows.push(["Hauteur — Fond", `${heightBack} pi`]);
-    measureRows.push(["Hauteur — Arrière droite", `${heightBackRight} pi`]);
+  const front: Array<{ name: string; len: number; two: boolean }> = [
+    { name: "Gauche", len: leftLength, two: !!ts.left },
+    { name: "Façade", len: facadeLength, two: !!ts.facade },
+    { name: "Droite", len: rightLength, two: !!ts.right },
+  ].filter(s => s.len > 0);
+
+  const back: Array<{ name: string; len: number; two: boolean }> = [
+    { name: "Gauche", len: backLeftLength, two: !!ts.back_left },
+    { name: "Fond", len: backLength, two: !!ts.back },
+    { name: "Droite", len: backRightLength, two: !!ts.back_right },
+  ].filter(s => s.len > 0);
+
+  const pushSection = (label: string, sides: typeof front) => {
+    sides.forEach((s, idx) => {
+      const sub = s.two ? `${s.name} (2 côtés)` : s.name;
+      const measure = s.two ? `${s.len} pi (x${twoSidesMult})` : `${s.len} pi`;
+      const subtotal = `$${(s.len * pricePerFoot * (s.two ? twoSidesMult : 1)).toFixed(2)}`;
+      rows.push({ section: idx === 0 ? label : "", sub, measure, subtotal });
+    });
+  };
+  pushSection("Avant", front);
+  pushSection("Arrière", back);
+
+  // Compute the measurement total (sum of all per-side subtotals shown).
+  const measurementsTotal =
+    front.reduce((s, x) => s + x.len * pricePerFoot * (x.two ? twoSidesMult : 1), 0) +
+    back.reduce((s, x) => s + x.len * pricePerFoot * (x.two ? twoSidesMult : 1), 0);
+
+  // Render the structured table with visible black borders and 4 columns.
+  // Header gives quick context (cut type + price/pi) without changing column meaning.
+  const tableHead = [[
+    { content: `Section`, styles: { halign: "left" as const } },
+    { content: `${baseLabel} — $${pricePerFoot}/pi`, styles: { halign: "left" as const } },
+    { content: `Mesure`, styles: { halign: "right" as const } },
+    { content: `Sous-total`, styles: { halign: "right" as const } },
+  ]];
+
+  const tableBody = rows.map(r => [
+    { content: r.section, styles: { fontStyle: "bold" as const } },
+    r.sub,
+    { content: r.measure, styles: { halign: "right" as const } },
+    { content: r.subtotal, styles: { halign: "right" as const, fontStyle: "bold" as const } },
+  ]);
+
+  // Final row: only the "Total mesures" cell appears under the subtotal column.
+  // The first three cells are blank to keep one single box on the right.
+  if (rows.length > 0) {
+    tableBody.push([
+      { content: "", styles: {} as any },
+      { content: "", styles: {} as any },
+      { content: "Total mesures", styles: { halign: "right" as const, fontStyle: "bold" as const } },
+      { content: `$${measurementsTotal.toFixed(2)}`, styles: { halign: "right" as const, fontStyle: "bold" as const, fillColor: [240, 240, 240] as any } },
+    ]);
   }
-  measureRows.push(["Largeur", `${width} pi`]);
 
   autoTable(doc, {
     startY: y,
-    body: measureRows,
-    theme: "plain",
-    styles: { fontSize: 9, textColor: [50, 50, 50], cellPadding: 2 },
-    columnStyles: { 0: { fontStyle: "bold", cellWidth: 80 }, 1: { halign: "right" } },
+    head: tableHead,
+    body: tableBody,
+    theme: "grid",
+    styles: {
+      fontSize: 9,
+      textColor: [30, 30, 30],
+      cellPadding: 3,
+      lineColor: [0, 0, 0],
+      lineWidth: 0.3,
+    },
+    headStyles: {
+      fillColor: [240, 240, 240],
+      textColor: [30, 30, 30],
+      fontStyle: "bold",
+      lineColor: [0, 0, 0],
+      lineWidth: 0.3,
+    },
+    columnStyles: {
+      0: { cellWidth: 28 },
+      1: { cellWidth: 70 },
+      2: { halign: "right" },
+      3: { halign: "right" },
+    },
     margin: { left: 14, right: 14 },
   });
 
-  y = (doc as any).lastAutoTable.finalY + 8;
+  y = (doc as any).lastAutoTable.finalY + 6;
 
-  // ── Pricing breakdown ──
-  doc.setFontSize(11);
+  // ── Arbustes (only if any) ──
+  if (bushItems.length > 0) {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 30, 30);
+    doc.text("Arbustes", 14, y);
+    y += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(60);
+    bushItems.forEach((b) => {
+      const label = b.description ? `${b.description} : ` : "";
+      const line = `${label}${b.count} x $${b.price.toFixed(2)}`;
+      const total = `$${(b.count * b.price).toFixed(2)}`;
+      doc.text(line, 14, y);
+      doc.text(total, pageW - 14, y, { align: "right" });
+      y += 5;
+    });
+    y += 2;
+  }
+
+  // ── Extras (only if any) ──
+  const visibleExtras = extras.filter(e => (e.description && e.description.trim() !== "") || e.price > 0);
+  if (visibleExtras.length > 0) {
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 30, 30);
+    doc.text("Extras", 14, y);
+    y += 5;
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(60);
+    visibleExtras.forEach((e) => {
+      doc.text(e.description || "—", 14, y);
+      doc.text(`$${e.price.toFixed(2)}`, pageW - 14, y, { align: "right" });
+      y += 5;
+    });
+    y += 2;
+  }
+
+  // ── Sous-total job ──
+  const bushesTotal = bushItems.reduce((s, b) => s + b.count * b.price, 0);
+  const extrasTotal = visibleExtras.reduce((s, e) => s + e.price, 0);
+  // basePrice already includes height/width multipliers and per-side ×1.5,
+  // so the job subtotal stays exactly aligned with the live calculation.
+  const jobSubtotal = basePrice + bushesTotal + extrasTotal;
+
+  doc.setDrawColor(180);
+  doc.setLineWidth(0.3);
+  doc.line(14, y, pageW - 14, y);
+  y += 5;
+
   doc.setFont("helvetica", "bold");
+  doc.setFontSize(10);
   doc.setTextColor(30, 30, 30);
-  doc.text("Détail des coûts", 14, y);
+  doc.text("Sous-total job", 14, y);
+  doc.text(`$${jobSubtotal.toFixed(2)}`, pageW - 14, y, { align: "right" });
+  y += 6;
+
+  // ── Rabais (only if any) ──
+  // Percentages apply on the subtotal before any discounts (matches live calc).
+  const discounts = data.discounts ?? [];
+  if (discounts.length > 0) {
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(9);
+    doc.setTextColor(20, 120, 60);
+    discounts.forEach((d) => {
+      const amount =
+        d.type === "percent"
+          ? (jobSubtotal * Math.max(0, Math.min(100, Number(d.value) || 0))) / 100
+          : Math.max(0, Number(d.value) || 0);
+      const label =
+        d.type === "percent"
+          ? `Rabais${d.description ? `: ${d.description}` : ""} (${d.value}%)`
+          : `Rabais${d.description ? `: ${d.description}` : ""} ($${Number(d.value).toFixed(2)})`;
+      doc.text(label, 14, y);
+      doc.text(`-$${amount.toFixed(2)}`, pageW - 14, y, { align: "right" });
+      y += 5;
+    });
+    y += 2;
+  }
+
+  // ── Total estimé (kept as black rectangle) ──
   y += 2;
-
-  const priceRows: string[][] = [];
-  priceRows.push([`${cutLabel} — ${totalFeet} pi × $${pricePerFoot}/pi`, `$${(totalFeet * pricePerFoot).toFixed(2)}`]);
-
-  if (heightMultiplierApplied) {
-    priceRows.push([`Multiplicateur hauteur (×${heightMultiplier})`, "Appliqué"]);
-  }
-  if (widthMultiplierApplied) {
-    priceRows.push([`Multiplicateur largeur (×${widthMultiplier})`, "Appliqué"]);
-  }
-
-  priceRows.push(["Sous-total coupe", `$${basePrice.toFixed(2)}`]);
-
-  bushItems.forEach(b => {
-    const label = b.description || "Bush";
-    priceRows.push([`Bush: ${label} (×${b.count})`, `$${(b.count * b.price).toFixed(2)}`]);
-  });
-
-  extras.forEach(e => {
-    if (e.description || e.price > 0) {
-      priceRows.push([`Extra: ${e.description || "—"}`, `$${e.price.toFixed(2)}`]);
-    }
-  });
-
-  // Discounts — only printed if any were defined for this estimation.
-  // Percentages apply on the subtotal before any discounts (matches the live calc).
-  const subtotalBeforeDiscounts =
-    basePrice +
-    bushItems.reduce((s, b) => s + b.count * b.price, 0) +
-    extras.reduce((s, e) => s + e.price, 0);
-  (data.discounts ?? []).forEach((d) => {
-    const amount =
-      d.type === "percent"
-        ? (subtotalBeforeDiscounts * Math.max(0, Math.min(100, Number(d.value) || 0))) / 100
-        : Math.max(0, Number(d.value) || 0);
-    const label =
-      d.type === "percent"
-        ? `Rabais${d.description ? `: ${d.description}` : ""} (${d.value}%)`
-        : `Rabais${d.description ? `: ${d.description}` : ""} ($${Number(d.value).toFixed(2)})`;
-    priceRows.push([label, `-$${amount.toFixed(2)}`]);
-  });
-
-  autoTable(doc, {
-    startY: y,
-    body: priceRows,
-    theme: "striped",
-    styles: { fontSize: 9, textColor: [50, 50, 50], cellPadding: 3 },
-    columnStyles: { 0: { cellWidth: 120 }, 1: { halign: "right", fontStyle: "bold" } },
-    margin: { left: 14, right: 14 },
-  });
-
-  y = (doc as any).lastAutoTable.finalY + 10;
-
-  // ── Total ──
   doc.setFillColor(45, 45, 45);
   doc.roundedRect(pageW - 80, y - 5, 66, 24, 2, 2, "F");
   doc.setFontSize(10);
@@ -243,15 +339,8 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   doc.setTextColor(255);
   doc.text(`$${totalPrice.toFixed(2)}`, pageW - 18, y + 4, { align: "right" });
 
-  // ── Status badge ──
-  y += 20;
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(59, 130, 246);
-  doc.text("Statut: ESTIMATION (non facturé)", pageW - 18, y, { align: "right" });
-
   // ── Footer ──
-  y += 15;
+  y += 30;
   doc.setDrawColor(200);
   doc.line(14, y, pageW - 14, y);
   y += 8;
