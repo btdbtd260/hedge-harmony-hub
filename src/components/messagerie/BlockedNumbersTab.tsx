@@ -109,30 +109,49 @@ export function BlockedNumbersTab() {
           </div>
         ) : (
           <ul className="divide-y">
-            {blocked.map((b) => (
-              <li
-                key={b.id}
-                className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-accent/40 transition-colors"
-              >
-                <div className="min-w-0">
-                  <p className="font-medium">{formatPhone(b.phone)}</p>
-                  {b.reason && (
-                    <p className="text-xs text-muted-foreground truncate">{b.reason}</p>
-                  )}
-                  <p className="text-[10px] text-muted-foreground">
-                    Ajouté le {formatDateQC(b.created_at)}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="sm"
-                  onClick={() => setToDelete(b)}
-                  aria-label="Débloquer"
+            {blocked.map((b) => {
+              const protectedRow = isProtectedBlockedNumber(b.phone_normalized);
+              return (
+                <li
+                  key={b.id}
+                  className="flex items-center justify-between gap-3 px-4 py-3 hover:bg-accent/40 transition-colors"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </Button>
-              </li>
-            ))}
+                  <div className="min-w-0">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <p className="font-medium">
+                        {protectedRow ? b.phone : formatPhone(b.phone)}
+                      </p>
+                      {protectedRow && (
+                        <Badge variant="destructive" className="gap-1">
+                          <ShieldAlert className="h-3 w-3" />
+                          Protégé
+                        </Badge>
+                      )}
+                    </div>
+                    {b.reason && (
+                      <p className="text-xs text-muted-foreground truncate">{b.reason}</p>
+                    )}
+                    <p className="text-[10px] text-muted-foreground">
+                      Ajouté le {formatDateQC(b.created_at)}
+                    </p>
+                  </div>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setToDelete(b)}
+                    aria-label="Débloquer"
+                    disabled={protectedRow}
+                    title={
+                      protectedRow
+                        ? "Ce numéro est protégé et ne peut pas être débloqué"
+                        : "Débloquer"
+                    }
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </Button>
+                </li>
+              );
+            })}
           </ul>
         )}
       </ScrollArea>
