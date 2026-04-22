@@ -1,8 +1,7 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { Send, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
-import { ScrollArea } from "@/components/ui/scroll-area";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 import {
@@ -42,11 +41,12 @@ export function ChatPanel({ client }: ChatPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUnreadInbound, client.id]);
 
-  // Auto-scroll en bas
-  useEffect(() => {
+  // Auto-scroll en bas: useLayoutEffect pour scroller AVANT la peinture
+  // (évite le flash où on voit le haut de la conversation à l'ouverture)
+  useLayoutEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+  }, [messages.length, client.id]);
 
   const handleSend = async () => {
     const body = text.trim();
@@ -69,23 +69,26 @@ export function ChatPanel({ client }: ChatPanelProps) {
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       {/* Header */}
-      <div className="px-4 py-3 border-b bg-card">
+      <div className="px-4 py-3 border-b bg-card shrink-0">
         <div className="font-semibold">{client.name}</div>
         <div className="text-xs text-muted-foreground">{formatPhone(client.phone)}</div>
       </div>
 
       {isBlocked && (
-        <div className="px-4 py-2 bg-destructive/10 border-b border-destructive/20 text-xs text-destructive flex items-center gap-2">
+        <div className="px-4 py-2 bg-destructive/10 border-b border-destructive/20 text-xs text-destructive flex items-center gap-2 shrink-0">
           <ShieldOff className="h-3.5 w-3.5" />
           Ce numéro est bloqué — l'envoi est désactivé.
         </div>
       )}
 
-      {/* Messages */}
-      <ScrollArea className="flex-1">
-        <div ref={scrollRef} className="p-4 space-y-3 max-w-3xl mx-auto">
+      {/* Messages — zone scrollable INTERNE (overflow-y-auto + min-h-0) */}
+      <div
+        ref={scrollRef}
+        className="flex-1 min-h-0 overflow-y-auto overscroll-contain"
+      >
+        <div className="p-4 space-y-3 max-w-3xl mx-auto">
           {messages.length === 0 && (
             <p className="text-center text-sm text-muted-foreground py-12">
               Aucun message. Envoyez-en un pour commencer.
@@ -140,7 +143,7 @@ export function ChatPanel({ client }: ChatPanelProps) {
             );
           })}
         </div>
-      </ScrollArea>
+      </div>
 
       {/* Composer */}
       <div className="border-t p-3 bg-card">
