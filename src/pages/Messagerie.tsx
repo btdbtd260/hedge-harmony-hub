@@ -1,9 +1,10 @@
 import { useEffect, useMemo, useState } from "react";
-import { Search, MessageSquare, ShieldOff } from "lucide-react";
+import { Search, MessageSquare, ShieldOff, ArrowLeft } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { cn } from "@/lib/utils";
 import { useCustomers } from "@/hooks/useSupabaseData";
@@ -12,6 +13,7 @@ import { ChatPanel } from "@/components/messagerie/ChatPanel";
 import { BlockedNumbersTab } from "@/components/messagerie/BlockedNumbersTab";
 import { formatPhone } from "@/lib/phoneFormat";
 import { useBlockedNumbers, normalizeForBlock } from "@/hooks/useBlockedNumbers";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 export default function Messagerie() {
   const { data: customers = [] } = useCustomers();
@@ -20,6 +22,10 @@ export default function Messagerie() {
   const { data: blocked = [] } = useBlockedNumbers();
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+  // Sur mobile: afficher liste OU chat. Sur desktop: les deux.
+  const showList = !isMobile || !selectedId;
+  const showChat = !isMobile || !!selectedId;
 
   // Set des 10-derniers-chiffres pour lookup O(1) d'un client bloqué
   const blockedSet = useMemo(
@@ -138,100 +144,123 @@ export default function Messagerie() {
         >
           <div className="flex h-full min-h-0">
             {/* Liste */}
-            <div className="w-80 border-r flex flex-col bg-card">
-              <div className="p-3 border-b">
-                <div className="relative">
-                  <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
-                  <Input
-                    placeholder="Rechercher un client..."
-                    value={search}
-                    onChange={(e) => setSearch(e.target.value)}
-                    className="pl-8"
-                  />
-                </div>
-              </div>
-              <ScrollArea className="flex-1">
-                {sortedClients.length === 0 ? (
-                  <div className="p-6 text-center text-sm text-muted-foreground">
-                    Aucun client avec numéro de téléphone
+            {showList && (
+              <div className={cn(
+                "border-r flex flex-col bg-card",
+                isMobile ? "flex-1 w-full" : "w-80",
+              )}>
+                <div className="p-3 border-b">
+                  <div className="relative">
+                    <Search className="absolute left-2 top-2.5 h-4 w-4 text-muted-foreground" />
+                    <Input
+                      placeholder="Rechercher un client..."
+                      value={search}
+                      onChange={(e) => setSearch(e.target.value)}
+                      className="pl-8"
+                    />
                   </div>
-                ) : (
-                  <ul className="divide-y">
-                    {sortedClients.map((c) => {
-                      const last = lastMsgByClient.get(c.id);
-                      const unreadCount = unreadByClient.get(c.id) ?? 0;
-                      const isClientBlocked = blockedSet.has(normalizeForBlock(c.phone));
-                      return (
-                        <li key={c.id}>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedId(c.id)}
-                            className={cn(
-                              "w-full text-left px-3 py-3 flex items-start gap-3 hover:bg-accent transition-colors",
-                              selectedId === c.id && "bg-accent",
-                            )}
-                          >
-                            <Avatar>
-                              <AvatarFallback>
-                                {c.name
-                                  .split(" ")
-                                  .map((p) => p[0])
-                                  .join("")
-                                  .slice(0, 2)
-                                  .toUpperCase()}
-                              </AvatarFallback>
-                            </Avatar>
-                            <div className="flex-1 min-w-0">
-                              <div className="flex items-center justify-between gap-2">
-                                <span
-                                  className={cn(
-                                    "font-medium truncate",
-                                    isClientBlocked && "text-muted-foreground line-through",
-                                  )}
-                                >
-                                  {c.name}
-                                </span>
-                                <div className="flex items-center gap-1">
-                                  {isClientBlocked && (
-                                    <ShieldOff
-                                      className="h-3.5 w-3.5 text-destructive"
-                                      aria-label="Numéro bloqué"
-                                    />
-                                  )}
-                                  {unreadCount > 0 && (
-                                    <Badge
-                                      variant="destructive"
-                                      className="h-5 min-w-5 text-xs"
-                                    >
-                                      {unreadCount}
-                                    </Badge>
-                                  )}
+                </div>
+                <ScrollArea className="flex-1">
+                  {sortedClients.length === 0 ? (
+                    <div className="p-6 text-center text-sm text-muted-foreground">
+                      Aucun client avec numéro de téléphone
+                    </div>
+                  ) : (
+                    <ul className="divide-y">
+                      {sortedClients.map((c) => {
+                        const last = lastMsgByClient.get(c.id);
+                        const unreadCount = unreadByClient.get(c.id) ?? 0;
+                        const isClientBlocked = blockedSet.has(normalizeForBlock(c.phone));
+                        return (
+                          <li key={c.id}>
+                            <button
+                              type="button"
+                              onClick={() => setSelectedId(c.id)}
+                              className={cn(
+                                "w-full text-left px-3 py-3 flex items-start gap-3 hover:bg-accent transition-colors",
+                                selectedId === c.id && !isMobile && "bg-accent",
+                              )}
+                            >
+                              <Avatar>
+                                <AvatarFallback>
+                                  {c.name
+                                    .split(" ")
+                                    .map((p) => p[0])
+                                    .join("")
+                                    .slice(0, 2)
+                                    .toUpperCase()}
+                                </AvatarFallback>
+                              </Avatar>
+                              <div className="flex-1 min-w-0">
+                                <div className="flex items-center justify-between gap-2">
+                                  <span
+                                    className={cn(
+                                      "font-medium truncate",
+                                      isClientBlocked && "text-muted-foreground line-through",
+                                    )}
+                                  >
+                                    {c.name}
+                                  </span>
+                                  <div className="flex items-center gap-1">
+                                    {isClientBlocked && (
+                                      <ShieldOff
+                                        className="h-3.5 w-3.5 text-destructive"
+                                        aria-label="Numéro bloqué"
+                                      />
+                                    )}
+                                    {unreadCount > 0 && (
+                                      <Badge
+                                        variant="destructive"
+                                        className="h-5 min-w-5 text-xs"
+                                      >
+                                        {unreadCount}
+                                      </Badge>
+                                    )}
+                                  </div>
                                 </div>
+                                <p className="text-xs text-muted-foreground truncate">
+                                  {last?.body || formatPhone(c.phone)}
+                                </p>
                               </div>
-                              <p className="text-xs text-muted-foreground truncate">
-                                {last?.body || formatPhone(c.phone)}
-                              </p>
-                            </div>
-                          </button>
-                        </li>
-                      );
-                    })}
-                  </ul>
-                )}
-              </ScrollArea>
-            </div>
+                            </button>
+                          </li>
+                        );
+                      })}
+                    </ul>
+                  )}
+                </ScrollArea>
+              </div>
+            )}
 
             {/* Chat */}
-            <div className="flex-1 flex flex-col min-w-0">
-              {selectedClient ? (
-                <ChatPanel client={selectedClient} />
-              ) : (
-                <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
-                  <MessageSquare className="h-12 w-12 mb-3 opacity-40" />
-                  <p>Sélectionnez un client pour démarrer une conversation</p>
-                </div>
-              )}
-            </div>
+            {showChat && (
+              <div className="flex-1 flex flex-col min-w-0">
+                {selectedClient ? (
+                  <>
+                    {isMobile && (
+                      <div className="border-b bg-card px-2 py-2 flex items-center gap-2">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => setSelectedId(null)}
+                          className="gap-1"
+                        >
+                          <ArrowLeft className="h-4 w-4" />
+                          Retour
+                        </Button>
+                        <span className="font-medium truncate">{selectedClient.name}</span>
+                      </div>
+                    )}
+                    <ChatPanel client={selectedClient} />
+                  </>
+                ) : (
+                  <div className="flex-1 flex flex-col items-center justify-center text-muted-foreground">
+                    <MessageSquare className="h-12 w-12 mb-3 opacity-40" />
+                    <p>Sélectionnez un client pour démarrer une conversation</p>
+                  </div>
+                )}
+              </div>
+            )}
           </div>
         </TabsContent>
 
