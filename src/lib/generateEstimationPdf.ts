@@ -85,28 +85,54 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   if (params?.company_phone) companyLines.push(`Tél: ${params.company_phone}`);
   if (params?.company_email) companyLines.push(params.company_email);
 
-  // Reserve right side for title block (≈55mm wide). Cap company name width accordingly.
-  const rightBlockWidth = 55;
-  const maxCompanyTextWidth = pageW - 14 - rightBlockWidth - infoX - 4;
+  // ── Right block: title + number + date ──
+  // Pre-measure to get the actual width needed; left block adapts dynamically.
+  const dateText = `Date: ${date || formatDateQC(new Date().toISOString())}`;
+  const numberText = `N° ${estimationNumber}`;
 
-  // Calculate vertical centering within the logo box height
-  const contentHeight = 8 + (companyLines.length * 4.5); // name + lines
-  const verticalOffset = (LOGO_BOX_H - contentHeight) / 2;
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(20);
+  const titleW = doc.getTextWidth("ESTIMATION");
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(10);
+  const numberW = doc.getTextWidth(numberText);
+  const dateW = doc.getTextWidth(dateText);
+  const rightBlockWidth = Math.max(titleW, numberW, dateW);
 
-  // Company name: smaller font (was 18 → now 13) so long names don't collide with "ESTIMATION"
+  // Dynamic max width for company info (with 4mm safety gap from right block)
+  const maxCompanyTextWidth = Math.max(40, pageW - 14 - rightBlockWidth - infoX - 4);
+
+  // Pre-wrap to compute total content height for vertical centering
+  doc.setFont("helvetica", "bold");
+  doc.setFontSize(13);
+  const nameLines = doc.splitTextToSize(companyName, maxCompanyTextWidth) as string[];
+
+  doc.setFont("helvetica", "normal");
+  doc.setFontSize(9);
+  const wrappedInfoLines: string[][] = companyLines.map(line =>
+    doc.splitTextToSize(line, maxCompanyTextWidth) as string[]
+  );
+  const totalInfoLines = wrappedInfoLines.reduce((s, arr) => s + arr.length, 0);
+
+  // Heights: ~5mm per name line (13pt), ~4.5mm per info line (9pt), 2mm gap
+  const contentHeight = nameLines.length * 5 + 2 + totalInfoLines * 4.5;
+  const verticalOffset = Math.max(0, (LOGO_BOX_H - contentHeight) / 2);
+
+  // Render company name (bold 13pt) with wrapping
   doc.setFontSize(13);
   doc.setTextColor(30, 30, 30);
   doc.setFont("helvetica", "bold");
-  const nameLines = doc.splitTextToSize(companyName, maxCompanyTextWidth);
   doc.text(nameLines, infoX, y + verticalOffset + 5);
 
+  // Render company info lines (9pt) with wrapping
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80);
-  const nameBlockHeight = (Array.isArray(nameLines) ? nameLines.length : 1) * 5;
-  companyLines.forEach((line, i) => {
-    const wrapped = doc.splitTextToSize(line, maxCompanyTextWidth);
-    doc.text(wrapped, infoX, y + verticalOffset + 5 + nameBlockHeight + 2 + i * 4.5);
+  const nameBlockHeight = nameLines.length * 5;
+  let infoLineY = y + verticalOffset + 5 + nameBlockHeight + 2;
+  wrappedInfoLines.forEach(arr => {
+    doc.text(arr, infoX, infoLineY);
+    infoLineY += arr.length * 4.5;
   });
 
   // Title and estimation details (right aligned, vertically centered)
@@ -120,8 +146,8 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80);
-  doc.text(`N° ${estimationNumber}`, pageW - 14, y + rightVerticalOffset + 14, { align: "right" });
-  doc.text(`Date: ${date || formatDateQC(new Date().toISOString())}`, pageW - 14, y + rightVerticalOffset + 20, { align: "right" });
+  doc.text(numberText, pageW - 14, y + rightVerticalOffset + 14, { align: "right" });
+  doc.text(dateText, pageW - 14, y + rightVerticalOffset + 20, { align: "right" });
 
   y += LOGO_BOX_H + 8;
   doc.setDrawColor(200);
