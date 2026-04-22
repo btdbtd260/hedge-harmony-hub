@@ -84,6 +84,21 @@ Deno.serve(async (req) => {
       else normalizedTo = "+" + normalizedTo;
     }
 
+    // Vérifier la liste des numéros bloqués (10 derniers chiffres)
+    const adminClientPre = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const toDigits = normalizedTo.replace(/\D/g, "").slice(-10);
+    const { data: blocked } = await adminClientPre
+      .from("blocked_numbers")
+      .select("id")
+      .eq("phone_normalized", toDigits)
+      .maybeSingle();
+    if (blocked) {
+      return new Response(
+        JSON.stringify({ error: "Ce numéro est bloqué", code: "BLOCKED" }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
     // Envoyer via gateway Twilio
     const formData = new URLSearchParams();
     formData.append("To", normalizedTo);
@@ -105,7 +120,7 @@ Deno.serve(async (req) => {
 
     const twilioData = await twilioResp.json();
 
-    const adminClient = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
+    const adminClient = adminClientPre;
 
     if (!twilioResp.ok) {
       // Log message échec

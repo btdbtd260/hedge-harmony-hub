@@ -12,6 +12,8 @@ import {
 } from "@/hooks/useMessages";
 import type { DbCustomer } from "@/hooks/useSupabaseData";
 import { formatPhone } from "@/lib/phoneFormat";
+import { useIsBlocked } from "@/hooks/useBlockedNumbers";
+import { ShieldOff } from "lucide-react";
 
 interface ChatPanelProps {
   client: DbCustomer;
@@ -21,6 +23,7 @@ export function ChatPanel({ client }: ChatPanelProps) {
   const { data: messages = [] } = useMessages(client.id);
   const sendMutation = useSendMessage();
   const markRead = useMarkConversationRead();
+  const isBlocked = useIsBlocked(client.phone);
   const [text, setText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -47,6 +50,10 @@ export function ChatPanel({ client }: ChatPanelProps) {
   const handleSend = async () => {
     const body = text.trim();
     if (!body) return;
+    if (isBlocked) {
+      toast.error("Ce numéro est bloqué — débloquez-le pour envoyer un message.");
+      return;
+    }
     try {
       await sendMutation.mutateAsync({
         client_id: client.id,
@@ -67,6 +74,13 @@ export function ChatPanel({ client }: ChatPanelProps) {
         <div className="font-semibold">{client.name}</div>
         <div className="text-xs text-muted-foreground">{formatPhone(client.phone)}</div>
       </div>
+
+      {isBlocked && (
+        <div className="px-4 py-2 bg-destructive/10 border-b border-destructive/20 text-xs text-destructive flex items-center gap-2">
+          <ShieldOff className="h-3.5 w-3.5" />
+          Ce numéro est bloqué — l'envoi est désactivé.
+        </div>
+      )}
 
       {/* Messages */}
       <ScrollArea className="flex-1">
@@ -145,7 +159,7 @@ export function ChatPanel({ client }: ChatPanelProps) {
           <Button
             type="button"
             onClick={handleSend}
-            disabled={!text.trim() || sendMutation.isPending}
+            disabled={!text.trim() || sendMutation.isPending || isBlocked}
             size="icon"
             className="h-12 w-12 shrink-0"
           >
