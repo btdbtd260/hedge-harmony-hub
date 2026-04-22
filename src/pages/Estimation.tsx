@@ -145,7 +145,13 @@ const EstimationPage = () => {
   });
   const discountTotal = discountAmounts.reduce((s, n) => s + n, 0);
   const rawTotal = Math.max(0, subtotalBeforeDiscounts - discountTotal);
-  const totalPrice = Math.floor(rawTotal / 5) * 5;
+  // Optional rounding (configured in Paramètres). Disabled or invalid multiple → no rounding.
+  const roundingEnabled = (params as any)?.rounding_enabled ?? true;
+  const roundingMultiple = Number((params as any)?.rounding_multiple ?? 5);
+  const totalPrice =
+    roundingEnabled && roundingMultiple > 0
+      ? Math.floor(rawTotal / roundingMultiple) * roundingMultiple
+      : rawTotal;
 
   const cutTypeLabel =
     cutType === "trim" ? "Taillage" : cutType === "levelling" ? "Nivelage" : "Restauration";

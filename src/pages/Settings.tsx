@@ -116,6 +116,36 @@ const Settings = () => {
                   </div>
                 </div>
               </div>
+              <div className="border-t pt-4">
+                <h3 className="text-sm font-medium mb-3">Arrondi du total</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 items-end">
+                  <div className="space-y-2">
+                    <Label className="flex items-center gap-2">
+                      <input
+                        type="checkbox"
+                        className="h-4 w-4"
+                        checked={!!form.rounding_enabled}
+                        onChange={(e) => updateField("rounding_enabled", e.target.checked)}
+                      />
+                      Activer l'arrondi vers le bas
+                    </Label>
+                    <p className="text-xs text-muted-foreground">Si activé, le total final est arrondi vers le bas au multiple choisi.</p>
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Multiple d'arrondi</Label>
+                    <Input
+                      type="number"
+                      min="1"
+                      step="1"
+                      placeholder="5"
+                      disabled={!form.rounding_enabled}
+                      value={numValue("rounding_multiple")}
+                      onChange={(e) => handleNumChange("rounding_multiple", e.target.value)}
+                    />
+                    <p className="text-xs text-muted-foreground">Ex : 5 → 109 devient 105. 10 → 109 devient 100.</p>
+                  </div>
+                </div>
+              </div>
             </CardContent>
           </Card>
         </TabsContent>
