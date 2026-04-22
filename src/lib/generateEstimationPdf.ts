@@ -79,6 +79,12 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   const infoX = 14 + LOGO_BOX_W + 15; // Increased from 8 to 15 for better spacing
   const companyName = params?.company_name || "HedgePro";
 
+  // Build company info lines first for height calculation
+  const companyLines: string[] = [];
+  if (params?.company_address) companyLines.push(params.company_address);
+  if (params?.company_phone) companyLines.push(`Tél: ${params.company_phone}`);
+  if (params?.company_email) companyLines.push(params.company_email);
+
   // Calculate vertical centering within the logo box height
   const contentHeight = 8 + (companyLines.length * 4.5); // name + lines
   const verticalOffset = (LOGO_BOX_H - contentHeight) / 2;
@@ -91,10 +97,6 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   doc.setFontSize(9);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(80);
-  const companyLines: string[] = [];
-  if (params?.company_address) companyLines.push(params.company_address);
-  if (params?.company_phone) companyLines.push(`Tél: ${params.company_phone}`);
-  if (params?.company_email) companyLines.push(params.company_email);
   companyLines.forEach((line, i) => {
     doc.text(line, infoX, y + verticalOffset + 12 + i * 4.5);
   });
