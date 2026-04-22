@@ -400,7 +400,36 @@ const EstimationPage = () => {
     setUseCustomPrice(false); setCustomCutPrice("");
     setTwoSidesFacade(false); setTwoSidesLeft(false); setTwoSidesRight(false);
     setTwoSidesBack(false); setTwoSidesBackLeft(false); setTwoSidesBackRight(false);
+    // Estimation submitted → discard the persisted draft so a fresh form appears next time.
+    try { window.localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* noop */ }
   };
+
+  // Persist the entire form snapshot whenever any tracked field changes.
+  // The TTL is enforced on hydration (loadInitialDraft): drafts older than
+  // DRAFT_TTL_MS are discarded and the form resets to defaults.
+  useEffect(() => {
+    const snapshot: DraftSnapshot = {
+      clientId, cutType, useCustomPrice, customCutPrice,
+      facadeLength, leftLength, rightLength, backLength, backLeftLength, backRightLength,
+      twoSidesFacade, twoSidesLeft, twoSidesRight, twoSidesBack, twoSidesBackLeft, twoSidesBackRight,
+      heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
+      heightBackLeft, heightBackRight, width, extras, discounts, bushItems,
+    };
+    try {
+      window.localStorage.setItem(
+        DRAFT_STORAGE_KEY,
+        JSON.stringify({ savedAt: Date.now(), value: snapshot }),
+      );
+    } catch {
+      // localStorage may be full / unavailable — fail silently, the form still works.
+    }
+  }, [
+    clientId, cutType, useCustomPrice, customCutPrice,
+    facadeLength, leftLength, rightLength, backLength, backLeftLength, backRightLength,
+    twoSidesFacade, twoSidesLeft, twoSidesRight, twoSidesBack, twoSidesBackLeft, twoSidesBackRight,
+    heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
+    heightBackLeft, heightBackRight, width, extras, discounts, bushItems,
+  ]);
 
   return (
     <div className="space-y-6">
