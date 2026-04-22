@@ -251,6 +251,55 @@ const Clients = () => {
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
+      <AlertDialog
+        open={!!clientToPurge}
+        onOpenChange={(open) => { if (!open) { setClientToPurge(null); setPurgeConfirmText(""); } }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" /> Supprimer définitivement ce client ?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  Cette action va <strong>supprimer définitivement</strong> le client{" "}
+                  <strong>{clientToPurge?.name}</strong> ainsi que toutes les données reliées :
+                </p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>les jobs (passés non payés et à venir)</li>
+                  <li>les estimations</li>
+                  <li>les factures non payées</li>
+                  <li>les éléments du calendrier (rappels, demandes, messages)</li>
+                </ul>
+                <p className="text-foreground">
+                  ✅ Les <strong>profits dans Finance</strong> sont conservés : les factures déjà payées
+                  sont archivées sous « Client supprimé » pour préserver l'historique financier.
+                </p>
+                <p>
+                  Pour confirmer, tape <strong>SUPPRIMER</strong> ci-dessous.
+                </p>
+                <Input
+                  autoFocus
+                  value={purgeConfirmText}
+                  onChange={(e) => setPurgeConfirmText(e.target.value)}
+                  placeholder="SUPPRIMER"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handlePurgeClient}
+              disabled={purgeConfirmText !== "SUPPRIMER" || deleteCustomerCascade.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteCustomerCascade.isPending ? "Suppression…" : "Supprimer définitivement"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
     </div>
   );
 };
