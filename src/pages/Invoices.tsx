@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { formatDateQC } from "@/lib/utils";
+import { formatPhone } from "@/lib/phoneFormat";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -154,7 +155,7 @@ const Invoices = () => {
     if (customer) {
       doc.text(`Client: ${customer.name}`, 14, y);
       if (customer.address) { y += 5; doc.text(customer.address, 14, y); }
-      if (customer.phone) { y += 5; doc.text(`Tél: ${customer.phone}`, 14, y); }
+      if (customer.phone) { y += 5; doc.text(`Tél: ${formatPhone(customer.phone)}`, 14, y); }
     }
     y += 12;
 
@@ -374,7 +375,7 @@ const Invoices = () => {
                     <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Client</p>
                     <p className="font-semibold">{client?.name ?? "Client inconnu"}</p>
                     {client?.address && <p className="text-sm text-muted-foreground">{client.address}</p>}
-                    {client?.phone && <p className="text-sm text-muted-foreground">Tél: {client.phone}</p>}
+                    {client?.phone && <p className="text-sm text-muted-foreground">Tél: {formatPhone(client.phone)}</p>}
                     {client?.email && <p className="text-sm text-muted-foreground">{client.email}</p>}
                   </div>
 

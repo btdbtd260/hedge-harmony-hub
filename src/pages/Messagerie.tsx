@@ -8,6 +8,7 @@ import { cn } from "@/lib/utils";
 import { useCustomers } from "@/hooks/useSupabaseData";
 import { useMessages, useUnreadMessages } from "@/hooks/useMessages";
 import { ChatPanel } from "@/components/messagerie/ChatPanel";
+import { formatPhone } from "@/lib/phoneFormat";
 
 export default function Messagerie() {
   const { data: customers = [] } = useCustomers();
@@ -156,7 +157,7 @@ export default function Messagerie() {
                             )}
                           </div>
                           <p className="text-xs text-muted-foreground truncate">
-                            {last?.body || c.phone}
+                            {last?.body || formatPhone(c.phone)}
                           </p>
                         </div>
                       </button>
