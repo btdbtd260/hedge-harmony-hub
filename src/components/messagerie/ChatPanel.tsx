@@ -41,11 +41,12 @@ export function ChatPanel({ client }: ChatPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hasUnreadInbound, client.id]);
 
-  // Auto-scroll en bas
-  useEffect(() => {
+  // Auto-scroll en bas: useLayoutEffect pour scroller AVANT la peinture
+  // (évite le flash où on voit le haut de la conversation à l'ouverture)
+  useLayoutEffect(() => {
     const el = scrollRef.current;
     if (el) el.scrollTop = el.scrollHeight;
-  }, [messages.length]);
+  }, [messages.length, client.id]);
 
   const handleSend = async () => {
     const body = text.trim();
