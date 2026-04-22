@@ -64,6 +64,35 @@ export function useRestoreCustomer() {
   });
 }
 
+/**
+ * Permanently delete a customer and all their related data
+ * (jobs, estimations, unpaid invoices, reminders, messages, calendar items).
+ *
+ * IMPORTANT — Finance preservation:
+ * Paid invoices are NOT deleted. The DB function reassigns them
+ * (and their parent jobs) to a technical "Client supprimé" archive customer
+ * so historical profits remain in Finance.
+ */
+export function useDeleteCustomerCascade() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.rpc("delete_customer_cascade" as any, { _customer_id: id });
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      // Refresh every dataset that could reference the deleted customer
+      qc.invalidateQueries({ queryKey: ["customers"] });
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      qc.invalidateQueries({ queryKey: ["estimations"] });
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+      qc.invalidateQueries({ queryKey: ["reminders"] });
+      qc.invalidateQueries({ queryKey: ["estimation_requests"] });
+      qc.invalidateQueries({ queryKey: ["employee_jobs"] });
+    },
+  });
+}
+
 // ─── JOBS ───
 export function useJobs() {
   return useQuery({

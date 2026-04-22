@@ -6,10 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useCustomers, useJobs, useInsertCustomer, useHideCustomer, useRestoreCustomer, type DbCustomer } from "@/hooks/useSupabaseData";
-import { Search, Eye, EyeOff, Plus, Trash2, RotateCcw } from "lucide-react";
+import { useCustomers, useJobs, useInsertCustomer, useHideCustomer, useRestoreCustomer, useDeleteCustomerCascade, type DbCustomer } from "@/hooks/useSupabaseData";
+import { Search, Eye, EyeOff, Plus, Trash2, RotateCcw, AlertTriangle } from "lucide-react";
 import { toast } from "sonner";
 import { formatPhone, formatPhoneLive } from "@/lib/phoneFormat";
+
+// Technical archive customer used to preserve Finance history.
+// Hidden from every list — never editable from the UI.
+const ARCHIVE_CUSTOMER_ID = "00000000-0000-0000-0000-0000000d3137";
 
 const statusColor: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -24,6 +28,7 @@ const Clients = () => {
   const insertCustomer = useInsertCustomer();
   const hideCustomer = useHideCustomer();
   const restoreCustomer = useRestoreCustomer();
+  const deleteCustomerCascade = useDeleteCustomerCascade();
 
   const [search, setSearch] = useState("");
   const [showHidden, setShowHidden] = useState(false);
@@ -34,8 +39,12 @@ const Clients = () => {
   const [formEmail, setFormEmail] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [clientToDelete, setClientToDelete] = useState<DbCustomer | null>(null);
+  const [clientToPurge, setClientToPurge] = useState<DbCustomer | null>(null);
+  const [purgeConfirmText, setPurgeConfirmText] = useState("");
 
   const filtered = customers
+    // Always hide the technical archive customer used to preserve Finance history
+    .filter((c) => c.id !== ARCHIVE_CUSTOMER_ID)
     .filter((c) => showHidden || !c.hidden)
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.address.toLowerCase().includes(search.toLowerCase()));
 
@@ -72,6 +81,19 @@ const Clients = () => {
       toast.success("Client restauré");
     } catch (e: any) {
       toast.error(e.message);
+    }
+  };
+
+  const handlePurgeClient = async () => {
+    if (!clientToPurge) return;
+    try {
+      await deleteCustomerCascade.mutateAsync(clientToPurge.id);
+      setClientToPurge(null);
+      setPurgeConfirmText("");
+      setSelectedClient(null);
+      toast.success("Client supprimé définitivement");
+    } catch (e: any) {
+      toast.error(e.message ?? "Échec de la suppression");
     }
   };
 
@@ -171,15 +193,24 @@ const Clients = () => {
                     </div>
                   ))}
                 </div>
-                <div className="border-t pt-3">
+                <div className="border-t pt-3 flex flex-wrap gap-2">
                   {!liveSelectedClient.hidden ? (
                     <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setClientToDelete(liveSelectedClient)}>
                       <Trash2 className="h-4 w-4 mr-1" /> Masquer ce client
                     </Button>
                   ) : (
-                    <Button variant="outline" size="sm" onClick={() => handleRestoreClient(liveSelectedClient)}>
-                      <RotateCcw className="h-4 w-4 mr-1" /> Restaurer ce client
-                    </Button>
+                    <>
+                      <Button variant="outline" size="sm" onClick={() => handleRestoreClient(liveSelectedClient)}>
+                        <RotateCcw className="h-4 w-4 mr-1" /> Restaurer ce client
+                      </Button>
+                      <Button
+                        variant="destructive"
+                        size="sm"
+                        onClick={() => { setPurgeConfirmText(""); setClientToPurge(liveSelectedClient); }}
+                      >
+                        <AlertTriangle className="h-4 w-4 mr-1" /> Supprimer définitivement
+                      </Button>
+                    </>
                   )}
                 </div>
               </div>
@@ -216,6 +247,55 @@ const Clients = () => {
             <AlertDialogCancel>Annuler</AlertDialogCancel>
             <AlertDialogAction onClick={handleHideClient} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">
               Masquer le client
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+      <AlertDialog
+        open={!!clientToPurge}
+        onOpenChange={(open) => { if (!open) { setClientToPurge(null); setPurgeConfirmText(""); } }}
+      >
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <AlertTriangle className="h-5 w-5" /> Supprimer définitivement ce client ?
+            </AlertDialogTitle>
+            <AlertDialogDescription asChild>
+              <div className="space-y-3 text-sm">
+                <p>
+                  Cette action va <strong>supprimer définitivement</strong> le client{" "}
+                  <strong>{clientToPurge?.name}</strong> ainsi que toutes les données reliées :
+                </p>
+                <ul className="list-disc pl-5 space-y-1">
+                  <li>les jobs (passés non payés et à venir)</li>
+                  <li>les estimations</li>
+                  <li>les factures non payées</li>
+                  <li>les éléments du calendrier (rappels, demandes, messages)</li>
+                </ul>
+                <p className="text-foreground">
+                  ✅ Les <strong>profits dans Finance</strong> sont conservés : les factures déjà payées
+                  sont archivées sous « Client supprimé » pour préserver l'historique financier.
+                </p>
+                <p>
+                  Pour confirmer, tape <strong>SUPPRIMER</strong> ci-dessous.
+                </p>
+                <Input
+                  autoFocus
+                  value={purgeConfirmText}
+                  onChange={(e) => setPurgeConfirmText(e.target.value)}
+                  placeholder="SUPPRIMER"
+                />
+              </div>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              onClick={handlePurgeClient}
+              disabled={purgeConfirmText !== "SUPPRIMER" || deleteCustomerCascade.isPending}
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            >
+              {deleteCustomerCascade.isPending ? "Suppression…" : "Supprimer définitivement"}
             </AlertDialogAction>
           </AlertDialogFooter>
         </AlertDialogContent>
