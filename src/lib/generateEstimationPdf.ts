@@ -41,7 +41,7 @@ export interface EstimationPdfData {
   date?: string;
 }
 
-export function generateEstimationPdf(data: EstimationPdfData): jsPDF {
+export async function generateEstimationPdf(data: EstimationPdfData): Promise<jsPDF> {
   const { customer, params, estimationNumber, cutType, facadeLength, leftLength, rightLength, backLength,
     backLeftLength, backRightLength,
     heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
@@ -54,11 +54,17 @@ export function generateEstimationPdf(data: EstimationPdfData): jsPDF {
   let y = 20;
 
   // ── Company header ──
-  doc.setFillColor(230, 230, 230);
-  doc.roundedRect(14, y - 5, 40, 20, 3, 3, "F");
-  doc.setFontSize(8);
-  doc.setTextColor(120);
-  doc.text("LOGO", 34, y + 7, { align: "center" });
+  const logo = await loadLogoForPdf(params?.company_logo_url);
+  if (logo) {
+    const { w, h } = fitLogo(logo, 40, 20);
+    doc.addImage(logo.dataUrl, logo.format, 14, y - 5, w, h);
+  } else {
+    doc.setFillColor(230, 230, 230);
+    doc.roundedRect(14, y - 5, 40, 20, 3, 3, "F");
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text("LOGO", 34, y + 7, { align: "center" });
+  }
 
   const companyName = params?.company_name || "HedgePro";
   doc.setFontSize(18);
