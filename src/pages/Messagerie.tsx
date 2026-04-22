@@ -22,6 +22,10 @@ export default function Messagerie() {
   const { data: blocked = [] } = useBlockedNumbers();
   const [search, setSearch] = useState("");
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const isMobile = useIsMobile();
+  // Sur mobile: afficher liste OU chat. Sur desktop: les deux.
+  const showList = !isMobile || !selectedId;
+  const showChat = !isMobile || !!selectedId;
 
   // Set des 10-derniers-chiffres pour lookup O(1) d'un client bloqué
   const blockedSet = useMemo(
