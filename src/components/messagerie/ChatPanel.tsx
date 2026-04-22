@@ -33,13 +33,14 @@ export function ChatPanel({ client }: ChatPanelProps) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [client.id]);
 
-  // Marquer lu quand de nouveaux messages arrivent dans la conv ouverte
+  // Marquer lu dès qu'il existe un inbound non lu dans la conv ouverte
+  const hasUnreadInbound = messages.some((m) => !m.read && m.direction === "inbound");
   useEffect(() => {
-    if (messages.some((m) => !m.read && m.direction === "inbound")) {
+    if (hasUnreadInbound) {
       markRead.mutate(client.id);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [messages.length]);
+  }, [hasUnreadInbound, client.id]);
 
   // Auto-scroll en bas
   useEffect(() => {
