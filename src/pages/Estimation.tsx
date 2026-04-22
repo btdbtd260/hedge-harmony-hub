@@ -401,18 +401,26 @@ const EstimationPage = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const handleCloseConfirmation = () => {
-    setShowConfirmation(false);
+  // Resets every form field back to defaults.
+  // Used by both the success-confirmation close handler and the manual
+  // "Réinitialiser le brouillon" button in the form header.
+  const resetDraft = () => {
     setClientId(""); setFacadeLength(""); setLeftLength(""); setRightLength(""); setBackLength("");
     setBackLeftLength(""); setBackRightLength("");
     setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
     setHeightBackLeft(""); setHeightBackRight("");
     setWidth(""); setBushItems([]); setExtras([]); setDiscounts([]);
+    setCutType("trim");
     setUseCustomPrice(false); setCustomCutPrice("");
+    setHeightMode("global");
     setTwoSidesFacade(false); setTwoSidesLeft(false); setTwoSidesRight(false);
     setTwoSidesBack(false); setTwoSidesBackLeft(false); setTwoSidesBackRight(false);
-    // Estimation submitted → discard the persisted draft so a fresh form appears next time.
     try { window.localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* noop */ }
+  };
+
+  const handleCloseConfirmation = () => {
+    setShowConfirmation(false);
+    resetDraft();
   };
 
   // Persist the entire form snapshot whenever any tracked field changes.
