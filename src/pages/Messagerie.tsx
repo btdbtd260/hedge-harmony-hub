@@ -120,7 +120,7 @@ export default function Messagerie() {
       </div>
 
       <Tabs defaultValue="conversations" className="flex-1 flex flex-col min-h-0">
-        <div className="px-6 pt-3 border-b bg-card">
+        <div className="px-6 pt-3 border-b bg-card shrink-0">
           <TabsList>
             <TabsTrigger value="conversations" className="gap-2">
               <MessageSquare className="h-4 w-4" />
