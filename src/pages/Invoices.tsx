@@ -88,7 +88,7 @@ const Invoices = () => {
     setPdfLoading(true);
     try {
       await new Promise((r) => setTimeout(r, 300)); // brief visual feedback
-      downloadInvoicePdf(buildPdfData(inv));
+      await downloadInvoicePdf(buildPdfData(inv));
       toast.success("Facture PDF téléchargée");
     } finally {
       setPdfLoading(false);

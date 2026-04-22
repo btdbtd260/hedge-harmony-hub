@@ -2,6 +2,7 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 import type { DbCustomer, DbParameters } from "@/hooks/useSupabaseData";
 import { formatDateQC } from "@/lib/utils";
+import { loadLogoForPdf, fitLogo } from "@/lib/loadLogoForPdf";
 import type { EstimationExtra, EstimationDiscount } from "@/types";
 
 export interface EstimationPdfData {
@@ -40,7 +41,7 @@ export interface EstimationPdfData {
   date?: string;
 }
 
-export function generateEstimationPdf(data: EstimationPdfData): jsPDF {
+export async function generateEstimationPdf(data: EstimationPdfData): Promise<jsPDF> {
   const { customer, params, estimationNumber, cutType, facadeLength, leftLength, rightLength, backLength,
     backLeftLength, backRightLength,
     heightMode, heightGlobal, heightFacade, heightLeft, heightRight, heightBack,
@@ -53,11 +54,17 @@ export function generateEstimationPdf(data: EstimationPdfData): jsPDF {
   let y = 20;
 
   // ── Company header ──
-  doc.setFillColor(230, 230, 230);
-  doc.roundedRect(14, y - 5, 40, 20, 3, 3, "F");
-  doc.setFontSize(8);
-  doc.setTextColor(120);
-  doc.text("LOGO", 34, y + 7, { align: "center" });
+  const logo = await loadLogoForPdf(params?.company_logo_url);
+  if (logo) {
+    const { w, h } = fitLogo(logo, 40, 20);
+    doc.addImage(logo.dataUrl, logo.format, 14, y - 5, w, h);
+  } else {
+    doc.setFillColor(230, 230, 230);
+    doc.roundedRect(14, y - 5, 40, 20, 3, 3, "F");
+    doc.setFontSize(8);
+    doc.setTextColor(120);
+    doc.text("LOGO", 34, y + 7, { align: "center" });
+  }
 
   const companyName = params?.company_name || "HedgePro";
   doc.setFontSize(18);
@@ -257,8 +264,8 @@ export function generateEstimationPdf(data: EstimationPdfData): jsPDF {
   return doc;
 }
 
-export function downloadEstimationPdf(data: EstimationPdfData) {
-  const doc = generateEstimationPdf(data);
+export async function downloadEstimationPdf(data: EstimationPdfData) {
+  const doc = await generateEstimationPdf(data);
   const clientName = data.customer?.name?.replace(/\s+/g, "_") || "client";
   const d = new Date();
   const dateStr = `${d.getFullYear()}${String(d.getMonth() + 1).padStart(2, "0")}${String(d.getDate()).padStart(2, "0")}`;
