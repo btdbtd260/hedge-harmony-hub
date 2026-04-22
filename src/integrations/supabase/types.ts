@@ -486,6 +486,8 @@ export type Database = {
           price_per_foot_restoration: number
           price_per_foot_trim: number
           reminder_notification_time: string
+          rounding_enabled: boolean
+          rounding_multiple: number
           social_links: Json
           split_rule_profit_expense: number
           two_sides_multiplier: number
@@ -509,6 +511,8 @@ export type Database = {
           price_per_foot_restoration?: number
           price_per_foot_trim?: number
           reminder_notification_time?: string
+          rounding_enabled?: boolean
+          rounding_multiple?: number
           social_links?: Json
           split_rule_profit_expense?: number
           two_sides_multiplier?: number
@@ -532,6 +536,8 @@ export type Database = {
           price_per_foot_restoration?: number
           price_per_foot_trim?: number
           reminder_notification_time?: string
+          rounding_enabled?: boolean
+          rounding_multiple?: number
           social_links?: Json
           split_rule_profit_expense?: number
           two_sides_multiplier?: number
