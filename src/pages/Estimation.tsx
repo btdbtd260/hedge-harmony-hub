@@ -7,7 +7,18 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInsertEstimation, useInsertJob, useInsertInvoice } from "@/hooks/useSupabaseData";
-import { Calculator, Plus, Trash2, Search, UserPlus, Download, Mail } from "lucide-react";
+import { Calculator, Plus, Trash2, Search, UserPlus, Download, Mail, RotateCcw } from "lucide-react";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { Textarea } from "@/components/ui/textarea";
 import { toast } from "sonner";
 import type { CutType, HeightMode, EstimationExtra, EstimationDiscount, DiscountType } from "@/types";
@@ -390,18 +401,26 @@ const EstimationPage = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const handleCloseConfirmation = () => {
-    setShowConfirmation(false);
+  // Resets every form field back to defaults.
+  // Used by both the success-confirmation close handler and the manual
+  // "Réinitialiser le brouillon" button in the form header.
+  const resetDraft = () => {
     setClientId(""); setFacadeLength(""); setLeftLength(""); setRightLength(""); setBackLength("");
     setBackLeftLength(""); setBackRightLength("");
     setHeightGlobal(""); setHeightFacade(""); setHeightLeft(""); setHeightRight(""); setHeightBack("");
     setHeightBackLeft(""); setHeightBackRight("");
     setWidth(""); setBushItems([]); setExtras([]); setDiscounts([]);
+    setCutType("trim");
     setUseCustomPrice(false); setCustomCutPrice("");
+    setHeightMode("global");
     setTwoSidesFacade(false); setTwoSidesLeft(false); setTwoSidesRight(false);
     setTwoSidesBack(false); setTwoSidesBackLeft(false); setTwoSidesBackRight(false);
-    // Estimation submitted → discard the persisted draft so a fresh form appears next time.
     try { window.localStorage.removeItem(DRAFT_STORAGE_KEY); } catch { /* noop */ }
+  };
+
+  const handleCloseConfirmation = () => {
+    setShowConfirmation(false);
+    resetDraft();
   };
 
   // Persist the entire form snapshot whenever any tracked field changes.
@@ -442,7 +461,37 @@ const EstimationPage = () => {
         {/* Form – left */}
         <div className="lg:col-span-5 space-y-4">
           <Card>
-            <CardHeader><CardTitle>Nouvelle estimation</CardTitle></CardHeader>
+            <CardHeader className="flex flex-row items-center justify-between space-y-0">
+              <CardTitle>Nouvelle estimation</CardTitle>
+              <AlertDialog>
+                <AlertDialogTrigger asChild>
+                  <Button variant="outline" size="sm" className="gap-1.5">
+                    <RotateCcw className="h-3.5 w-3.5" />
+                    Réinitialiser le brouillon
+                  </Button>
+                </AlertDialogTrigger>
+                <AlertDialogContent>
+                  <AlertDialogHeader>
+                    <AlertDialogTitle>Réinitialiser le brouillon ?</AlertDialogTitle>
+                    <AlertDialogDescription>
+                      Toutes les données saisies dans le formulaire seront effacées,
+                      ainsi que le brouillon enregistré localement. Cette action est irréversible.
+                    </AlertDialogDescription>
+                  </AlertDialogHeader>
+                  <AlertDialogFooter>
+                    <AlertDialogCancel>Annuler</AlertDialogCancel>
+                    <AlertDialogAction
+                      onClick={() => {
+                        resetDraft();
+                        toast.success("Brouillon réinitialisé");
+                      }}
+                    >
+                      Réinitialiser
+                    </AlertDialogAction>
+                  </AlertDialogFooter>
+                </AlertDialogContent>
+              </AlertDialog>
+            </CardHeader>
             <CardContent className="space-y-4">
               {/* Client Picker */}
               <div className="space-y-2">
