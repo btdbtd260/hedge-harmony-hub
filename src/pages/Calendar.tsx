@@ -338,9 +338,7 @@ const CalendarPage = () => {
   );
 };
 
-// ─── Reusable estimation request style (blue) ───
-const REQUEST_CLASSES =
-  "bg-estimation-request/15 text-estimation-request hover:bg-estimation-request/25 border-l-2 border-estimation-request";
+
 
 // ─── Month View ───
 function MonthView({
