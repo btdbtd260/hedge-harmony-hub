@@ -42,6 +42,19 @@ export function useInsertCustomer() {
   });
 }
 
+export function useUpdateCustomer() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string } & Partial<TablesInsert<"customers">>) => {
+      // Normalize phone if provided
+      const payload = { ...updates, phone: updates.phone !== undefined ? formatPhone(updates.phone) : updates.phone };
+      const { error } = await supabase.from("customers").update(payload).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
+  });
+}
+
 export function useHideCustomer() {
   const qc = useQueryClient();
   return useMutation({
