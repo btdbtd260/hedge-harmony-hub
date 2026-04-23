@@ -103,6 +103,31 @@ const Clients = () => {
     }
   };
 
+  const openEditDialog = (client: DbCustomer) => {
+    setEditName(client.name ?? "");
+    setEditPhone(formatPhone(client.phone ?? ""));
+    setEditEmail(client.email ?? "");
+    setEditAddress(client.address ?? "");
+    setClientToEdit(client);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!clientToEdit || !editName.trim()) return;
+    try {
+      await updateCustomer.mutateAsync({
+        id: clientToEdit.id,
+        name: editName.trim(),
+        phone: editPhone.trim(),
+        email: editEmail.trim(),
+        address: editAddress.trim(),
+      });
+      setClientToEdit(null);
+      toast.success("Client mis à jour");
+    } catch (e: any) {
+      toast.error(e.message ?? "Échec de la mise à jour");
+    }
+  };
+
   const clientJobs = selectedClient ? jobs.filter((j) => j.client_id === selectedClient.id) : [];
 
   // Keep selectedClient in sync with fresh data
