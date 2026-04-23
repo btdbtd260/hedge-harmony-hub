@@ -269,6 +269,22 @@ const Clients = () => {
         </DialogContent>
       </Dialog>
 
+      <Dialog open={!!clientToEdit} onOpenChange={(open) => !open && setClientToEdit(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Modifier le client</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1"><Label>Nom *</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nom complet" /></div>
+            <div className="space-y-1"><Label>Téléphone</Label><Input value={editPhone} onChange={(e) => setEditPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
+            <div className="space-y-1"><Label>Email</Label><Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="email@exemple.com" /></div>
+            <div className="space-y-1"><Label>Adresse</Label><Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="123 Rue Exemple" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClientToEdit(null)}>Annuler</Button>
+            <Button onClick={handleSaveEdit} disabled={!editName.trim() || updateCustomer.isPending}>{updateCustomer.isPending ? "Enregistrement…" : "Enregistrer"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       <AlertDialog open={!!clientToDelete} onOpenChange={(open) => !open && setClientToDelete(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
