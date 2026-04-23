@@ -6,8 +6,8 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
-import { useCustomers, useJobs, useInsertCustomer, useHideCustomer, useRestoreCustomer, useDeleteCustomerCascade, type DbCustomer } from "@/hooks/useSupabaseData";
-import { Search, Eye, EyeOff, Plus, Trash2, RotateCcw, AlertTriangle } from "lucide-react";
+import { useCustomers, useJobs, useInsertCustomer, useUpdateCustomer, useHideCustomer, useRestoreCustomer, useDeleteCustomerCascade, type DbCustomer } from "@/hooks/useSupabaseData";
+import { Search, Eye, EyeOff, Plus, Trash2, RotateCcw, AlertTriangle, Pencil } from "lucide-react";
 import { toast } from "sonner";
 import { formatPhone, formatPhoneLive } from "@/lib/phoneFormat";
 
@@ -26,6 +26,7 @@ const Clients = () => {
   const { data: customers = [] } = useCustomers();
   const { data: jobs = [] } = useJobs();
   const insertCustomer = useInsertCustomer();
+  const updateCustomer = useUpdateCustomer();
   const hideCustomer = useHideCustomer();
   const restoreCustomer = useRestoreCustomer();
   const deleteCustomerCascade = useDeleteCustomerCascade();
@@ -41,6 +42,11 @@ const Clients = () => {
   const [clientToDelete, setClientToDelete] = useState<DbCustomer | null>(null);
   const [clientToPurge, setClientToPurge] = useState<DbCustomer | null>(null);
   const [purgeConfirmText, setPurgeConfirmText] = useState("");
+  const [clientToEdit, setClientToEdit] = useState<DbCustomer | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editAddress, setEditAddress] = useState("");
 
   const filtered = customers
     // Always hide the technical archive customer used to preserve Finance history
@@ -94,6 +100,31 @@ const Clients = () => {
       toast.success("Client supprimé définitivement");
     } catch (e: any) {
       toast.error(e.message ?? "Échec de la suppression");
+    }
+  };
+
+  const openEditDialog = (client: DbCustomer) => {
+    setEditName(client.name ?? "");
+    setEditPhone(formatPhone(client.phone ?? ""));
+    setEditEmail(client.email ?? "");
+    setEditAddress(client.address ?? "");
+    setClientToEdit(client);
+  };
+
+  const handleSaveEdit = async () => {
+    if (!clientToEdit || !editName.trim()) return;
+    try {
+      await updateCustomer.mutateAsync({
+        id: clientToEdit.id,
+        name: editName.trim(),
+        phone: editPhone.trim(),
+        email: editEmail.trim(),
+        address: editAddress.trim(),
+      });
+      setClientToEdit(null);
+      toast.success("Client mis à jour");
+    } catch (e: any) {
+      toast.error(e.message ?? "Échec de la mise à jour");
     }
   };
 
@@ -194,6 +225,9 @@ const Clients = () => {
                   ))}
                 </div>
                 <div className="border-t pt-3 flex flex-wrap gap-2">
+                  <Button variant="outline" size="sm" onClick={() => openEditDialog(liveSelectedClient)}>
+                    <Pencil className="h-4 w-4 mr-1" /> Modifier
+                  </Button>
                   {!liveSelectedClient.hidden ? (
                     <Button variant="outline" size="sm" className="text-destructive hover:bg-destructive hover:text-destructive-foreground" onClick={() => setClientToDelete(liveSelectedClient)}>
                       <Trash2 className="h-4 w-4 mr-1" /> Masquer ce client
@@ -231,6 +265,22 @@ const Clients = () => {
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Annuler</Button>
             <Button onClick={handleAdd} disabled={!formName.trim() || insertCustomer.isPending}>{insertCustomer.isPending ? "Création…" : "Créer"}</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <Dialog open={!!clientToEdit} onOpenChange={(open) => !open && setClientToEdit(null)}>
+        <DialogContent>
+          <DialogHeader><DialogTitle>Modifier le client</DialogTitle></DialogHeader>
+          <div className="space-y-3">
+            <div className="space-y-1"><Label>Nom *</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nom complet" /></div>
+            <div className="space-y-1"><Label>Téléphone</Label><Input value={editPhone} onChange={(e) => setEditPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
+            <div className="space-y-1"><Label>Email</Label><Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="email@exemple.com" /></div>
+            <div className="space-y-1"><Label>Adresse</Label><Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="123 Rue Exemple" /></div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setClientToEdit(null)}>Annuler</Button>
+            <Button onClick={handleSaveEdit} disabled={!editName.trim() || updateCustomer.isPending}>{updateCustomer.isPending ? "Enregistrement…" : "Enregistrer"}</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
