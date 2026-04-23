@@ -26,6 +26,7 @@ const Clients = () => {
   const { data: customers = [] } = useCustomers();
   const { data: jobs = [] } = useJobs();
   const insertCustomer = useInsertCustomer();
+  const updateCustomer = useUpdateCustomer();
   const hideCustomer = useHideCustomer();
   const restoreCustomer = useRestoreCustomer();
   const deleteCustomerCascade = useDeleteCustomerCascade();
@@ -41,6 +42,11 @@ const Clients = () => {
   const [clientToDelete, setClientToDelete] = useState<DbCustomer | null>(null);
   const [clientToPurge, setClientToPurge] = useState<DbCustomer | null>(null);
   const [purgeConfirmText, setPurgeConfirmText] = useState("");
+  const [clientToEdit, setClientToEdit] = useState<DbCustomer | null>(null);
+  const [editName, setEditName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [editAddress, setEditAddress] = useState("");
 
   const filtered = customers
     // Always hide the technical archive customer used to preserve Finance history
