@@ -3,12 +3,15 @@ import { CalendarIcon, X, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimeWheelPicker } from "@/components/ui/time-wheel-picker";
 import { cn, formatDateQC } from "@/lib/utils";
 import { useCustomers, useUpdateJob, useJobs, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { JobPhotosManager } from "@/components/jobs/JobPhotosManager";
+import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
 import {
   estimateJobDuration,
   measurementsFromJob,
