@@ -618,15 +618,6 @@ function WeekView({
                     >
                       {r.requested_time && <div className="font-medium">{r.requested_time.slice(0, 5)}</div>}
                       <div className="truncate">{r.client_name || "Estimation à faire"}</div>
-                      {r.status !== "done" && (
-                        <CompleteButton
-                          className="mt-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRequestComplete(r);
-                          }}
-                        />
-                      )}
                     </div>
                   ))}
                   {dayJobs.map((j) => (
@@ -641,15 +632,6 @@ function WeekView({
                     >
                       {j.start_time && <div className="font-medium">{j.start_time.slice(0, 5)}</div>}
                       <div className="truncate">{getClientNameFromList(customers, j.client_id)}</div>
-                      {j.status !== "completed" && (
-                        <CompleteButton
-                          className="mt-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onJobComplete(j);
-                          }}
-                        />
-                      )}
                     </div>
                   ))}
                 </>
