@@ -542,20 +542,9 @@ function MonthView({
   );
 }
 
-// Small green icon-only "Compléter" button used in compact month cells.
-function CompleteIconButton({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title="Compléter"
-      aria-label="Compléter"
-      className="shrink-0 inline-flex items-center justify-center h-4 w-4 rounded-sm bg-success text-success-foreground opacity-0 group-hover/event:opacity-100 hover:bg-success/90 transition-opacity"
-    >
-      <Check className="h-3 w-3" />
-    </button>
-  );
-}
+// Inline "Compléter" buttons were removed from event tiles.
+// The action lives inside the JobDetailDialog and EstimationRequestDialog
+// (Lot 3 — calendar UI cleanup).
 
 // ─── Week View ───
 function WeekView({
