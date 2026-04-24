@@ -30,15 +30,15 @@ const Jobs = () => {
   const [hideCompleted, setHideCompleted] = useState(false);
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) ?? null : null;
-  const [jobToRemove, setJobToRemove] = useState<{ id: string; name: string } | null>(null);
 
   // Create invoice dialog
   const [showCreateInvoice, setShowCreateInvoice] = useState(false);
   const [invoiceJobId, setInvoiceJobId] = useState<string>("");
   const [invoiceDesc, setInvoiceDesc] = useState("");
 
+  // NOTE: jobs are now real-deleted (no more "hidden" status).
+  // The hidden filter has been removed from the chain below.
   const filtered = jobs
-    .filter((j) => j.status !== "hidden")
     .filter((j) => !hideCompleted || j.status !== "completed")
     .filter((j) => getClientNameFromList(customers, j.client_id).toLowerCase().includes(search.toLowerCase()));
 
@@ -64,23 +64,6 @@ const Jobs = () => {
     .filter((j) => selectedYear === "all" || getJobYear(j) === Number(selectedYear))
     .filter((j) => getClientNameFromList(customers, j.client_id).toLowerCase().includes(search.toLowerCase()))
     .sort((a, b) => (b.scheduled_date ?? b.created_at ?? "").localeCompare(a.scheduled_date ?? a.created_at ?? ""));
-
-  const snap = selectedJob?.measurement_snapshot as any;
-
-  const handleRemoveClick = (e: React.MouseEvent, jobId: string, clientName: string) => {
-    e.stopPropagation();
-    setJobToRemove({ id: jobId, name: clientName });
-  };
-
-  const handleConfirmRemove = async () => {
-    if (!jobToRemove) return;
-    try {
-      await updateJob.mutateAsync({ id: jobToRemove.id, status: "hidden" });
-      toast.success("Job retiré");
-      if (selectedJob?.id === jobToRemove.id) setSelectedJobId(null);
-    } catch (err: any) { toast.error(err.message); }
-    setJobToRemove(null);
-  };
 
   const handleStatusChange = async (jobId: string, newStatus: string) => {
     try {
