@@ -427,8 +427,15 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                 try {
                   await deleteJob.mutateAsync(job.id);
                   toast.success("Job supprimé");
+                  // Close confirm first, then parent dialog on the next tick
+                  // so Radix can release the body pointer-events lock cleanly.
                   setConfirmDelete(false);
-                  onOpenChange(false);
+                  setTimeout(() => {
+                    onOpenChange(false);
+                    // Safety: ensure body isn't left blocked by stacked overlays.
+                    document.body.style.pointerEvents = "";
+                    document.body.style.removeProperty("pointer-events");
+                  }, 50);
                 } catch (e: any) {
                   toast.error(e.message ?? "Échec de la suppression");
                 }
