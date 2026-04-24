@@ -507,23 +507,13 @@ function MonthView({
                     key={r.id}
                     onClick={(e) => { e.stopPropagation(); onRequestClick(r.id); }}
                     className={cn(
-                      "group/event text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer flex items-center gap-1",
+                      "text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer",
                       requestClasses(r),
                     )}
                     title={`Estimation à faire · ${r.client_name || "Sans nom"}`}
                   >
-                    <span className="truncate flex-1 min-w-0">
-                      {r.requested_time && <span className="font-medium mr-1">{r.requested_time.slice(0, 5)}</span>}
-                      {r.client_name || "Estimation à faire"}
-                    </span>
-                    {r.status !== "done" && (
-                      <CompleteIconButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRequestComplete(r);
-                        }}
-                      />
-                    )}
+                    {r.requested_time && <span className="font-medium mr-1">{r.requested_time.slice(0, 5)}</span>}
+                    {r.client_name || "Estimation à faire"}
                   </div>
                 ))}
                 {dayJobs.slice(0, Math.max(0, 2 - dayRequests.length)).map((j) => (
@@ -531,23 +521,13 @@ function MonthView({
                     key={j.id}
                     onClick={(e) => { e.stopPropagation(); onJobClick(j.id); }}
                     className={cn(
-                      "group/event text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer flex items-center gap-1",
+                      "text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer",
                       jobClasses(j),
                     )}
                     title={`${cutTypeLabel(j.cut_type)} · ${getClientNameFromList(customers, j.client_id)}`}
                   >
-                    <span className="truncate flex-1 min-w-0">
-                      {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}</span>}
-                      {getClientNameFromList(customers, j.client_id)}
-                    </span>
-                    {j.status !== "completed" && (
-                      <CompleteIconButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onJobComplete(j);
-                        }}
-                      />
-                    )}
+                    {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}</span>}
+                    {getClientNameFromList(customers, j.client_id)}
                   </div>
                 ))}
                 {totalEntries > 2 && (
@@ -562,20 +542,9 @@ function MonthView({
   );
 }
 
-// Small green icon-only "Compléter" button used in compact month cells.
-function CompleteIconButton({ onClick }: { onClick: (e: React.MouseEvent) => void }) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      title="Compléter"
-      aria-label="Compléter"
-      className="shrink-0 inline-flex items-center justify-center h-4 w-4 rounded-sm bg-success text-success-foreground opacity-0 group-hover/event:opacity-100 hover:bg-success/90 transition-opacity"
-    >
-      <Check className="h-3 w-3" />
-    </button>
-  );
-}
+// Inline "Compléter" buttons were removed from event tiles.
+// The action lives inside the JobDetailDialog and EstimationRequestDialog
+// (Lot 3 — calendar UI cleanup).
 
 // ─── Week View ───
 function WeekView({
@@ -638,15 +607,6 @@ function WeekView({
                     >
                       {r.requested_time && <div className="font-medium">{r.requested_time.slice(0, 5)}</div>}
                       <div className="truncate">{r.client_name || "Estimation à faire"}</div>
-                      {r.status !== "done" && (
-                        <CompleteButton
-                          className="mt-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onRequestComplete(r);
-                          }}
-                        />
-                      )}
                     </div>
                   ))}
                   {dayJobs.map((j) => (
@@ -661,15 +621,6 @@ function WeekView({
                     >
                       {j.start_time && <div className="font-medium">{j.start_time.slice(0, 5)}</div>}
                       <div className="truncate">{getClientNameFromList(customers, j.client_id)}</div>
-                      {j.status !== "completed" && (
-                        <CompleteButton
-                          className="mt-1"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            onJobComplete(j);
-                          }}
-                        />
-                      )}
                     </div>
                   ))}
                 </>
@@ -739,7 +690,7 @@ function DayHourlyDialog({
 
   return (
     <Dialog open={!!day} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-full max-h-[90vh] overflow-y-auto p-3 sm:p-6">
         {day && (
           <>
             <DialogHeader>
@@ -760,7 +711,7 @@ function DayHourlyDialog({
                     key={r.id}
                     onClick={() => onRequestClick(r.id)}
                     className={cn(
-                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer flex items-center justify-between gap-2",
+                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer",
                       requestClasses(r),
                     )}
                   >
@@ -768,14 +719,6 @@ function DayHourlyDialog({
                       <div className="font-medium truncate">{r.client_name || "Estimation à faire"}</div>
                       <div className="text-xs opacity-80">Estimation à faire</div>
                     </div>
-                    {r.status !== "done" && (
-                      <CompleteButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRequestComplete(r);
-                        }}
-                      />
-                    )}
                   </div>
                 ))}
                 {unscheduledJobs.map((j) => (
@@ -783,7 +726,7 @@ function DayHourlyDialog({
                     key={j.id}
                     onClick={() => onJobClick(j.id)}
                     className={cn(
-                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer flex items-center justify-between gap-2",
+                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer",
                       jobClasses(j),
                     )}
                   >
@@ -791,14 +734,6 @@ function DayHourlyDialog({
                       <div className="font-medium truncate">{getClientNameFromList(customers, j.client_id)}</div>
                       <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
                     </div>
-                    {j.status !== "completed" && (
-                      <CompleteButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onJobComplete(j);
-                        }}
-                      />
-                    )}
                   </div>
                 ))}
               </div>
@@ -816,33 +751,23 @@ function DayHourlyDialog({
                 });
                 return (
                   <div key={hour} className="flex min-h-[48px]">
-                    <div className="w-16 shrink-0 text-xs text-muted-foreground p-2 border-r bg-muted/30 text-right">
+                    <div className="w-12 sm:w-16 shrink-0 text-[11px] sm:text-xs text-muted-foreground p-1.5 sm:p-2 border-r bg-muted/30 text-right">
                       {String(hour).padStart(2, "0")}:00
                     </div>
-                    <div className="flex-1 p-1.5 space-y-1">
+                    <div className="flex-1 p-1.5 space-y-1 min-w-0">
                       {hourRequests.map((r) => (
                         <div
                           key={r.id}
                           onClick={() => onRequestClick(r.id)}
                           className={cn(
-                            "w-full text-left px-2 py-1.5 rounded text-sm cursor-pointer flex items-center justify-between gap-2",
+                            "w-full text-left px-2 py-1.5 rounded text-xs sm:text-sm cursor-pointer",
                             requestClasses(r),
                           )}
                         >
-                          <div className="min-w-0">
-                            <div className="font-medium truncate">
-                              {r.requested_time?.slice(0, 5)} · {r.client_name || "Estimation à faire"}
-                            </div>
-                            <div className="text-xs opacity-80">Estimation à faire</div>
+                          <div className="font-medium truncate">
+                            {r.requested_time?.slice(0, 5)} · {r.client_name || "Estimation à faire"}
                           </div>
-                          {r.status !== "done" && (
-                            <CompleteButton
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onRequestComplete(r);
-                              }}
-                            />
-                          )}
+                          <div className="text-[10px] sm:text-xs opacity-80">Estimation à faire</div>
                         </div>
                       ))}
                       {hourJobs.map((j) => {
@@ -852,28 +777,18 @@ function DayHourlyDialog({
                             key={j.id}
                             onClick={() => onJobClick(j.id)}
                             className={cn(
-                              "w-full text-left px-2 py-1.5 rounded text-sm cursor-pointer flex items-center justify-between gap-2",
+                              "w-full text-left px-2 py-1.5 rounded text-xs sm:text-sm cursor-pointer",
                               jobClasses(j),
                             )}
                           >
-                            <div className="min-w-0">
-                              <div className="font-medium truncate">
-                                {j.start_time?.slice(0, 5)}
-                                {end && ` – ${end}`}
-                                {!j.end_time && end && <span className="text-[10px] opacity-70 ml-1">(estimé)</span>}
-                                {" · "}
-                                {getClientNameFromList(customers, j.client_id)}
-                              </div>
-                              <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
+                            <div className="font-medium truncate">
+                              {j.start_time?.slice(0, 5)}
+                              {end && ` – ${end}`}
+                              {!j.end_time && end && <span className="text-[10px] opacity-70 ml-1">(estimé)</span>}
+                              {" · "}
+                              {getClientNameFromList(customers, j.client_id)}
                             </div>
-                            {j.status !== "completed" && (
-                              <CompleteButton
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onJobComplete(j);
-                                }}
-                              />
-                            )}
+                            <div className="text-[10px] sm:text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
                           </div>
                         );
                       })}

@@ -1,6 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
-import { CalendarIcon, X, Clock } from "lucide-react";
+import { CalendarIcon, X, Clock, Trash2, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimeWheelPicker } from "@/components/ui/time-wheel-picker";
 import { cn, formatDateQC } from "@/lib/utils";
-import { useCustomers, useUpdateJob, useJobs, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
+import { useCustomers, useUpdateJob, useJobs, useDeleteJob, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { JobPhotosManager } from "@/components/jobs/JobPhotosManager";
 import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
 import {
@@ -43,11 +53,13 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   const { data: customers = [] } = useCustomers();
   const { data: allJobs = [] } = useJobs();
   const updateJob = useUpdateJob();
+  const deleteJob = useDeleteJob();
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [startPickerOpen, setStartPickerOpen] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
   const [completionEndTime, setCompletionEndTime] = useState<string>("17:00");
   const [completionTip, setCompletionTip] = useState<string>("0");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const snap = job?.measurement_snapshot as any;
 
   // Quick tip editor for already-completed jobs
@@ -361,10 +373,72 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                 </div>
               )}
               <JobPhotosManager job={job} />
+
+              {/* ── Action buttons (Compléter + Supprimer) ── */}
+              <div className="border-t pt-3 flex flex-wrap items-center justify-between gap-2">
+                {job.status !== "completed" ? (
+                  <Button
+                    size="sm"
+                    className="bg-success text-success-foreground hover:bg-success/90"
+                    onClick={() => handleStatusChange(job.id, "completed")}
+                  >
+                    <Check className="h-4 w-4 mr-1" />
+                    Marquer comme complété
+                  </Button>
+                ) : (
+                  <span className="text-xs text-muted-foreground">Job complété</span>
+                )}
+                <Button
+                  variant="outline"
+                  size="sm"
+                  className="text-destructive hover:bg-destructive hover:text-destructive-foreground"
+                  onClick={() => setConfirmDelete(true)}
+                >
+                  <Trash2 className="h-4 w-4 mr-1" />
+                  Supprimer ce job
+                </Button>
+              </div>
             </div>
           </>
         )}
       </DialogContent>
+
+      {/* ── Delete confirmation ── */}
+      <AlertDialog open={confirmDelete} onOpenChange={setConfirmDelete}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
+              <Trash2 className="h-5 w-5" /> Supprimer ce job ?
+            </AlertDialogTitle>
+            <AlertDialogDescription>
+              Cette action est <strong>définitive</strong>. Le job
+              {job ? ` de ${getClientNameFromList(customers, job.client_id)}` : ""} sera supprimé,
+              ainsi que les heures employés et la facture brouillon associées.
+              <br />
+              <span className="text-foreground">Les factures déjà payées sont conservées dans Finance.</span>
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Annuler</AlertDialogCancel>
+            <AlertDialogAction
+              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+              onClick={async () => {
+                if (!job) return;
+                try {
+                  await deleteJob.mutateAsync(job.id);
+                  toast.success("Job supprimé");
+                  setConfirmDelete(false);
+                  onOpenChange(false);
+                } catch (e: any) {
+                  toast.error(e.message ?? "Échec de la suppression");
+                }
+              }}
+            >
+              {deleteJob.isPending ? "Suppression…" : "Supprimer définitivement"}
+            </AlertDialogAction>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
 
       {/* ── Completion modal — asks for end time + tip ── */}
       <Dialog open={completionOpen} onOpenChange={setCompletionOpen}>
