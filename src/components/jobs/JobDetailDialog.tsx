@@ -314,11 +314,40 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                       </span>
                     </div>
                   )}
+
+                  {/* Tip — editable directly on completed jobs */}
+                  <div className="flex justify-between items-center text-sm gap-2">
+                    <Label className="text-muted-foreground">Tip reçu</Label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm">$</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={tipDraft}
+                        onChange={(e) => setTipDraft(e.target.value)}
+                        onBlur={async () => {
+                          const n = Number(tipDraft);
+                          if (Number.isNaN(n) || n < 0) return;
+                          if (n === Number(job.tip ?? 0)) return;
+                          try {
+                            await updateJob.mutateAsync({ id: job.id, tip: n } as any);
+                            toast.success("Tip mis à jour");
+                          } catch (e: any) { toast.error(e.message); }
+                        }}
+                        className="h-8 w-24"
+                      />
+                    </div>
+                  </div>
                 </>
               )}
 
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit estimé</span><span className="font-semibold">${job.estimated_profit}</span></div>
               {job.real_profit !== null && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit réel</span><span className="font-semibold">${job.real_profit}</span></div>}
+
+              {/* Employees on this job (add/remove + hours + Absent button) */}
+              <JobEmployeesSection job={job} />
+
               {snap && (
                 <div className="border-t pt-3">
                   <p className="text-sm font-medium mb-2">Mesures</p>
@@ -337,13 +366,13 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
         )}
       </DialogContent>
 
-      {/* ── Completion modal — asks for the real end time ── */}
+      {/* ── Completion modal — asks for end time + tip ── */}
       <Dialog open={completionOpen} onOpenChange={setCompletionOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Marquer le job comme complété</DialogTitle>
             <DialogDescription>
-              Choisis l'heure de fin réelle. La durée réelle sera comparée à l'estimation.
+              Choisis l'heure de fin réelle et le tip reçu.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -363,6 +392,20 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                 {storedEstimate ? <> · estimée {storedEstimate} min</> : null}
               </p>
             )}
+            <div className="space-y-1">
+              <Label>Tip reçu ($)</Label>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={completionTip}
+                onChange={(e) => setCompletionTip(e.target.value)}
+                placeholder="0"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Sera ajouté au total de la job pour la part des admins.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCompletionOpen(false)}>Annuler</Button>
