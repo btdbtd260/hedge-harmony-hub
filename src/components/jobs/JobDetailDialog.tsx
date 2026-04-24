@@ -412,10 +412,11 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
             </AlertDialogTitle>
             <AlertDialogDescription>
               Cette action est <strong>définitive</strong>. Le job
-              {job ? ` de ${getClientNameFromList(customers, job.client_id)}` : ""} sera supprimé,
-              ainsi que les heures employés et la facture brouillon associées.
+              {job ? ` de ${getClientNameFromList(customers, job.client_id)}` : ""}, son{" "}
+              <strong>estimation liée</strong>, <strong>toutes ses factures (incluant payées)</strong>{" "}
+              et les heures employés seront supprimés.
               <br />
-              <span className="text-foreground">Les factures déjà payées sont conservées dans Finance.</span>
+              <span className="text-foreground">L'impact dans Finance sera retiré.</span>
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
