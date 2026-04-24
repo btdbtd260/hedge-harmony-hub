@@ -80,8 +80,9 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   const handleStatusChange = async (jobId: string, newStatus: string) => {
     if (!job) return;
     if (newStatus === "completed") {
-      // Open modal to ask the real end time before persisting status
+      // Open modal to ask the real end time + tip before persisting status
       setCompletionEndTime(job.end_time?.slice(0, 5) || addMinutesToTime(job.start_time, storedEstimate ?? 60) || "17:00");
+      setCompletionTip(String(job.tip ?? 0));
       setCompletionOpen(true);
       return;
     }
