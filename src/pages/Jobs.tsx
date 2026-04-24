@@ -131,7 +131,6 @@ const Jobs = () => {
               {allJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job trouvé.</p> : allJobs.map((job) => (
                 <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
               ))}
-              ))}
             </CardContent>
           </Card>
         </TabsContent>
