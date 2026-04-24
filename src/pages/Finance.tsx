@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { useInvoices, useExpenses, useInsertExpense, useCustomers, getClientNameFromList } from "@/hooks/useSupabaseData";
+import { useInvoices, useExpenses, useInsertExpense, useCustomers, useEmployees, useEmployeeJobs, useJobs, getClientNameFromList } from "@/hooks/useSupabaseData";
 import { DollarSign, TrendingUp, TrendingDown, BarChart3, Plus, Camera, FileText, Fuel } from "lucide-react";
 import { formatDateQC } from "@/lib/utils";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
