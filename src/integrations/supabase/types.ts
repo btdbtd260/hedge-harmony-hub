@@ -692,6 +692,7 @@ export type Database = {
         Args: { _customer_id: string }
         Returns: undefined
       }
+      delete_job_cascade: { Args: { _job_id: string }; Returns: undefined }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]

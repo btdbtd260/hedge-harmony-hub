@@ -389,37 +389,35 @@ export function useInsertInvoice() {
 }
 
 /**
- * Permanently delete a job and its dependencies.
- * - employee_jobs rows for this job are removed first (FK cleanup).
- * - any draft invoice attached to this job is also removed (it was never
- *   visible to the user since drafts are filtered out of the UI).
- * - paid invoices are NOT touched: Finance history must be preserved.
+ * Permanently delete a job and ALL its related records, atomically.
+ *
+ * Delegates to the `delete_job_cascade` Postgres RPC, which:
+ *   1. Removes employee_jobs assignments for the job.
+ *   2. Removes ALL invoices tied to the job — draft, unpaid, AND paid.
+ *      This is intentional: Finance totals are computed dynamically from
+ *      invoices.status='paid', so deleting the paid invoice is what
+ *      removes the job's financial impact (revenue, dashboard, charts).
+ *   3. Deletes the job row.
+ *   4. Deletes the linked estimation from estimation history (if any).
+ *
+ * All steps run server-side in a single transaction, so the operation is
+ * either fully applied or fully rolled back — no partial cleanup states.
  *
  * Used by the "Remove Job" action inside the Job Detail dialog.
- * Replaces the previous "set status = hidden" workaround.
  */
 export function useDeleteJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (jobId: string) => {
-      // 1) Remove employee assignments for this job
-      const { error: ejErr } = await supabase.from("employee_jobs").delete().eq("job_id", jobId);
-      if (ejErr) throw ejErr;
-      // 2) Remove draft invoices for this job (paid/unpaid kept for Finance)
-      const { error: invErr } = await supabase
-        .from("invoices")
-        .delete()
-        .eq("job_id", jobId)
-        .eq("status", "draft");
-      if (invErr) throw invErr;
-      // 3) Delete the job itself
-      const { error } = await supabase.from("jobs").delete().eq("id", jobId);
+      const { error } = await supabase.rpc("delete_job_cascade" as any, { _job_id: jobId });
       if (error) throw error;
     },
     onSuccess: () => {
+      // Refresh every dataset whose totals/lists may have changed
       qc.invalidateQueries({ queryKey: ["jobs"] });
       qc.invalidateQueries({ queryKey: ["employee_jobs"] });
       qc.invalidateQueries({ queryKey: ["invoices"] });
+      qc.invalidateQueries({ queryKey: ["estimations"] });
     },
   });
 }
