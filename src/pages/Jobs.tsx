@@ -129,7 +129,8 @@ const Jobs = () => {
             <CardHeader><CardTitle>Tous les jobs ({allJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {allJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job trouvé.</p> : allJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
+              ))}
               ))}
             </CardContent>
           </Card>
@@ -140,7 +141,7 @@ const Jobs = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Prochains jobs</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {upcoming.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job à venir.</p> : upcoming.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
               ))}
             </CardContent>
           </Card>
@@ -151,7 +152,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Jobs en attente ({pendingJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {pendingJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job pending.</p> : pendingJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
               ))}
             </CardContent>
           </Card>
@@ -183,7 +184,7 @@ const Jobs = () => {
               {completedFiltered.length === 0 ? (
                 <p className="text-muted-foreground text-sm">Aucun job complété pour cette période.</p>
               ) : completedFiltered.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} onRemove={handleRemoveClick} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
               ))}
             </CardContent>
           </Card>
@@ -193,19 +194,7 @@ const Jobs = () => {
       {/* ── Job detail dialog (shared with Calendar) ── */}
       <JobDetailDialog job={selectedJob} onOpenChange={(open) => !open && setSelectedJobId(null)} />
 
-      {/* ── Remove confirmation ── */}
-      <AlertDialog open={!!jobToRemove} onOpenChange={(open) => !open && setJobToRemove(null)}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle>Retirer ce job ?</AlertDialogTitle>
-            <AlertDialogDescription>Le job de «{jobToRemove?.name}» sera masqué.</AlertDialogDescription>
-          </AlertDialogHeader>
-          <AlertDialogFooter>
-            <AlertDialogCancel>Annuler</AlertDialogCancel>
-            <AlertDialogAction onClick={handleConfirmRemove} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">Retirer</AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
+      {/* Remove Job has moved into the JobDetailDialog (with confirmation). */}
 
       {/* ── Create invoice from job dialog ── */}
       <Dialog open={showCreateInvoice} onOpenChange={setShowCreateInvoice}>
@@ -249,7 +238,7 @@ const Jobs = () => {
   );
 };
 
-function JobRow({ job, clientName, onClick, onRemove, onStatusChange }: { job: DbJob; clientName: string; onClick: () => void; onRemove?: (e: React.MouseEvent, id: string, name: string) => void; onStatusChange?: (id: string, status: string) => void }) {
+function JobRow({ job, clientName, onClick, onStatusChange }: { job: DbJob; clientName: string; onClick: () => void; onStatusChange?: (id: string, status: string) => void }) {
   return (
     <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={onClick}>
       <div className="space-y-1">
@@ -271,9 +260,6 @@ function JobRow({ job, clientName, onClick, onRemove, onStatusChange }: { job: D
             </SelectContent>
           </Select>
         </div>
-        {onRemove && (
-          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={(e) => onRemove(e, job.id, clientName)} title="Retirer ce job"><XCircle className="h-4 w-4 text-destructive" /></Button>
-        )}
       </div>
     </div>
   );
