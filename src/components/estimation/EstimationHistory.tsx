@@ -137,14 +137,18 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
     if (!emailTo.trim()) { toast.error("Veuillez entrer une adresse email"); return; }
     const clientName = emailEstimation ? customers.find(c => c.id === emailEstimation.est.client_id)?.name || "Client" : "Client";
     const subject = encodeURIComponent(`Estimation - ${clientName}`);
-    // Use company email from Settings as Cc + signature
+    // Sender behavior: mailto: cannot override the From address — it uses the
+    // user's default mail account. We set Reply-To = company email from Settings
+    // so customer replies go to the business inbox, and add a signature with
+    // company name + email. We do NOT CC the company email (per requirement).
     const companyEmail = ((params as any)?.company_email || "").trim();
+    const companyName = ((params as any)?.company_name || "").trim();
     const signature = companyEmail
-      ? `\n\n---\n${(params as any)?.company_name || ""}\n${companyEmail}${(params as any)?.company_phone ? `\n${(params as any).company_phone}` : ""}`
+      ? `\n\n---\n${companyName}\n${companyEmail}${(params as any)?.company_phone ? `\n${(params as any).company_phone}` : ""}`
       : "";
     const body = encodeURIComponent(emailMessage + signature);
-    const ccPart = companyEmail ? `&cc=${encodeURIComponent(companyEmail)}` : "";
-    window.open(`mailto:${emailTo}?subject=${subject}${ccPart}&body=${body}`, "_blank");
+    const replyToPart = companyEmail ? `&reply-to=${encodeURIComponent(companyEmail)}` : "";
+    window.open(`mailto:${emailTo}?subject=${subject}${replyToPart}&body=${body}`, "_blank");
     toast.success(`Email préparé pour ${emailTo}`);
     setShowEmailDialog(false);
   };

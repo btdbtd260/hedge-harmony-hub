@@ -328,14 +328,19 @@ const EstimationPage = () => {
   const handleSendEmail = () => {
     if (!emailTo.trim()) { toast.error("Veuillez entrer une adresse email"); return; }
     const subject = encodeURIComponent(`Estimation - ${selectedClient?.name || "Client"}`);
-    // Use company email from Settings as Cc + reply-to so all responses go there.
+    // Sender behavior: the local mail client (mailto:) cannot override the From
+    // address — it always uses the user's default account. We use the company
+    // email from Settings as Reply-To so responses go to the business inbox,
+    // and we append a signature with company name + email. We do NOT CC the
+    // company email (per requirement).
     const companyEmail = (params?.company_email || "").trim();
+    const companyName = (params?.company_name || "").trim();
     const signature = companyEmail
-      ? `\n\n---\n${params?.company_name || ""}\n${companyEmail}${params?.company_phone ? `\n${params.company_phone}` : ""}`
+      ? `\n\n---\n${companyName}\n${companyEmail}${params?.company_phone ? `\n${params.company_phone}` : ""}`
       : "";
     const body = encodeURIComponent(emailMessage + signature);
-    const ccPart = companyEmail ? `&cc=${encodeURIComponent(companyEmail)}` : "";
-    window.open(`mailto:${emailTo}?subject=${subject}${ccPart}&body=${body}`, "_blank");
+    const replyToPart = companyEmail ? `&reply-to=${encodeURIComponent(companyEmail)}` : "";
+    window.open(`mailto:${emailTo}?subject=${subject}${replyToPart}&body=${body}`, "_blank");
     toast.success(`Email préparé pour ${emailTo}`);
     setShowEmailDialog(false);
   };
