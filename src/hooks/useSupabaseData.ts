@@ -338,9 +338,29 @@ export function useInsertJob() {
     mutationFn: async (j: TablesInsert<"jobs">) => {
       const { data, error } = await supabase.from("jobs").insert(j).select().single();
       if (error) throw error;
+
+      // Auto-add all admin employees (always present on every job)
+      const { data: admins } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("is_admin", true)
+        .eq("active", true);
+      if (admins && admins.length > 0 && data?.id) {
+        const rows = admins.map((a) => ({
+          employee_id: a.id,
+          job_id: data.id,
+          hours_worked: 0,
+          calculated_pay: 0,
+        }));
+        await supabase.from("employee_jobs").insert(rows);
+      }
+
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      qc.invalidateQueries({ queryKey: ["employee_jobs"] });
+    },
   });
 }
 
