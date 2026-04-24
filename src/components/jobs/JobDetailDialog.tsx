@@ -47,7 +47,14 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   const [startPickerOpen, setStartPickerOpen] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
   const [completionEndTime, setCompletionEndTime] = useState<string>("17:00");
+  const [completionTip, setCompletionTip] = useState<string>("0");
   const snap = job?.measurement_snapshot as any;
+
+  // Quick tip editor for already-completed jobs
+  const [tipDraft, setTipDraft] = useState<string>("");
+  useEffect(() => {
+    if (job?.status === "completed") setTipDraft(String(job.tip ?? 0));
+  }, [job?.id, job?.status, (job as any)?.tip]);
 
   // Compute (or read) the estimated duration for the current job
   const estimation = useMemo(() => {
