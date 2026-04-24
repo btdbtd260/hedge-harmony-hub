@@ -55,7 +55,21 @@ const Clients = () => {
     .filter((c) => showHidden || !c.hidden)
     .filter((c) => c.name.toLowerCase().includes(search.toLowerCase()) || c.address.toLowerCase().includes(search.toLowerCase()));
 
-  const currentYear = filtered.filter((c) => c.status !== "next_year");
+  // Set of client IDs that have at least one job scheduled or completed.
+  // These are "real" active clients. Anyone else with no such job is
+  // considered "estimation-only" and shown in the dedicated tab.
+  const realClientIds = useMemo(() => {
+    const ids = new Set<string>();
+    jobs.forEach((j) => {
+      if (j.status === "scheduled" || j.status === "completed") ids.add(j.client_id);
+    });
+    return ids;
+  }, [jobs]);
+
+  const isEstimationOnly = (c: DbCustomer) => !realClientIds.has(c.id);
+
+  const currentYear = filtered.filter((c) => c.status !== "next_year" && !isEstimationOnly(c));
+  const estimationOnly = filtered.filter((c) => c.status !== "next_year" && isEstimationOnly(c));
   const nextYear = filtered.filter((c) => c.status === "next_year");
 
   const handleAdd = async () => {
