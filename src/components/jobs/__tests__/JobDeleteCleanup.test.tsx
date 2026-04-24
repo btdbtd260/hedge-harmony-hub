@@ -7,7 +7,8 @@
  * clears body pointer-events. This test guards that invariant.
  */
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
-import { render, screen, fireEvent, waitFor, cleanup } from "@testing-library/react";
+import { render, cleanup } from "@testing-library/react";
+import { screen, fireEvent, waitFor } from "@testing-library/dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import React from "react";
 
