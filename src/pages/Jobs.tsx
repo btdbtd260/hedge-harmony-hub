@@ -8,12 +8,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useJobs, useCustomers, useUpdateJob, useInsertInvoice, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
-import { Search, Calendar, XCircle, FileDown } from "lucide-react";
+import { Search, Calendar, FileDown } from "lucide-react";
 import { toast } from "sonner";
-import { JobPhotosManager } from "@/components/jobs/JobPhotosManager";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
 
 const statusColor: Record<string, string> = {
