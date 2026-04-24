@@ -328,8 +328,14 @@ const EstimationPage = () => {
   const handleSendEmail = () => {
     if (!emailTo.trim()) { toast.error("Veuillez entrer une adresse email"); return; }
     const subject = encodeURIComponent(`Estimation - ${selectedClient?.name || "Client"}`);
-    const body = encodeURIComponent(emailMessage);
-    window.open(`mailto:${emailTo}?subject=${subject}&body=${body}`, "_blank");
+    // Use company email from Settings as Cc + reply-to so all responses go there.
+    const companyEmail = (params?.company_email || "").trim();
+    const signature = companyEmail
+      ? `\n\n---\n${params?.company_name || ""}\n${companyEmail}${params?.company_phone ? `\n${params.company_phone}` : ""}`
+      : "";
+    const body = encodeURIComponent(emailMessage + signature);
+    const ccPart = companyEmail ? `&cc=${encodeURIComponent(companyEmail)}` : "";
+    window.open(`mailto:${emailTo}?subject=${subject}${ccPart}&body=${body}`, "_blank");
     toast.success(`Email préparé pour ${emailTo}`);
     setShowEmailDialog(false);
   };
