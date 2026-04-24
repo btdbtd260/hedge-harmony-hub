@@ -223,7 +223,7 @@ const Invoices = () => {
           <TabsTrigger value="unpaid">Impayées ({unpaid.length})</TabsTrigger>
           <TabsTrigger value="paid">Payées ({paid.length})</TabsTrigger>
           <TabsTrigger value="all">Toutes ({filtered.length})</TabsTrigger>
-          <TabsTrigger value="history"><History className="h-4 w-4 mr-1" />Historique ({invoices.length})</TabsTrigger>
+          <TabsTrigger value="history"><History className="h-4 w-4 mr-1" />Historique ({visibleInvoices.length})</TabsTrigger>
           <TabsTrigger value="bill"><Receipt className="h-4 w-4 mr-1" />Relevé</TabsTrigger>
         </TabsList>
 
