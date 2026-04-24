@@ -20,6 +20,9 @@ const Finance = () => {
   const { data: invoices = [] } = useInvoices();
   const { data: expenseList = [] } = useExpenses();
   const { data: customers = [] } = useCustomers();
+  const { data: employees = [] } = useEmployees();
+  const { data: employeeJobs = [] } = useEmployeeJobs();
+  const { data: jobs = [] } = useJobs();
   const insertExpense = useInsertExpense();
 
   const [filter, setFilter] = useState<FilterMode>("yearly");
@@ -54,8 +57,35 @@ const Finance = () => {
   const filteredInvoices = invoices.filter((i) => i.status === "paid" && filterByDate(i.paid_at || i.issued_at));
   const filteredExpenses = expenseList.filter((e) => filterByDate(e.date));
 
-  const totalProfit = filteredInvoices.reduce((s, i) => s + i.amount, 0);
-  const totalExpenses = filteredExpenses.reduce((s, e) => s + e.amount, 0);
+  // ── Employee pay integration ──
+  // Normal employees' pay = expense (cost of labor)
+  // Admins' pay = revenue (their share of the job)
+  // Use job.scheduled_date as the financial date.
+  const adminIds = new Set(employees.filter((e) => e.is_admin).map((e) => e.id));
+  type EJEntry = { id: string; date: string; amount: number; clientName: string; isAdmin: boolean };
+  const employeePayEntries: EJEntry[] = employeeJobs
+    .map((ej) => {
+      const job = jobs.find((j) => j.id === ej.job_id);
+      if (!job || job.status !== "completed") return null;
+      const dateStr = job.scheduled_date ?? job.created_at;
+      if (!dateStr) return null;
+      const emp = employees.find((e) => e.id === ej.employee_id);
+      return {
+        id: ej.id,
+        date: dateStr,
+        amount: Number(ej.calculated_pay ?? 0),
+        clientName: emp?.name ?? "Employé",
+        isAdmin: adminIds.has(ej.employee_id),
+      };
+    })
+    .filter((x): x is EJEntry => x !== null && x.amount !== 0)
+    .filter((x) => filterByDate(x.date));
+
+  const adminRevenue = employeePayEntries.filter((x) => x.isAdmin).reduce((s, x) => s + x.amount, 0);
+  const normalLaborCost = employeePayEntries.filter((x) => !x.isAdmin).reduce((s, x) => s + x.amount, 0);
+
+  const totalProfit = filteredInvoices.reduce((s, i) => s + i.amount, 0) + adminRevenue;
+  const totalExpenses = filteredExpenses.reduce((s, e) => s + e.amount, 0) + normalLaborCost;
   const netProfit = totalProfit - totalExpenses;
 
   const chartData = [{ name: "Revenus", profit: totalProfit, expenses: totalExpenses, net: netProfit }];
