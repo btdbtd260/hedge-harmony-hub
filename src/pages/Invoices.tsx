@@ -52,7 +52,11 @@ const Invoices = () => {
     return map;
   }, [invoices]);
 
-  const filtered = invoices.filter((i) =>
+  // Hide draft invoices from the UI entirely — they only become visible
+  // once the related job is marked completed (DB trigger flips them to "unpaid").
+  const visibleInvoices = useMemo(() => invoices.filter((i) => i.status !== "draft"), [invoices]);
+
+  const filtered = visibleInvoices.filter((i) =>
     getClientNameFromList(customers, i.client_id).toLowerCase().includes(search.toLowerCase()) ||
     (invoiceNumberMap.get(i.id) ?? "").toLowerCase().includes(search.toLowerCase())
   );
@@ -119,7 +123,7 @@ const Invoices = () => {
   // ── Bill tab ──
   const clientsWithUnpaid = useMemo(() => {
     const map = new Map<string, DbInvoice[]>();
-    invoices.filter((i) => i.status === "unpaid").forEach((inv) => {
+    visibleInvoices.filter((i) => i.status === "unpaid").forEach((inv) => {
       const list = map.get(inv.client_id) || [];
       list.push(inv);
       map.set(inv.client_id, list);

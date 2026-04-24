@@ -395,9 +395,11 @@ const EstimationPage = () => {
         },
       });
 
-      await insertInvoice.mutateAsync({ client_id: clientId, job_id: job.id, amount: totalPrice, status: "unpaid" });
+      // Facture créée en BROUILLON (draft) — elle deviendra "unpaid" automatiquement
+      // (via trigger DB) quand la job passera à "completed".
+      await insertInvoice.mutateAsync({ client_id: clientId, job_id: job.id, amount: totalPrice, status: "draft" });
 
-      toast.success("Estimation créée → Job + Facture générés automatiquement");
+      toast.success("Estimation créée → Job généré (facture en attente de complétion)");
       setShowConfirmation(true);
     } catch (e: any) { toast.error(e.message); }
   };
