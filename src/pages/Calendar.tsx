@@ -701,7 +701,7 @@ function DayHourlyDialog({
 
   return (
     <Dialog open={!!day} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+      <DialogContent className="max-w-2xl w-[calc(100vw-1rem)] sm:w-full max-h-[90vh] overflow-y-auto p-3 sm:p-6">
         {day && (
           <>
             <DialogHeader>
@@ -722,7 +722,7 @@ function DayHourlyDialog({
                     key={r.id}
                     onClick={() => onRequestClick(r.id)}
                     className={cn(
-                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer flex items-center justify-between gap-2",
+                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer",
                       requestClasses(r),
                     )}
                   >
@@ -730,14 +730,6 @@ function DayHourlyDialog({
                       <div className="font-medium truncate">{r.client_name || "Estimation à faire"}</div>
                       <div className="text-xs opacity-80">Estimation à faire</div>
                     </div>
-                    {r.status !== "done" && (
-                      <CompleteButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRequestComplete(r);
-                        }}
-                      />
-                    )}
                   </div>
                 ))}
                 {unscheduledJobs.map((j) => (
@@ -745,7 +737,7 @@ function DayHourlyDialog({
                     key={j.id}
                     onClick={() => onJobClick(j.id)}
                     className={cn(
-                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer flex items-center justify-between gap-2",
+                      "w-full text-left p-2 rounded text-sm transition-colors cursor-pointer",
                       jobClasses(j),
                     )}
                   >
@@ -753,14 +745,6 @@ function DayHourlyDialog({
                       <div className="font-medium truncate">{getClientNameFromList(customers, j.client_id)}</div>
                       <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
                     </div>
-                    {j.status !== "completed" && (
-                      <CompleteButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onJobComplete(j);
-                        }}
-                      />
-                    )}
                   </div>
                 ))}
               </div>
@@ -778,33 +762,23 @@ function DayHourlyDialog({
                 });
                 return (
                   <div key={hour} className="flex min-h-[48px]">
-                    <div className="w-16 shrink-0 text-xs text-muted-foreground p-2 border-r bg-muted/30 text-right">
+                    <div className="w-12 sm:w-16 shrink-0 text-[11px] sm:text-xs text-muted-foreground p-1.5 sm:p-2 border-r bg-muted/30 text-right">
                       {String(hour).padStart(2, "0")}:00
                     </div>
-                    <div className="flex-1 p-1.5 space-y-1">
+                    <div className="flex-1 p-1.5 space-y-1 min-w-0">
                       {hourRequests.map((r) => (
                         <div
                           key={r.id}
                           onClick={() => onRequestClick(r.id)}
                           className={cn(
-                            "w-full text-left px-2 py-1.5 rounded text-sm cursor-pointer flex items-center justify-between gap-2",
+                            "w-full text-left px-2 py-1.5 rounded text-xs sm:text-sm cursor-pointer",
                             requestClasses(r),
                           )}
                         >
-                          <div className="min-w-0">
-                            <div className="font-medium truncate">
-                              {r.requested_time?.slice(0, 5)} · {r.client_name || "Estimation à faire"}
-                            </div>
-                            <div className="text-xs opacity-80">Estimation à faire</div>
+                          <div className="font-medium truncate">
+                            {r.requested_time?.slice(0, 5)} · {r.client_name || "Estimation à faire"}
                           </div>
-                          {r.status !== "done" && (
-                            <CompleteButton
-                              onClick={(e) => {
-                                e.stopPropagation();
-                                onRequestComplete(r);
-                              }}
-                            />
-                          )}
+                          <div className="text-[10px] sm:text-xs opacity-80">Estimation à faire</div>
                         </div>
                       ))}
                       {hourJobs.map((j) => {
@@ -814,28 +788,18 @@ function DayHourlyDialog({
                             key={j.id}
                             onClick={() => onJobClick(j.id)}
                             className={cn(
-                              "w-full text-left px-2 py-1.5 rounded text-sm cursor-pointer flex items-center justify-between gap-2",
+                              "w-full text-left px-2 py-1.5 rounded text-xs sm:text-sm cursor-pointer",
                               jobClasses(j),
                             )}
                           >
-                            <div className="min-w-0">
-                              <div className="font-medium truncate">
-                                {j.start_time?.slice(0, 5)}
-                                {end && ` – ${end}`}
-                                {!j.end_time && end && <span className="text-[10px] opacity-70 ml-1">(estimé)</span>}
-                                {" · "}
-                                {getClientNameFromList(customers, j.client_id)}
-                              </div>
-                              <div className="text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
+                            <div className="font-medium truncate">
+                              {j.start_time?.slice(0, 5)}
+                              {end && ` – ${end}`}
+                              {!j.end_time && end && <span className="text-[10px] opacity-70 ml-1">(estimé)</span>}
+                              {" · "}
+                              {getClientNameFromList(customers, j.client_id)}
                             </div>
-                            {j.status !== "completed" && (
-                              <CompleteButton
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  onJobComplete(j);
-                                }}
-                              />
-                            )}
+                            <div className="text-[10px] sm:text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
                           </div>
                         );
                       })}
