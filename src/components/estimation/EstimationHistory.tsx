@@ -137,8 +137,14 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
     if (!emailTo.trim()) { toast.error("Veuillez entrer une adresse email"); return; }
     const clientName = emailEstimation ? customers.find(c => c.id === emailEstimation.est.client_id)?.name || "Client" : "Client";
     const subject = encodeURIComponent(`Estimation - ${clientName}`);
-    const body = encodeURIComponent(emailMessage);
-    window.open(`mailto:${emailTo}?subject=${subject}&body=${body}`, "_blank");
+    // Use company email from Settings as Cc + signature
+    const companyEmail = ((params as any)?.company_email || "").trim();
+    const signature = companyEmail
+      ? `\n\n---\n${(params as any)?.company_name || ""}\n${companyEmail}${(params as any)?.company_phone ? `\n${(params as any).company_phone}` : ""}`
+      : "";
+    const body = encodeURIComponent(emailMessage + signature);
+    const ccPart = companyEmail ? `&cc=${encodeURIComponent(companyEmail)}` : "";
+    window.open(`mailto:${emailTo}?subject=${subject}${ccPart}&body=${body}`, "_blank");
     toast.success(`Email préparé pour ${emailTo}`);
     setShowEmailDialog(false);
   };
