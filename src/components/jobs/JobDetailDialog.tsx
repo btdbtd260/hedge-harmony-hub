@@ -118,6 +118,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
     const estimated = storedEstimate ?? estimation?.minutes ?? 0;
     const variance = estimated > 0 ? real - estimated : null;
     try {
+      const tipNum = Number(completionTip);
       await updateJob.mutateAsync({
         id: job.id,
         status: "completed",
@@ -125,6 +126,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
         total_duration_minutes: real,
         estimated_duration_minutes: estimated || null,
         duration_variance_minutes: variance,
+        tip: Number.isFinite(tipNum) && tipNum >= 0 ? tipNum : 0,
       } as any);
       setCompletionOpen(false);
       const variancePart =
