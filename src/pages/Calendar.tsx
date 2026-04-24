@@ -507,23 +507,13 @@ function MonthView({
                     key={r.id}
                     onClick={(e) => { e.stopPropagation(); onRequestClick(r.id); }}
                     className={cn(
-                      "group/event text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer flex items-center gap-1",
+                      "text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer",
                       requestClasses(r),
                     )}
                     title={`Estimation à faire · ${r.client_name || "Sans nom"}`}
                   >
-                    <span className="truncate flex-1 min-w-0">
-                      {r.requested_time && <span className="font-medium mr-1">{r.requested_time.slice(0, 5)}</span>}
-                      {r.client_name || "Estimation à faire"}
-                    </span>
-                    {r.status !== "done" && (
-                      <CompleteIconButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onRequestComplete(r);
-                        }}
-                      />
-                    )}
+                    {r.requested_time && <span className="font-medium mr-1">{r.requested_time.slice(0, 5)}</span>}
+                    {r.client_name || "Estimation à faire"}
                   </div>
                 ))}
                 {dayJobs.slice(0, Math.max(0, 2 - dayRequests.length)).map((j) => (
@@ -531,23 +521,13 @@ function MonthView({
                     key={j.id}
                     onClick={(e) => { e.stopPropagation(); onJobClick(j.id); }}
                     className={cn(
-                      "group/event text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer flex items-center gap-1",
+                      "text-[10px] px-1.5 py-0.5 rounded truncate cursor-pointer",
                       jobClasses(j),
                     )}
                     title={`${cutTypeLabel(j.cut_type)} · ${getClientNameFromList(customers, j.client_id)}`}
                   >
-                    <span className="truncate flex-1 min-w-0">
-                      {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}</span>}
-                      {getClientNameFromList(customers, j.client_id)}
-                    </span>
-                    {j.status !== "completed" && (
-                      <CompleteIconButton
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          onJobComplete(j);
-                        }}
-                      />
-                    )}
+                    {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}</span>}
+                    {getClientNameFromList(customers, j.client_id)}
                   </div>
                 ))}
                 {totalEntries > 2 && (
