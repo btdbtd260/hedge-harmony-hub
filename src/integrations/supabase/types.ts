@@ -143,6 +143,7 @@ export type Database = {
           employee_id: string
           hours_worked: number
           id: string
+          is_present: boolean
           job_id: string
         }
         Insert: {
@@ -150,6 +151,7 @@ export type Database = {
           employee_id: string
           hours_worked?: number
           id?: string
+          is_present?: boolean
           job_id: string
         }
         Update: {
@@ -157,6 +159,7 @@ export type Database = {
           employee_id?: string
           hours_worked?: number
           id?: string
+          is_present?: boolean
           job_id?: string
         }
         Relationships: [
@@ -181,18 +184,21 @@ export type Database = {
           active: boolean
           hourly_rate: number
           id: string
+          is_admin: boolean
           name: string
         }
         Insert: {
           active?: boolean
           hourly_rate?: number
           id?: string
+          is_admin?: boolean
           name: string
         }
         Update: {
           active?: boolean
           hourly_rate?: number
           id?: string
+          is_admin?: boolean
           name?: string
         }
         Relationships: []
@@ -439,6 +445,7 @@ export type Database = {
           scheduled_date: string | null
           start_time: string | null
           status: string
+          tip: number
           total_duration_minutes: number | null
         }
         Insert: {
@@ -458,6 +465,7 @@ export type Database = {
           scheduled_date?: string | null
           start_time?: string | null
           status?: string
+          tip?: number
           total_duration_minutes?: number | null
         }
         Update: {
@@ -477,6 +485,7 @@ export type Database = {
           scheduled_date?: string | null
           start_time?: string | null
           status?: string
+          tip?: number
           total_duration_minutes?: number | null
         }
         Relationships: [
@@ -691,6 +700,7 @@ export type Database = {
         Returns: boolean
       }
       is_email_approved: { Args: { _email: string }; Returns: boolean }
+      recalc_job_pays: { Args: { _job_id: string }; Returns: undefined }
     }
     Enums: {
       app_role: "admin" | "member"

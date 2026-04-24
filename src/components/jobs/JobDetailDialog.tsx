@@ -3,12 +3,15 @@ import { CalendarIcon, X, Clock } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimeWheelPicker } from "@/components/ui/time-wheel-picker";
 import { cn, formatDateQC } from "@/lib/utils";
 import { useCustomers, useUpdateJob, useJobs, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { JobPhotosManager } from "@/components/jobs/JobPhotosManager";
+import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
 import {
   estimateJobDuration,
   measurementsFromJob,
@@ -44,7 +47,14 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   const [startPickerOpen, setStartPickerOpen] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
   const [completionEndTime, setCompletionEndTime] = useState<string>("17:00");
+  const [completionTip, setCompletionTip] = useState<string>("0");
   const snap = job?.measurement_snapshot as any;
+
+  // Quick tip editor for already-completed jobs
+  const [tipDraft, setTipDraft] = useState<string>("");
+  useEffect(() => {
+    if (job?.status === "completed") setTipDraft(String(job.tip ?? 0));
+  }, [job?.id, job?.status, (job as any)?.tip]);
 
   // Compute (or read) the estimated duration for the current job
   const estimation = useMemo(() => {
@@ -70,8 +80,9 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   const handleStatusChange = async (jobId: string, newStatus: string) => {
     if (!job) return;
     if (newStatus === "completed") {
-      // Open modal to ask the real end time before persisting status
+      // Open modal to ask the real end time + tip before persisting status
       setCompletionEndTime(job.end_time?.slice(0, 5) || addMinutesToTime(job.start_time, storedEstimate ?? 60) || "17:00");
+      setCompletionTip(String(job.tip ?? 0));
       setCompletionOpen(true);
       return;
     }
@@ -107,6 +118,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
     const estimated = storedEstimate ?? estimation?.minutes ?? 0;
     const variance = estimated > 0 ? real - estimated : null;
     try {
+      const tipNum = Number(completionTip);
       await updateJob.mutateAsync({
         id: job.id,
         status: "completed",
@@ -114,6 +126,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
         total_duration_minutes: real,
         estimated_duration_minutes: estimated || null,
         duration_variance_minutes: variance,
+        tip: Number.isFinite(tipNum) && tipNum >= 0 ? tipNum : 0,
       } as any);
       setCompletionOpen(false);
       const variancePart =
@@ -301,11 +314,40 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                       </span>
                     </div>
                   )}
+
+                  {/* Tip — editable directly on completed jobs */}
+                  <div className="flex justify-between items-center text-sm gap-2">
+                    <Label className="text-muted-foreground">Tip reçu</Label>
+                    <div className="flex items-center gap-1">
+                      <span className="text-sm">$</span>
+                      <Input
+                        type="number"
+                        min={0}
+                        step={1}
+                        value={tipDraft}
+                        onChange={(e) => setTipDraft(e.target.value)}
+                        onBlur={async () => {
+                          const n = Number(tipDraft);
+                          if (Number.isNaN(n) || n < 0) return;
+                          if (n === Number(job.tip ?? 0)) return;
+                          try {
+                            await updateJob.mutateAsync({ id: job.id, tip: n } as any);
+                            toast.success("Tip mis à jour");
+                          } catch (e: any) { toast.error(e.message); }
+                        }}
+                        className="h-8 w-24"
+                      />
+                    </div>
+                  </div>
                 </>
               )}
 
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit estimé</span><span className="font-semibold">${job.estimated_profit}</span></div>
               {job.real_profit !== null && <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit réel</span><span className="font-semibold">${job.real_profit}</span></div>}
+
+              {/* Employees on this job (add/remove + hours + Absent button) */}
+              <JobEmployeesSection job={job} />
+
               {snap && (
                 <div className="border-t pt-3">
                   <p className="text-sm font-medium mb-2">Mesures</p>
@@ -324,13 +366,13 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
         )}
       </DialogContent>
 
-      {/* ── Completion modal — asks for the real end time ── */}
+      {/* ── Completion modal — asks for end time + tip ── */}
       <Dialog open={completionOpen} onOpenChange={setCompletionOpen}>
         <DialogContent className="max-w-sm">
           <DialogHeader>
             <DialogTitle>Marquer le job comme complété</DialogTitle>
             <DialogDescription>
-              Choisis l'heure de fin réelle. La durée réelle sera comparée à l'estimation.
+              Choisis l'heure de fin réelle et le tip reçu.
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-3">
@@ -350,6 +392,20 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                 {storedEstimate ? <> · estimée {storedEstimate} min</> : null}
               </p>
             )}
+            <div className="space-y-1">
+              <Label>Tip reçu ($)</Label>
+              <Input
+                type="number"
+                min={0}
+                step={1}
+                value={completionTip}
+                onChange={(e) => setCompletionTip(e.target.value)}
+                placeholder="0"
+              />
+              <p className="text-[11px] text-muted-foreground">
+                Sera ajouté au total de la job pour la part des admins.
+              </p>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setCompletionOpen(false)}>Annuler</Button>

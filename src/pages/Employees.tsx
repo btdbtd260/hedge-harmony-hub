@@ -5,15 +5,20 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { useEmployees, useEmployeeJobs, useJobs, useCustomers, useInsertEmployee, useUpdateEmployee, getClientNameFromList } from "@/hooks/useSupabaseData";
-import { Plus, Pencil, UserX } from "lucide-react";
+import {
+  useEmployees,
+  useEmployeeJobs,
+  useInsertEmployee,
+  useUpdateEmployee,
+  type DbEmployee,
+} from "@/hooks/useSupabaseData";
+import { Plus, Pencil, UserX, Shield } from "lucide-react";
 import { toast } from "sonner";
+import { EmployeeProfileDialog } from "@/components/employees/EmployeeProfileDialog";
 
 const Employees = () => {
   const { data: employees = [] } = useEmployees();
   const { data: employeeJobs = [] } = useEmployeeJobs();
-  const { data: jobs = [] } = useJobs();
-  const { data: customers = [] } = useCustomers();
   const insertEmployee = useInsertEmployee();
   const updateEmployee = useUpdateEmployee();
 
@@ -24,8 +29,11 @@ const Employees = () => {
   const [formActive, setFormActive] = useState(true);
   const [showInactive, setShowInactive] = useState(false);
 
+  // Profile dialog
+  const [profileEmployee, setProfileEmployee] = useState<DbEmployee | null>(null);
+
   const openAdd = () => { setEditingId(null); setFormName(""); setFormRate(""); setFormActive(true); setShowDialog(true); };
-  const openEdit = (emp: { id: string; name: string; hourly_rate: number; active: boolean }) => {
+  const openEdit = (emp: DbEmployee) => {
     setEditingId(emp.id); setFormName(emp.name); setFormRate(String(emp.hourly_rate)); setFormActive(emp.active); setShowDialog(true);
   };
 
@@ -35,6 +43,7 @@ const Employees = () => {
       if (editingId) {
         await updateEmployee.mutateAsync({ id: editingId, name: formName.trim(), hourly_rate: Number(formRate), active: formActive });
       } else {
+        // New employees are NEVER admin (admin status is locked at DB level)
         await insertEmployee.mutateAsync({ name: formName.trim(), hourly_rate: Number(formRate), active: formActive });
       }
       setShowDialog(false);
@@ -42,14 +51,20 @@ const Employees = () => {
     } catch (e: any) { toast.error(e.message); }
   };
 
-  const handleRemove = async (id: string) => {
+  const handleRemove = async (emp: DbEmployee) => {
+    if (emp.is_admin) {
+      toast.error("Un employé admin ne peut pas être désactivé");
+      return;
+    }
     try {
-      await updateEmployee.mutateAsync({ id, active: false });
+      await updateEmployee.mutateAsync({ id: emp.id, active: false });
       toast.success("Employé retiré");
     } catch (e: any) { toast.error(e.message); }
   };
 
   const displayedEmployees = showInactive ? employees : employees.filter((e) => e.active);
+  // Admins first
+  const sorted = [...displayedEmployees].sort((a, b) => Number(b.is_admin) - Number(a.is_admin));
 
   return (
     <div className="space-y-6">
@@ -67,50 +82,74 @@ const Employees = () => {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {displayedEmployees.map((emp) => {
+        {sorted.map((emp) => {
           const empJobs = employeeJobs.filter((ej) => ej.employee_id === emp.id);
-          const totalHours = empJobs.reduce((s, ej) => s + ej.hours_worked, 0);
-          const totalPay = empJobs.reduce((s, ej) => s + ej.calculated_pay, 0);
+          const totalHours = empJobs.reduce((s, ej) => s + Number(ej.hours_worked ?? 0), 0);
+          const totalPay = empJobs.reduce((s, ej) => s + Number(ej.calculated_pay ?? 0), 0);
 
           return (
-            <Card key={emp.id}>
+            <Card
+              key={emp.id}
+              className="cursor-pointer hover:shadow-md transition-shadow"
+              onClick={() => setProfileEmployee(emp)}
+            >
               <CardHeader className="pb-3">
                 <div className="flex items-center justify-between">
-                  <CardTitle className="text-lg">{emp.name}</CardTitle>
-                  <div className="flex items-center gap-1">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    {emp.name}
+                    {emp.is_admin && (
+                      <Badge variant="default" className="text-[10px]">
+                        <Shield className="h-3 w-3 mr-1" />
+                        Admin
+                      </Badge>
+                    )}
+                  </CardTitle>
+                  <div className="flex items-center gap-1" onClick={(e) => e.stopPropagation()}>
                     <Badge variant={emp.active ? "default" : "secondary"}>{emp.active ? "Actif" : "Inactif"}</Badge>
-                    <Button variant="ghost" size="icon" onClick={() => openEdit(emp)}><Pencil className="h-4 w-4" /></Button>
-                    {emp.active && (
-                      <Button variant="ghost" size="icon" onClick={() => handleRemove(emp.id)} title="Retirer l'employé"><UserX className="h-4 w-4 text-destructive" /></Button>
+                    {!emp.is_admin && (
+                      <Button variant="ghost" size="icon" onClick={() => openEdit(emp)}><Pencil className="h-4 w-4" /></Button>
+                    )}
+                    {emp.active && !emp.is_admin && (
+                      <Button variant="ghost" size="icon" onClick={() => handleRemove(emp)} title="Retirer l'employé">
+                        <UserX className="h-4 w-4 text-destructive" />
+                      </Button>
                     )}
                   </div>
                 </div>
               </CardHeader>
-              <CardContent className="space-y-3">
-                <div className="flex gap-4 text-sm"><span className="text-muted-foreground">Taux horaire:</span><span className="font-medium">${emp.hourly_rate}/h</span></div>
-                <div className="flex gap-4 text-sm"><span className="text-muted-foreground">Heures travaillées:</span><span className="font-medium">{totalHours}h</span></div>
-                <div className="flex gap-4 text-sm"><span className="text-muted-foreground">Paie totale:</span><span className="font-semibold">${totalPay}</span></div>
-                {empJobs.length > 0 && (
-                  <div>
-                    <p className="text-xs font-medium text-muted-foreground mb-2">Jobs effectués</p>
-                    {empJobs.map((ej) => {
-                      const job = jobs.find((j) => j.id === ej.job_id);
-                      return (
-                        <div key={ej.id} className="text-sm p-2 rounded border mb-1 flex justify-between">
-                          <span>{job ? getClientNameFromList(customers, job.client_id) : "Job inconnu"}</span>
-                          <span className="text-muted-foreground">{ej.hours_worked}h · ${ej.calculated_pay}</span>
-                        </div>
-                      );
-                    })}
-                  </div>
-                )}
-                {empJobs.length === 0 && emp.active && <p className="text-sm text-muted-foreground italic">Aucun job assigné</p>}
+              <CardContent className="space-y-2">
+                <div className="flex gap-4 text-sm">
+                  <span className="text-muted-foreground">Taux horaire:</span>
+                  <span className="font-medium">
+                    {emp.is_admin ? "—" : `$${emp.hourly_rate}/h`}
+                  </span>
+                </div>
+                <div className="flex gap-4 text-sm">
+                  <span className="text-muted-foreground">Heures travaillées:</span>
+                  <span className="font-medium">{totalHours}h</span>
+                </div>
+                <div className="flex gap-4 text-sm">
+                  <span className="text-muted-foreground">
+                    {emp.is_admin ? "Revenu total:" : "Paie totale:"}
+                  </span>
+                  <span className="font-semibold">${totalPay.toFixed(2)}</span>
+                </div>
+                <p className="text-xs text-muted-foreground italic pt-1">
+                  Cliquer pour voir l'historique et la finance.
+                </p>
               </CardContent>
             </Card>
           );
         })}
       </div>
 
+      {/* Profile dialog */}
+      <EmployeeProfileDialog
+        employee={profileEmployee}
+        onOpenChange={(open) => !open && setProfileEmployee(null)}
+      />
+
+      {/* Add / Edit dialog */}
       <Dialog open={showDialog} onOpenChange={setShowDialog}>
         <DialogContent>
           <DialogHeader><DialogTitle>{editingId ? "Modifier employé" : "Nouvel employé"}</DialogTitle></DialogHeader>

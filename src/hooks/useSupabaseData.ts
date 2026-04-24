@@ -211,6 +211,67 @@ export function useEmployeeJobs() {
   });
 }
 
+// Add an employee to a job (default present, 0 hours)
+export function useAddEmployeeToJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ employee_id, job_id, hours_worked = 0 }: { employee_id: string; job_id: string; hours_worked?: number }) => {
+      const { data, error } = await supabase
+        .from("employee_jobs")
+        .insert({ employee_id, job_id, hours_worked, calculated_pay: 0 })
+        .select()
+        .single();
+      if (error) throw error;
+      return data;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employee_jobs"] });
+    },
+  });
+}
+
+// Update hours / presence of an employee on a job (DB trigger recalculates pay)
+export function useUpdateEmployeeJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async ({ id, ...updates }: { id: string } & Partial<{ hours_worked: number; is_present: boolean }>) => {
+      const { error } = await supabase.from("employee_jobs").update(updates as any).eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employee_jobs"] });
+    },
+  });
+}
+
+// Remove an employee from a job
+export function useRemoveEmployeeFromJob() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("employee_jobs").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employee_jobs"] });
+    },
+  });
+}
+
+// Delete an employee (DB trigger blocks admins)
+export function useDeleteEmployee() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: async (id: string) => {
+      const { error } = await supabase.from("employees").delete().eq("id", id);
+      if (error) throw error;
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["employees"] });
+    },
+  });
+}
+
 // ─── REMINDERS ───
 export function useReminders() {
   return useQuery({
@@ -277,9 +338,29 @@ export function useInsertJob() {
     mutationFn: async (j: TablesInsert<"jobs">) => {
       const { data, error } = await supabase.from("jobs").insert(j).select().single();
       if (error) throw error;
+
+      // Auto-add all admin employees (always present on every job)
+      const { data: admins } = await supabase
+        .from("employees")
+        .select("id")
+        .eq("is_admin", true)
+        .eq("active", true);
+      if (admins && admins.length > 0 && data?.id) {
+        const rows = admins.map((a) => ({
+          employee_id: a.id,
+          job_id: data.id,
+          hours_worked: 0,
+          calculated_pay: 0,
+        }));
+        await supabase.from("employee_jobs").insert(rows);
+      }
+
       return data;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      qc.invalidateQueries({ queryKey: ["employee_jobs"] });
+    },
   });
 }
 
