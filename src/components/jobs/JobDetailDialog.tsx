@@ -53,11 +53,13 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   const { data: customers = [] } = useCustomers();
   const { data: allJobs = [] } = useJobs();
   const updateJob = useUpdateJob();
+  const deleteJob = useDeleteJob();
   const [datePickerOpen, setDatePickerOpen] = useState(false);
   const [startPickerOpen, setStartPickerOpen] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
   const [completionEndTime, setCompletionEndTime] = useState<string>("17:00");
   const [completionTip, setCompletionTip] = useState<string>("0");
+  const [confirmDelete, setConfirmDelete] = useState(false);
   const snap = job?.measurement_snapshot as any;
 
   // Quick tip editor for already-completed jobs
