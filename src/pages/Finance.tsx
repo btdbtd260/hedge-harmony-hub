@@ -197,6 +197,37 @@ const Finance = () => {
       </Card>
 
       <Card>
+        <CardHeader><CardTitle>Paies des employés (impact finance)</CardTitle></CardHeader>
+        <CardContent className="space-y-2">
+          <div className="flex gap-2 flex-wrap mb-2">
+            <Badge variant="outline" className="text-emerald-700 border-emerald-300">
+              Revenu admins : +${adminRevenue.toFixed(2)}
+            </Badge>
+            <Badge variant="outline" className="text-red-700 border-red-300">
+              Dépense employés normaux : -${normalLaborCost.toFixed(2)}
+            </Badge>
+          </div>
+          {employeePayEntries.length === 0 ? (
+            <p className="text-sm text-muted-foreground">Aucune paie d'employé pour cette période.</p>
+          ) : (
+            employeePayEntries.map((ej) => (
+              <div key={ej.id} className="flex items-center justify-between p-2 rounded border text-sm">
+                <div>
+                  <p className="font-medium">
+                    {ej.clientName} {ej.isAdmin && <span className="text-xs text-muted-foreground">(admin)</span>}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{ej.date}</p>
+                </div>
+                <p className={`font-semibold ${ej.isAdmin ? "text-emerald-600" : "text-red-600"}`}>
+                  {ej.isAdmin ? "+" : "-"}${ej.amount.toFixed(2)}
+                </p>
+              </div>
+            ))
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
         <CardHeader><CardTitle>Dépenses</CardTitle></CardHeader>
         <CardContent className="space-y-3">
           <div className="flex gap-2 flex-wrap mb-3">
