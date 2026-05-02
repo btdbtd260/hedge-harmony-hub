@@ -69,9 +69,20 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
     });
   }, [myJobs, summerStart]);
 
-  const totalSummer = summerJobs.reduce((s, { ej }) => s + Number(ej.calculated_pay ?? 0), 0);
-  const totalAllTime = myJobs.reduce((s, { ej }) => s + Number(ej.calculated_pay ?? 0), 0);
-  const totalHours = myJobs.reduce((s, { ej }) => s + Number(ej.hours_worked ?? 0), 0);
+  // Confirmed earnings only count completed jobs
+  const isCompleted = (job: DbJob | undefined) => job?.status === "completed";
+  const totalSummer = summerJobs.reduce(
+    (s, { ej, job }) => s + (isCompleted(job) ? Number(ej.calculated_pay ?? 0) : 0),
+    0,
+  );
+  const totalAllTime = myJobs.reduce(
+    (s, { ej, job }) => s + (isCompleted(job) ? Number(ej.calculated_pay ?? 0) : 0),
+    0,
+  );
+  const totalHours = myJobs.reduce(
+    (s, { ej, job }) => s + (isCompleted(job) ? Number(ej.hours_worked ?? 0) : 0),
+    0,
+  );
 
   const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) ?? null : null;
 
