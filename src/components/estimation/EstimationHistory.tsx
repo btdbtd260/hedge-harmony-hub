@@ -28,7 +28,9 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
 
   const p = params ?? { price_per_foot_trim: 4.5, price_per_foot_levelling: 6, price_per_foot_restoration: 8, bush_price: 40, height_multiplier_threshold: 5, height_multiplier: 1.5, width_multiplier_threshold: 3, width_multiplier: 1.3 };
 
-  const handleDownload = async (est: DbEstimation, index: number) => {
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+
+  const buildPdfData = (est: DbEstimation, index: number): EstimationPdfData => {
     const client = customers.find(c => c.id === est.client_id) ?? null;
     const extras = Array.isArray(est.extras) ? (est.extras as any[]) : [];
     const bushExtras = extras.filter((e: any) => e.description?.startsWith("Bush:"));
@@ -40,11 +42,9 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
       !e.description?.startsWith("__CUT_META__"),
     );
 
-    // Recover any per-estimation custom price stored in extras metadata
     const priceMeta = extras.find((e: any) => e.description?.startsWith("__PRICE_META__"));
     const customPriceFromMeta = priceMeta ? Number(String(priceMeta.description).split(":")[1]) || 0 : 0;
 
-    // Recover per-side "2 côtés" flags (order: left, facade, right, backLeft, back, backRight)
     const sidesMeta = extras.find((e: any) => e.description?.startsWith("__SIDES_META__"));
     const sidesBits = sidesMeta ? String(sidesMeta.description).split(":")[1] || "" : "";
     const ts = {
@@ -57,7 +57,6 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
     };
     const twoSidesMult = (p as any).two_sides_multiplier ?? 1.5;
 
-    // Recover discounts from meta entries (format: __DISCOUNT_META__:type:value:description)
     const discounts = extras
       .filter((e: any) => e.description?.startsWith("__DISCOUNT_META__"))
       .map((e: any, i: number) => {
@@ -88,7 +87,7 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
     if (hApplied) basePrice *= p.height_multiplier;
     if (wApplied) basePrice *= p.width_multiplier;
 
-    const data: EstimationPdfData = {
+    return {
       customer: client,
       params: params ?? null,
       estimationNumber: getEstimationNumber(index, est.created_at),
@@ -122,7 +121,10 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
       twoSides: ts,
       twoSidesMultiplier: twoSidesMult,
     };
-    await downloadEstimationPdf(data);
+  };
+
+  const handleDownload = async (est: DbEstimation, index: number) => {
+    await downloadEstimationPdf(buildPdfData(est, index));
     toast.success("PDF estimation téléchargé");
   };
 
@@ -136,23 +138,42 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
 
   const handleSendEmail = async () => {
     if (!emailTo.trim() || !emailEstimation) { toast.error("Veuillez entrer une adresse email"); return; }
+    if (isSendingEmail) return;
     const est = emailEstimation.est;
+    const idx = emailEstimation.idx;
     const clientName = customers.find(c => c.id === est.client_id)?.name || "Client";
+    setIsSendingEmail(true);
+    let pdfUrl: string;
+    let pdfFileName: string;
+    try {
+      const { generateAndUploadEstimationPdf } = await import("@/lib/uploadEstimationPdf");
+      const uploaded = await generateAndUploadEstimationPdf(buildPdfData(est, idx));
+      pdfUrl = uploaded.signedUrl;
+      pdfFileName = uploaded.fileName;
+    } catch (e: any) {
+      setIsSendingEmail(false);
+      toast.error(`PDF non joint : ${e?.message ?? "erreur de génération"}`);
+      return;
+    }
     try {
       await sendCustomerEmail({
         templateName: "estimation-to-client",
         recipientEmail: emailTo.trim(),
-        idempotencyKey: `estimation-${est.id}-${emailTo.trim().toLowerCase()}`,
+        idempotencyKey: `estimation-${est.id}-${emailTo.trim().toLowerCase()}-${Date.now()}`,
         templateData: {
           clientName,
           totalPrice: Number(est.total_price).toFixed(2),
           message: emailMessage,
+          pdfUrl,
+          pdfFileName,
         },
       });
-      toast.success(`Email envoyé à ${emailTo}`);
+      toast.success(`Email envoyé à ${emailTo} avec le PDF en pièce jointe`);
       setShowEmailDialog(false);
     } catch (e: any) {
       toast.error(`Échec de l'envoi : ${e?.message ?? "erreur inconnue"}`);
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
