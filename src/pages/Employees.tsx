@@ -7,18 +7,18 @@ import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import {
   useEmployees,
-  useEmployeeJobs,
   useInsertEmployee,
   useUpdateEmployee,
   type DbEmployee,
 } from "@/hooks/useSupabaseData";
+import { useCompletedEmployeeJobs } from "@/hooks/useCompletedEmployeeJobs";
 import { Plus, Pencil, UserX, Shield } from "lucide-react";
 import { toast } from "sonner";
 import { EmployeeProfileDialog } from "@/components/employees/EmployeeProfileDialog";
 
 const Employees = () => {
   const { data: employees = [] } = useEmployees();
-  const { data: employeeJobs = [] } = useEmployeeJobs();
+  const { data: employeeJobs = [] } = useCompletedEmployeeJobs();
   const insertEmployee = useInsertEmployee();
   const updateEmployee = useUpdateEmployee();
 
