@@ -271,7 +271,7 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
               <Label>Message</Label>
               <Textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)} rows={6} />
             </div>
-            <p className="text-xs text-muted-foreground">L'email s'ouvrira dans votre application de messagerie. Pensez à joindre le PDF téléchargé.</p>
+            <p className="text-xs text-muted-foreground">L'email sera envoyé depuis Taille de haie ACF.</p>
           </div>
           <DialogFooter>
             {emailEstimation && (
