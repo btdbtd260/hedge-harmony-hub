@@ -856,8 +856,8 @@ const EstimationPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEmailDialog(false)}>Annuler</Button>
-            <Button onClick={handleSendEmail} disabled={!emailTo.trim()}>
-              <Mail className="h-4 w-4 mr-2" /> Envoyer
+            <Button onClick={handleSendEmail} disabled={!emailTo.trim() || isSendingEmail}>
+              <Mail className="h-4 w-4 mr-2" /> {isSendingEmail ? "Envoi en cours..." : "Envoyer"}
             </Button>
           </DialogFooter>
         </DialogContent>
