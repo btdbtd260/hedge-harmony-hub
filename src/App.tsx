@@ -19,6 +19,7 @@ import Settings from "./pages/Settings";
 import Messagerie from "./pages/Messagerie";
 import Auth from "./pages/Auth";
 import Unauthorized from "./pages/Unauthorized";
+import Unsubscribe from "./pages/Unsubscribe";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
+          <Route path="/unsubscribe" element={<Unsubscribe />} />
           <Route
             path="/*"
             element={
