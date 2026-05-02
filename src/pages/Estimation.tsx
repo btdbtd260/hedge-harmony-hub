@@ -325,8 +325,24 @@ const EstimationPage = () => {
     setShowEmailDialog(true);
   };
 
+  const [isSendingEmail, setIsSendingEmail] = useState(false);
+
   const handleSendEmail = async () => {
     if (!emailTo.trim()) { toast.error("Veuillez entrer une adresse email"); return; }
+    if (isSendingEmail) return;
+    setIsSendingEmail(true);
+    let pdfUrl: string;
+    let pdfFileName: string;
+    try {
+      const { generateAndUploadEstimationPdf } = await import("@/lib/uploadEstimationPdf");
+      const uploaded = await generateAndUploadEstimationPdf(buildPdfData());
+      pdfUrl = uploaded.signedUrl;
+      pdfFileName = uploaded.fileName;
+    } catch (e: any) {
+      setIsSendingEmail(false);
+      toast.error(`PDF non joint : ${e?.message ?? "erreur de génération"}`);
+      return;
+    }
     try {
       const { sendCustomerEmail } = await import("@/lib/sendCustomerEmail");
       await sendCustomerEmail({
@@ -337,12 +353,16 @@ const EstimationPage = () => {
           clientName: selectedClient?.name || "",
           totalPrice: totalPrice.toFixed(2),
           message: emailMessage,
+          pdfUrl,
+          pdfFileName,
         },
       });
-      toast.success(`Email envoyé à ${emailTo}`);
+      toast.success(`Email envoyé à ${emailTo} avec le PDF en pièce jointe`);
       setShowEmailDialog(false);
     } catch (e: any) {
       toast.error(`Échec de l'envoi : ${e?.message ?? "erreur inconnue"}`);
+    } finally {
+      setIsSendingEmail(false);
     }
   };
 
@@ -836,8 +856,8 @@ const EstimationPage = () => {
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEmailDialog(false)}>Annuler</Button>
-            <Button onClick={handleSendEmail} disabled={!emailTo.trim()}>
-              <Mail className="h-4 w-4 mr-2" /> Envoyer
+            <Button onClick={handleSendEmail} disabled={!emailTo.trim() || isSendingEmail}>
+              <Mail className="h-4 w-4 mr-2" /> {isSendingEmail ? "Envoi en cours..." : "Envoyer"}
             </Button>
           </DialogFooter>
         </DialogContent>
