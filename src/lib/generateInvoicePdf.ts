@@ -188,13 +188,8 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
   doc.setTextColor(30, 30, 30);
   doc.text(`$${Number(invoice.amount).toFixed(2)}`, pageW - 18, y + 3, { align: "right" });
 
-  // Status
+  // Status badge intentionally removed from invoice template.
   y += 16;
-  const isPaid = invoice.status === "paid";
-  doc.setFontSize(9);
-  doc.setFont("helvetica", "bold");
-  doc.setTextColor(isPaid ? 34 : 180, isPaid ? 139 : 130, isPaid ? 34 : 0);
-  doc.text(`Statut: ${isPaid ? "PAYÉE" : "IMPAYÉE"}`, pageW - 18, y, { align: "right" });
 
   // ── Notes ──
   y += 15;
