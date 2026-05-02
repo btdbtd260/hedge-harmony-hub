@@ -125,7 +125,7 @@ const Employees = () => {
                   </span>
                 </div>
                 <div className="flex gap-4 text-sm">
-                  <span className="text-muted-foreground">Heures travaillées:</span>
+                  <span className="text-muted-foreground">Heures confirmées:</span>
                   <span className="font-medium">{totalHours}h</span>
                 </div>
                 <div className="flex gap-4 text-sm">
