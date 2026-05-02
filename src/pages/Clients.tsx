@@ -300,19 +300,17 @@ const Clients = () => {
                       <Trash2 className="h-4 w-4 mr-1" /> Masquer ce client
                     </Button>
                   ) : (
-                    <>
-                      <Button variant="outline" size="sm" onClick={() => handleRestoreClient(liveSelectedClient)}>
-                        <RotateCcw className="h-4 w-4 mr-1" /> Restaurer ce client
-                      </Button>
-                      <Button
-                        variant="destructive"
-                        size="sm"
-                        onClick={() => { setPurgeConfirmText(""); setClientToPurge(liveSelectedClient); }}
-                      >
-                        <AlertTriangle className="h-4 w-4 mr-1" /> Supprimer définitivement
-                      </Button>
-                    </>
+                    <Button variant="outline" size="sm" onClick={() => handleRestoreClient(liveSelectedClient)}>
+                      <RotateCcw className="h-4 w-4 mr-1" /> Restaurer ce client
+                    </Button>
                   )}
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={() => { setPurgeConfirmText(""); setClientToPurge(liveSelectedClient); }}
+                  >
+                    <AlertTriangle className="h-4 w-4 mr-1" /> Supprimer définitivement
+                  </Button>
                 </div>
               </div>
             </>

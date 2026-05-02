@@ -82,7 +82,6 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
 
   // Build company info lines first for height calculation
   const companyLines: string[] = [];
-  if (params?.company_address) companyLines.push(params.company_address);
   if (params?.company_phone) companyLines.push(`Tél: ${params.company_phone}`);
   if (params?.company_email) companyLines.push(params.company_email);
 

@@ -84,7 +84,6 @@ export default function EstimationPreview({
         {/* Company */}
         <div>
           <p className="font-bold text-base">{params?.company_name || "HedgePro"}</p>
-          {params?.company_address && <p className="text-xs text-muted-foreground">{params.company_address}</p>}
           {params?.company_phone && <p className="text-xs text-muted-foreground">Tél: {params.company_phone}</p>}
         </div>
 
