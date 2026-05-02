@@ -13,6 +13,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { TrendingUp, Briefcase, DollarSign } from "lucide-react";
 import {
   useEmployeeJobs,
+
   useJobs,
   useCustomers,
   getClientNameFromList,
@@ -68,9 +69,20 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
     });
   }, [myJobs, summerStart]);
 
-  const totalSummer = summerJobs.reduce((s, { ej }) => s + Number(ej.calculated_pay ?? 0), 0);
-  const totalAllTime = myJobs.reduce((s, { ej }) => s + Number(ej.calculated_pay ?? 0), 0);
-  const totalHours = myJobs.reduce((s, { ej }) => s + Number(ej.hours_worked ?? 0), 0);
+  // Confirmed earnings only count completed jobs
+  const isCompleted = (job: DbJob | undefined) => job?.status === "completed";
+  const totalSummer = summerJobs.reduce(
+    (s, { ej, job }) => s + (isCompleted(job) ? Number(ej.calculated_pay ?? 0) : 0),
+    0,
+  );
+  const totalAllTime = myJobs.reduce(
+    (s, { ej, job }) => s + (isCompleted(job) ? Number(ej.calculated_pay ?? 0) : 0),
+    0,
+  );
+  const totalHours = myJobs.reduce(
+    (s, { ej, job }) => s + (isCompleted(job) ? Number(ej.hours_worked ?? 0) : 0),
+    0,
+  );
 
   const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) ?? null : null;
 
@@ -110,6 +122,7 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                     myJobs.map(({ ej, job }) => {
                       if (!job) return null;
                       const present = ej.is_present !== false;
+                      const completed = job.status === "completed";
                       return (
                         <button
                           key={ej.id}
@@ -119,8 +132,13 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                           }`}
                         >
                           <div>
-                            <p className="font-medium text-sm">
+                            <p className="font-medium text-sm flex items-center gap-2">
                               {getClientNameFromList(customers, job.client_id)}
+                              {!completed && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  En attente
+                                </Badge>
+                              )}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {formatDateQC(job.scheduled_date)} · {job.cut_type}
@@ -128,9 +146,15 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-semibold">
-                              ${Number(ej.calculated_pay ?? 0).toFixed(2)}
-                            </p>
+                            {completed ? (
+                              <p className="text-sm font-semibold">
+                                ${Number(ej.calculated_pay ?? 0).toFixed(2)}
+                              </p>
+                            ) : (
+                              <p className="text-xs italic text-muted-foreground">
+                                Paie à confirmer
+                              </p>
+                            )}
                             <p className="text-xs text-muted-foreground">
                               {Number(ej.hours_worked ?? 0)}h
                             </p>
@@ -170,13 +194,19 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                   </div>
 
                   <div className="space-y-2 mt-2">
-                    <p className="text-sm font-medium">Détail été en cours</p>
-                    {summerJobs.length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic">
-                        Aucune job depuis le début de l'été.
-                      </p>
-                    ) : (
-                      summerJobs.map(({ ej, job }) => {
+                    <p className="text-sm font-medium">Détail été en cours (jobs complétées)</p>
+                    {(() => {
+                      const completedSummer = summerJobs.filter(
+                        ({ job }) => job?.status === "completed",
+                      );
+                      if (completedSummer.length === 0) {
+                        return (
+                          <p className="text-sm text-muted-foreground italic">
+                            Aucune job complétée depuis le début de l'été.
+                          </p>
+                        );
+                      }
+                      return completedSummer.map(({ ej, job }) => {
                         if (!job) return null;
                         return (
                           <div
@@ -196,8 +226,8 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                             </p>
                           </div>
                         );
-                      })
-                    )}
+                      });
+                    })()}
                   </div>
                 </TabsContent>
               </Tabs>
