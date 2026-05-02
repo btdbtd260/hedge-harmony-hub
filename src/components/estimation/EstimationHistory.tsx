@@ -10,6 +10,7 @@ import { useCustomers, useParameters, type DbEstimation, type DbCustomer } from 
 import { FileText, Download, Mail } from "lucide-react";
 import { toast } from "sonner";
 import { downloadEstimationPdf, getEstimationNumber, type EstimationPdfData } from "@/lib/generateEstimationPdf";
+import { sendCustomerEmail } from "@/lib/sendCustomerEmail";
 import { useState } from "react";
 
 interface Props {
@@ -133,24 +134,26 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
     setShowEmailDialog(true);
   };
 
-  const handleSendEmail = () => {
-    if (!emailTo.trim()) { toast.error("Veuillez entrer une adresse email"); return; }
-    const clientName = emailEstimation ? customers.find(c => c.id === emailEstimation.est.client_id)?.name || "Client" : "Client";
-    const subject = encodeURIComponent(`Estimation - ${clientName}`);
-    // Sender behavior: mailto: cannot override the From address — it uses the
-    // user's default mail account. We set Reply-To = company email from Settings
-    // so customer replies go to the business inbox, and add a signature with
-    // company name + email. We do NOT CC the company email (per requirement).
-    const companyEmail = ((params as any)?.company_email || "").trim();
-    const companyName = ((params as any)?.company_name || "").trim();
-    const signature = companyEmail
-      ? `\n\n---\n${companyName}\n${companyEmail}${(params as any)?.company_phone ? `\n${(params as any).company_phone}` : ""}`
-      : "";
-    const body = encodeURIComponent(emailMessage + signature);
-    const replyToPart = companyEmail ? `&reply-to=${encodeURIComponent(companyEmail)}` : "";
-    window.open(`mailto:${emailTo}?subject=${subject}${replyToPart}&body=${body}`, "_blank");
-    toast.success(`Email préparé pour ${emailTo}`);
-    setShowEmailDialog(false);
+  const handleSendEmail = async () => {
+    if (!emailTo.trim() || !emailEstimation) { toast.error("Veuillez entrer une adresse email"); return; }
+    const est = emailEstimation.est;
+    const clientName = customers.find(c => c.id === est.client_id)?.name || "Client";
+    try {
+      await sendCustomerEmail({
+        templateName: "estimation-to-client",
+        recipientEmail: emailTo.trim(),
+        idempotencyKey: `estimation-${est.id}-${emailTo.trim().toLowerCase()}`,
+        templateData: {
+          clientName,
+          totalPrice: Number(est.total_price).toFixed(2),
+          message: emailMessage,
+        },
+      });
+      toast.success(`Email envoyé à ${emailTo}`);
+      setShowEmailDialog(false);
+    } catch (e: any) {
+      toast.error(`Échec de l'envoi : ${e?.message ?? "erreur inconnue"}`);
+    }
   };
 
   return (
@@ -268,7 +271,7 @@ export default function EstimationHistory({ estimations, customers, params }: Pr
               <Label>Message</Label>
               <Textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)} rows={6} />
             </div>
-            <p className="text-xs text-muted-foreground">L'email s'ouvrira dans votre application de messagerie. Pensez à joindre le PDF téléchargé.</p>
+            <p className="text-xs text-muted-foreground">L'email sera envoyé depuis Taille de haie ACF.</p>
           </div>
           <DialogFooter>
             {emailEstimation && (

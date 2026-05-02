@@ -325,24 +325,25 @@ const EstimationPage = () => {
     setShowEmailDialog(true);
   };
 
-  const handleSendEmail = () => {
+  const handleSendEmail = async () => {
     if (!emailTo.trim()) { toast.error("Veuillez entrer une adresse email"); return; }
-    const subject = encodeURIComponent(`Estimation - ${selectedClient?.name || "Client"}`);
-    // Sender behavior: the local mail client (mailto:) cannot override the From
-    // address — it always uses the user's default account. We use the company
-    // email from Settings as Reply-To so responses go to the business inbox,
-    // and we append a signature with company name + email. We do NOT CC the
-    // company email (per requirement).
-    const companyEmail = (params?.company_email || "").trim();
-    const companyName = (params?.company_name || "").trim();
-    const signature = companyEmail
-      ? `\n\n---\n${companyName}\n${companyEmail}${params?.company_phone ? `\n${params.company_phone}` : ""}`
-      : "";
-    const body = encodeURIComponent(emailMessage + signature);
-    const replyToPart = companyEmail ? `&reply-to=${encodeURIComponent(companyEmail)}` : "";
-    window.open(`mailto:${emailTo}?subject=${subject}${replyToPart}&body=${body}`, "_blank");
-    toast.success(`Email préparé pour ${emailTo}`);
-    setShowEmailDialog(false);
+    try {
+      const { sendCustomerEmail } = await import("@/lib/sendCustomerEmail");
+      await sendCustomerEmail({
+        templateName: "estimation-to-client",
+        recipientEmail: emailTo.trim(),
+        idempotencyKey: `estimation-draft-${clientId || "anon"}-${Date.now()}`,
+        templateData: {
+          clientName: selectedClient?.name || "",
+          totalPrice: totalPrice.toFixed(2),
+          message: emailMessage,
+        },
+      });
+      toast.success(`Email envoyé à ${emailTo}`);
+      setShowEmailDialog(false);
+    } catch (e: any) {
+      toast.error(`Échec de l'envoi : ${e?.message ?? "erreur inconnue"}`);
+    }
   };
 
   const handleCreateEstimation = async () => {
@@ -831,7 +832,7 @@ const EstimationPage = () => {
               <Label>Message</Label>
               <Textarea value={emailMessage} onChange={(e) => setEmailMessage(e.target.value)} rows={6} />
             </div>
-            <p className="text-xs text-muted-foreground">L'email s'ouvrira dans votre application de messagerie. Pensez à joindre le PDF téléchargé.</p>
+            <p className="text-xs text-muted-foreground">L'email sera envoyé depuis Taille de haie ACF.</p>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowEmailDialog(false)}>Annuler</Button>
