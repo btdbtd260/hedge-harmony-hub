@@ -194,13 +194,19 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                   </div>
 
                   <div className="space-y-2 mt-2">
-                    <p className="text-sm font-medium">Détail été en cours</p>
-                    {summerJobs.length === 0 ? (
-                      <p className="text-sm text-muted-foreground italic">
-                        Aucune job depuis le début de l'été.
-                      </p>
-                    ) : (
-                      summerJobs.map(({ ej, job }) => {
+                    <p className="text-sm font-medium">Détail été en cours (jobs complétées)</p>
+                    {(() => {
+                      const completedSummer = summerJobs.filter(
+                        ({ job }) => job?.status === "completed",
+                      );
+                      if (completedSummer.length === 0) {
+                        return (
+                          <p className="text-sm text-muted-foreground italic">
+                            Aucune job complétée depuis le début de l'été.
+                          </p>
+                        );
+                      }
+                      return completedSummer.map(({ ej, job }) => {
                         if (!job) return null;
                         return (
                           <div
@@ -220,8 +226,8 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                             </p>
                           </div>
                         );
-                      })
-                    )}
+                      });
+                    })()}
                   </div>
                 </TabsContent>
               </Tabs>
