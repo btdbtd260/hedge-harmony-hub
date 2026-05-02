@@ -371,7 +371,12 @@ export function useUpdateJob() {
       const { error } = await supabase.from("jobs").update(updates).eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["jobs"] }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["jobs"] });
+      // Status change (completed/uncompleted) affects employee earnings totals
+      qc.invalidateQueries({ queryKey: ["employee_jobs"] });
+      qc.invalidateQueries({ queryKey: ["invoices"] });
+    },
   });
 }
 
