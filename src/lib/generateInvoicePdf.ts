@@ -42,7 +42,6 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
   const companyName = params?.company_name || "HedgePro";
 
   const companyLines: string[] = [];
-  if (params?.company_address) companyLines.push(params.company_address);
   if (params?.company_phone) companyLines.push(`Tél: ${params.company_phone}`);
   if (params?.company_email) companyLines.push(params.company_email);
 
