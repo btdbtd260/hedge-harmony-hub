@@ -122,6 +122,7 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                     myJobs.map(({ ej, job }) => {
                       if (!job) return null;
                       const present = ej.is_present !== false;
+                      const completed = job.status === "completed";
                       return (
                         <button
                           key={ej.id}
@@ -131,8 +132,13 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                           }`}
                         >
                           <div>
-                            <p className="font-medium text-sm">
+                            <p className="font-medium text-sm flex items-center gap-2">
                               {getClientNameFromList(customers, job.client_id)}
+                              {!completed && (
+                                <Badge variant="outline" className="text-[10px]">
+                                  En attente
+                                </Badge>
+                              )}
                             </p>
                             <p className="text-xs text-muted-foreground">
                               {formatDateQC(job.scheduled_date)} · {job.cut_type}
@@ -140,9 +146,15 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                             </p>
                           </div>
                           <div className="text-right">
-                            <p className="text-sm font-semibold">
-                              ${Number(ej.calculated_pay ?? 0).toFixed(2)}
-                            </p>
+                            {completed ? (
+                              <p className="text-sm font-semibold">
+                                ${Number(ej.calculated_pay ?? 0).toFixed(2)}
+                              </p>
+                            ) : (
+                              <p className="text-xs italic text-muted-foreground">
+                                Paie à confirmer
+                              </p>
+                            )}
                             <p className="text-xs text-muted-foreground">
                               {Number(ej.hours_worked ?? 0)}h
                             </p>
