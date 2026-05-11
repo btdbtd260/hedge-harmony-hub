@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from "react";
-import { CalendarIcon, X, Clock, Trash2, Check } from "lucide-react";
+import { CalendarIcon, X, Trash2, Check } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -18,7 +18,7 @@ import { Label } from "@/components/ui/label";
 import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimeWheelPicker } from "@/components/ui/time-wheel-picker";
-import { cn, formatDateQC } from "@/lib/utils";
+import { cn, formatDateOnly } from "@/lib/utils";
 import { useCustomers, useUpdateJob, useJobs, useDeleteJob, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { JobPhotosManager } from "@/components/jobs/JobPhotosManager";
 import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
@@ -55,7 +55,6 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
   const [datePickerOpen, setDatePickerOpen] = useState(false);
-  const [startPickerOpen, setStartPickerOpen] = useState(false);
   const [completionOpen, setCompletionOpen] = useState(false);
   const [completionEndTime, setCompletionEndTime] = useState<string>("17:00");
   const [completionTip, setCompletionTip] = useState<string>("0");
@@ -67,6 +66,12 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   useEffect(() => {
     if (job?.status === "completed") setTipDraft(String(job.tip ?? 0));
   }, [job?.id, job?.status, (job as any)?.tip]);
+
+  // Local draft for start_time editing (sync from job, write on blur)
+  const [startTimeDraft, setStartTimeDraft] = useState<string>("");
+  useEffect(() => {
+    setStartTimeDraft(job?.start_time?.slice(0, 5) ?? "");
+  }, [job?.id]);
 
   // Compute (or read) the estimated duration for the current job
   const estimation = useMemo(() => {
@@ -178,10 +183,15 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
     }
   };
 
-  const handleStartTimeChange = async (value: string) => {
+  const handleStartTimeChange = (value: string) => {
+    setStartTimeDraft(value);
+  };
+
+  const handleStartTimeBlur = async () => {
     if (!job) return;
+    const val = startTimeDraft || null;
     try {
-      await updateJob.mutateAsync({ id: job.id, start_time: value } as any);
+      await updateJob.mutateAsync({ id: job.id, start_time: val } as any);
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -223,7 +233,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                           className={cn("h-8 justify-start text-left font-normal min-w-[160px]", !job.scheduled_date && "text-muted-foreground")}
                         >
                           <CalendarIcon className="mr-2 h-3.5 w-3.5" />
-                          {job.scheduled_date ? formatDateQC(job.scheduled_date) : "Choisir une date"}
+                          {job.scheduled_date ? formatDateOnly(job.scheduled_date) : "Choisir une date"}
                         </Button>
                       </PopoverTrigger>
                       <PopoverContent className="w-auto p-0" align="end">
@@ -251,28 +261,18 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                 </div>
               )}
 
-              {/* SCHEDULED — show start time only (wheel picker) */}
+              {/* SCHEDULED — show start time only (native input) */}
               {job.status === "scheduled" && (
                 <>
                   <div className="flex justify-between items-center text-sm gap-2">
                     <span className="text-muted-foreground">Heure de départ</span>
-                    <Popover open={startPickerOpen} onOpenChange={setStartPickerOpen}>
-                      <PopoverTrigger asChild>
-                        <Button variant="outline" size="sm" className="h-8 min-w-[110px]">
-                          <Clock className="mr-2 h-3.5 w-3.5" />
-                          {job.start_time?.slice(0, 5) || "Choisir"}
-                        </Button>
-                      </PopoverTrigger>
-                      <PopoverContent className="w-auto p-3" align="end">
-                        <TimeWheelPicker
-                          value={job.start_time?.slice(0, 5) ?? "08:00"}
-                          onChange={handleStartTimeChange}
-                        />
-                        <div className="flex justify-end pt-2">
-                          <Button size="sm" onClick={() => setStartPickerOpen(false)}>OK</Button>
-                        </div>
-                      </PopoverContent>
-                    </Popover>
+                    <Input
+                      type="time"
+                      value={startTimeDraft}
+                      onChange={(e) => handleStartTimeChange(e.target.value)}
+                      onBlur={handleStartTimeBlur}
+                      className="h-8 w-36"
+                    />
                   </div>
                   {storedEstimate && storedEstimate > 0 && (
                     <div className="flex justify-between text-sm">
