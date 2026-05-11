@@ -1,0 +1,136 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 0 0% 99%;
+    --foreground: 150 10% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 150 10% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 150 10% 10%;
+
+    --primary: 152 45% 36%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 150 15% 94%;
+    --secondary-foreground: 150 10% 15%;
+
+    --muted: 150 10% 95%;
+    --muted-foreground: 150 5% 45%;
+
+    --accent: 150 15% 92%;
+    --accent-foreground: 150 10% 15%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 10% 90%;
+    --input: 150 10% 85%;
+    --ring: 152 45% 36%;
+
+    --radius: 0.5rem;
+
+    --sidebar-background: 150 12% 97%;
+    --sidebar-foreground: 150 10% 25%;
+    --sidebar-primary: 152 45% 36%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 15% 92%;
+    --sidebar-accent-foreground: 150 10% 15%;
+    --sidebar-border: 150 10% 90%;
+    --sidebar-ring: 152 45% 36%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --success: 152 60% 40%;
+    --success-foreground: 0 0% 100%;
+
+    /* Cut type colors
+       - Taillage (trim) : green (kept — coherent with brand primary)
+       - Nivelage (levelling) : red
+       - Restauration (restoration) : orange */
+    --cut-trim: 152 55% 42%;
+    --cut-trim-foreground: 0 0% 100%;
+    --cut-levelling: 0 72% 51%;
+    --cut-levelling-foreground: 0 0% 100%;
+    --cut-restoration: 28 88% 52%;
+    --cut-restoration-foreground: 0 0% 100%;
+
+    /* External estimation request (calendar) */
+    --estimation-request: 217 91% 55%;
+    --estimation-request-foreground: 0 0% 100%;
+  }
+
+  .dark {
+    --background: 150 10% 5%;
+    --foreground: 150 5% 95%;
+
+    --card: 150 10% 7%;
+    --card-foreground: 150 5% 95%;
+
+    --popover: 150 10% 7%;
+    --popover-foreground: 150 5% 95%;
+
+    --primary: 152 45% 45%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 150 10% 15%;
+    --secondary-foreground: 150 5% 90%;
+
+    --muted: 150 10% 15%;
+    --muted-foreground: 150 5% 60%;
+
+    --accent: 150 10% 15%;
+    --accent-foreground: 150 5% 90%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 150 10% 18%;
+    --input: 150 10% 18%;
+    --ring: 152 45% 45%;
+
+    --sidebar-background: 150 10% 6%;
+    --sidebar-foreground: 150 5% 90%;
+    --sidebar-primary: 152 45% 45%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 150 10% 12%;
+    --sidebar-accent-foreground: 150 5% 90%;
+    --sidebar-border: 150 10% 15%;
+    --sidebar-ring: 152 45% 45%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+    --success: 152 60% 40%;
+    --success-foreground: 0 0% 100%;
+
+    --cut-trim: 152 55% 50%;
+    --cut-trim-foreground: 0 0% 100%;
+    --cut-levelling: 0 72% 55%;
+    --cut-levelling-foreground: 0 0% 100%;
+    --cut-restoration: 28 88% 58%;
+    --cut-restoration-foreground: 0 0% 100%;
+
+    --estimation-request: 217 91% 60%;
+    --estimation-request-foreground: 0 0% 100%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground;
+  }
+}
+
+@layer utilities {
+  /* Used by the time wheel picker — hide native scrollbars while keeping scroll */
+  .no-scrollbar::-webkit-scrollbar { display: none; }
+  .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+}

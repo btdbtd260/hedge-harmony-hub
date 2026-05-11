@@ -1,0 +1,2 @@
+ALTER TABLE public.estimations DROP CONSTRAINT IF EXISTS estimations_cut_type_check;
+ALTER TABLE public.estimations ADD CONSTRAINT estimations_cut_type_check CHECK (cut_type = ANY (ARRAY['trim'::text, 'levelling'::text, 'custom'::text]));
