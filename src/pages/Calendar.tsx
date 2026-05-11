@@ -526,7 +526,7 @@ function MonthView({
                     )}
                     title={`${cutTypeLabel(j.cut_type)} · ${getClientNameFromList(customers, j.client_id)}`}
                   >
-                    {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}</span>}
+                    {j.start_time && <span className="font-medium mr-1">{j.start_time.slice(0, 5)}{projectedEndTime(j) && ` – ${projectedEndTime(j)}`}</span>}
                     {getClientNameFromList(customers, j.client_id)}
                   </div>
                 ))}
@@ -619,7 +619,7 @@ function WeekView({
                       )}
                       title={cutTypeLabel(j.cut_type)}
                     >
-                      {j.start_time && <div className="font-medium">{j.start_time.slice(0, 5)}</div>}
+                      {j.start_time && <div className="font-medium">{j.start_time.slice(0, 5)}{projectedEndTime(j) && ` – ${projectedEndTime(j)}`}</div>}
                       <div className="truncate">{getClientNameFromList(customers, j.client_id)}</div>
                     </div>
                   ))}
