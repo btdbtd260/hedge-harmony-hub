@@ -29,6 +29,7 @@ import {
   addMinutesToTime,
 } from "@/lib/jobDurationEstimator";
 import { toast } from "sonner";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Props {
   job: DbJob | null;
@@ -59,6 +60,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   const [completionEndTime, setCompletionEndTime] = useState<string>("17:00");
   const [completionTip, setCompletionTip] = useState<string>("0");
   const [confirmDelete, setConfirmDelete] = useState(false);
+  const [createInvoice, setCreateInvoice] = useState(false);
   const snap = job?.measurement_snapshot as any;
 
   // Quick tip editor for already-completed jobs
@@ -100,6 +102,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
       // Open modal to ask the real end time + tip before persisting status
       setCompletionEndTime(job.end_time?.slice(0, 5) || addMinutesToTime(job.start_time, storedEstimate ?? 60) || "17:00");
       setCompletionTip(String(job.tip ?? 0));
+      setCreateInvoice(false);
       setCompletionOpen(true);
       return;
     }
@@ -136,6 +139,25 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
     const variance = estimated > 0 ? real - estimated : null;
     try {
       const tipNum = Number(completionTip);
+
+      // Handle invoice choice BEFORE updating job (before trigger fires)
+      if (!createInvoice) {
+        // Delete ONLY draft invoices — never touch unpaid/paid
+        await supabase.from("invoices").delete().eq("job_id", job.id).eq("status", "draft");
+      } else {
+        const amount = job.real_profit ?? job.estimated_profit ?? 0;
+        const { data: existingDraft } = await supabase
+          .from("invoices")
+          .select("id")
+          .eq("job_id", job.id)
+          .eq("status", "draft")
+          .maybeSingle();
+        if (existingDraft) {
+          // Update draft amount BEFORE trigger publishes it
+          await supabase.from("invoices").update({ amount }).eq("id", existingDraft.id);
+        }
+      }
+
       await updateJob.mutateAsync({
         id: job.id,
         status: "completed",
@@ -145,6 +167,25 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
         duration_variance_minutes: variance,
         tip: Number.isFinite(tipNum) && tipNum >= 0 ? tipNum : 0,
       } as any);
+
+      // After completion succeeds, create invoice if needed
+      if (createInvoice) {
+        const amount = job.real_profit ?? job.estimated_profit ?? 0;
+        const { data: invoiceAfter } = await supabase
+          .from("invoices")
+          .select("id")
+          .eq("job_id", job.id)
+          .maybeSingle();
+        if (!invoiceAfter) {
+          await supabase.from("invoices").insert({
+            job_id: job.id,
+            client_id: job.client_id,
+            amount,
+            status: "unpaid",
+          });
+        }
+      }
+
       setCompletionOpen(false);
       const variancePart =
         variance === null
@@ -494,6 +535,21 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
               <p className="text-[11px] text-muted-foreground">
                 Sera ajouté au total de la job pour la part des admins.
               </p>
+            </div>
+
+            <div className="space-y-2 pt-2 border-t">
+              <div className="flex items-center justify-between">
+                <Label className="text-sm">Créer une facture ?</Label>
+                <div className="flex gap-1">
+                  <Button type="button" size="sm" variant={!createInvoice ? "default" : "outline"} onClick={() => setCreateInvoice(false)}>Non</Button>
+                  <Button type="button" size="sm" variant={createInvoice ? "default" : "outline"} onClick={() => setCreateInvoice(true)}>Oui</Button>
+                </div>
+              </div>
+              {createInvoice && (
+                <p className="text-xs text-muted-foreground">
+                  Montant: ${(job?.real_profit ?? job?.estimated_profit ?? 0).toFixed(2)} (sans le tip)
+                </p>
+              )}
             </div>
           </div>
           <DialogFooter>

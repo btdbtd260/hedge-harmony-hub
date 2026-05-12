@@ -6,7 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInsertEstimation, useInsertJob, useInsertInvoice } from "@/hooks/useSupabaseData";
+import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInsertEstimation, useInsertJob } from "@/hooks/useSupabaseData";
 import { Calculator, Plus, Trash2, Search, UserPlus, Download, Mail, RotateCcw } from "lucide-react";
 import {
   AlertDialog,
@@ -140,7 +140,6 @@ const EstimationPage = () => {
   const insertCustomer = useInsertCustomer();
   const insertEstimation = useInsertEstimation();
   const insertJob = useInsertJob();
-  const insertInvoice = useInsertInvoice();
 
   // Hydrate from draft (or defaults if expired/missing). Computed once per mount.
   const initialDraft = loadInitialDraft();
@@ -436,10 +435,6 @@ const EstimationPage = () => {
           },
         },
       });
-
-      // Facture créée en BROUILLON (draft) — elle deviendra "unpaid" automatiquement
-      // (via trigger DB) quand la job passera à "completed".
-      await insertInvoice.mutateAsync({ client_id: clientId, job_id: job.id, amount: totalPrice, status: "draft" });
 
       toast.success(
         scheduledDate
