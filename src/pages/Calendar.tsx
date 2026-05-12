@@ -84,6 +84,16 @@ function projectedEndTime(j: DbJob): string | null {
   return minutesToHHmm(start + est);
 }
 
+/** End minutes from midnight for a scheduled job. Returns null if not computable. */
+function projectedEndMinutes(j: DbJob): number | null {
+  if (j.end_time) return parseTimeToMinutes(j.end_time);
+  const start = parseTimeToMinutes(j.start_time);
+  if (start === null) return null;
+  const est = j.estimated_duration_minutes;
+  if (!est || est <= 0) return null;
+  return start + est;
+}
+
 // Color classes per cut type — uses semantic tokens from index.css.
 // Note: cut_type is always one of the 3 real types (trim/levelling/restoration).
 // A custom price-per-foot does NOT change the color — it stays tied to the chosen cut type.
@@ -739,63 +749,70 @@ function DayHourlyDialog({
               </div>
             )}
 
-            <div className="border rounded-lg divide-y max-h-[60vh] overflow-y-auto">
-              {Array.from({ length: 24 }, (_, hour) => {
-                const hourJobs = scheduledJobs.filter((j) => {
-                  const m = parseTimeToMinutes(j.start_time)!;
-                  return Math.floor(m / 60) === hour;
-                });
-                const hourRequests = scheduledRequests.filter((r) => {
-                  const m = parseTimeToMinutes(r.requested_time)!;
-                  return Math.floor(m / 60) === hour;
-                });
-                return (
-                  <div key={hour} className="flex min-h-[48px]">
-                    <div className="w-12 sm:w-16 shrink-0 text-[11px] sm:text-xs text-muted-foreground p-1.5 sm:p-2 border-r bg-muted/30 text-right">
-                      {String(hour).padStart(2, "0")}:00
+            <div className="border rounded-lg max-h-[60vh] overflow-y-auto">
+              <div className="flex">
+                <div className="w-12 sm:w-16 shrink-0">
+                  {Array.from({ length: 24 }, (_, hour) => (
+                    <div key={hour} className="h-12 border-r border-b bg-muted/30 flex items-start justify-end p-1.5">
+                      <span className="text-[11px] sm:text-xs text-muted-foreground">
+                        {String(hour).padStart(2, "0")}:00
+                      </span>
                     </div>
-                    <div className="flex-1 p-1.5 space-y-1 min-w-0">
-                      {hourRequests.map((r) => (
-                        <div
-                          key={r.id}
-                          onClick={() => onRequestClick(r.id)}
-                          className={cn(
-                            "w-full text-left px-2 py-1.5 rounded text-xs sm:text-sm cursor-pointer",
-                            requestClasses(r),
-                          )}
-                        >
-                          <div className="font-medium truncate">
-                            {r.requested_time?.slice(0, 5)} · {r.client_name || "Estimation à faire"}
-                          </div>
-                          <div className="text-[10px] sm:text-xs opacity-80">Estimation à faire</div>
+                  ))}
+                </div>
+                <div className="flex-1 relative min-h-[1152px]">
+                  {Array.from({ length: 24 }, (_, hour) => (
+                    <div key={hour} className="absolute left-0 right-0 border-b border-border/30" style={{ top: (hour + 1) * 48 }} />
+                  ))}
+                  {scheduledRequests.map((r) => {
+                    const m = parseTimeToMinutes(r.requested_time)!;
+                    return (
+                      <div
+                        key={`req-${r.id}`}
+                        onClick={() => onRequestClick(r.id)}
+                        className={cn(
+                          "absolute left-1 right-1 rounded px-2 py-1 text-xs sm:text-sm cursor-pointer overflow-hidden",
+                          requestClasses(r),
+                        )}
+                        style={{ top: (m / 60) * 48, height: 48 }}
+                      >
+                        <div className="font-medium truncate text-[10px] sm:text-xs">
+                          {r.requested_time?.slice(0, 5)} · {r.client_name || "Estimation à faire"}
                         </div>
-                      ))}
-                      {hourJobs.map((j) => {
-                        const end = projectedEndTime(j);
-                        return (
-                          <div
-                            key={j.id}
-                            onClick={() => onJobClick(j.id)}
-                            className={cn(
-                              "w-full text-left px-2 py-1.5 rounded text-xs sm:text-sm cursor-pointer",
-                              jobClasses(j),
-                            )}
-                          >
-                            <div className="font-medium truncate">
-                              {j.start_time?.slice(0, 5)}
-                              {end && ` – ${end}`}
-                              {!j.end_time && end && <span className="text-[10px] opacity-70 ml-1">(estimé)</span>}
-                              {" · "}
-                              {getClientNameFromList(customers, j.client_id)}
-                            </div>
-                            <div className="text-[10px] sm:text-xs opacity-80">{cutTypeLabel(j.cut_type)}</div>
-                          </div>
-                        );
-                      })}
-                    </div>
-                  </div>
-                );
-              })}
+                        <div className="text-[9px] sm:text-[10px] opacity-80 truncate">Estimation à faire</div>
+                      </div>
+                    );
+                  })}
+                  {scheduledJobs.map((j) => {
+                    const startMin = parseTimeToMinutes(j.start_time)!;
+                    const endMin = Math.min(projectedEndMinutes(j) ?? (startMin + 60), 24 * 60);
+                    const top = (startMin / 60) * 48;
+                    const height = Math.max(24, ((endMin - startMin) / 60) * 48);
+                    const end = projectedEndTime(j);
+                    return (
+                      <div
+                        key={j.id}
+                        onClick={() => onJobClick(j.id)}
+                        className={cn(
+                          "absolute left-1 right-1 rounded px-2 py-0.5 cursor-pointer overflow-hidden",
+                          jobClasses(j),
+                        )}
+                        style={{ top, height }}
+                        title={`${getClientNameFromList(customers, j.client_id)} · ${cutTypeLabel(j.cut_type)}`}
+                      >
+                        <div className="font-medium truncate text-[10px] sm:text-xs leading-tight">
+                          {j.start_time?.slice(0, 5)}
+                          {end && ` – ${end}`}
+                          {!j.end_time && end && <span className="text-[9px] opacity-70 ml-0.5">(estimé)</span>}
+                        </div>
+                        <div className="text-[9px] sm:text-[10px] opacity-80 truncate leading-tight">
+                          {getClientNameFromList(customers, j.client_id)}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </div>
             </div>
           </>
         )}
