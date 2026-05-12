@@ -1,9 +1,11 @@
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users, FileText, Plus, Clock, DollarSign, Briefcase, Bell, ClipboardList } from "lucide-react";
 import { useCustomers, useJobs, useInvoices, useReminders, useEstimationRequests, getClientNameFromList } from "@/hooks/useSupabaseData";
 import { useNavigate } from "react-router-dom";
+import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
 
 const statusColor: Record<string, string> = {
   scheduled: "bg-blue-100 text-blue-700",
@@ -18,6 +20,9 @@ const Dashboard = () => {
   const { data: invoices = [] } = useInvoices();
   const { data: reminders = [] } = useReminders();
   const { data: estimationRequests = [] } = useEstimationRequests();
+
+  const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
+  const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) ?? null : null;
 
   const today = new Date().toISOString().split("T")[0];
   const inOneWeek = new Date();
@@ -98,7 +103,7 @@ const Dashboard = () => {
           ) : (
             <div className="space-y-3">
               {todayJobs.map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-3 rounded-lg border">
+                <div key={job.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedJobId(job.id)}>
                   <div>
                     <p className="font-medium">{getClientNameFromList(customers, job.client_id)}</p>
                     <p className="text-sm text-muted-foreground">{job.cut_type}</p>
@@ -119,7 +124,7 @@ const Dashboard = () => {
           ) : (
             <div className="space-y-3">
               {upcomingJobs.map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-3 rounded-lg border">
+                <div key={job.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedJobId(job.id)}>
                   <div>
                     <p className="font-medium">{getClientNameFromList(customers, job.client_id)}</p>
                     <p className="text-sm text-muted-foreground">{job.scheduled_date} · {job.cut_type}</p>
@@ -131,6 +136,7 @@ const Dashboard = () => {
           )}
         </CardContent>
       </Card>
+      <JobDetailDialog job={selectedJob} onOpenChange={(open) => !open && setSelectedJobId(null)} />
     </div>
   );
 };
