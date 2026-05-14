@@ -1,5 +1,5 @@
 import { useState, useMemo } from "react";
-import { formatDateQC } from "@/lib/utils";
+import { formatDateQC, formatDateOnly } from "@/lib/utils";
 import { formatPhone } from "@/lib/phoneFormat";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -388,7 +388,7 @@ const Invoices = () => {
                     <div><span className="text-muted-foreground">Montant</span><p className="font-semibold text-lg">${Number(selectedInvoice.amount).toFixed(2)}</p></div>
                     <div><span className="text-muted-foreground">Date émission</span><p>{formatDateQC(selectedInvoice.issued_at)}</p></div>
                     {selectedInvoice.paid_at && <div><span className="text-muted-foreground">Date paiement</span><p>{formatDateQC(selectedInvoice.paid_at)}</p></div>}
-                    <div><span className="text-muted-foreground">Job lié</span><p>{job ? `${job.cut_type === "levelling" ? "Nivelage" : "Taille"} · ${formatDateQC(job.scheduled_date)}` : "—"}</p></div>
+                    <div><span className="text-muted-foreground">Job lié</span><p>{job ? `${job.cut_type === "levelling" ? "Nivelage" : "Taille"} · ${formatDateOnly(job.scheduled_date)}` : "—"}</p></div>
                     {job?.total_duration_minutes && <div><span className="text-muted-foreground">Durée</span><p>{job.total_duration_minutes} min</p></div>}
                   </div>
                 </div>

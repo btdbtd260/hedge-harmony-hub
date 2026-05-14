@@ -1,4 +1,5 @@
 import { useState, useMemo } from "react";
+import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -24,6 +25,8 @@ const statusColor: Record<string, string> = {
 };
 
 const Clients = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const { data: customers = [] } = useCustomers();
   const { data: jobs = [] } = useJobs();
   const insertCustomer = useInsertCustomer();
@@ -169,7 +172,7 @@ const Clients = () => {
       </div>
 
       {/* Tabs : vrais clients (au moins 1 job scheduled/completed) vs estimation seulement */}
-      <Tabs defaultValue="clients">
+      <Tabs value={location.pathname === "/clients/estimation" ? "estimation" : "clients"} onValueChange={(val) => navigate(val === "estimation" ? "/clients/estimation" : "/clients", { replace: true })}>
         <TabsList>
           <TabsTrigger value="clients">
             <Users className="h-4 w-4 mr-1" /> Clients ({currentYear.length})

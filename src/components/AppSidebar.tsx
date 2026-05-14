@@ -11,7 +11,9 @@ import {
   BarChart3,
   Settings,
   MessageSquare,
+  ChevronRight,
 } from "lucide-react";
+import type { LucideIcon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
   Sidebar,
@@ -22,25 +24,46 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarHeader,
 } from "@/components/ui/sidebar";
+import {
+  Collapsible,
+  CollapsibleTrigger,
+  CollapsibleContent,
+} from "@/components/ui/collapsible";
 import { useReminders, useEstimationRequests } from "@/hooks/useSupabaseData";
 import { useUnreadMessages } from "@/hooks/useMessages";
 import { Badge } from "@/components/ui/badge";
 
-const navItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Clients", url: "/clients", icon: Users },
-  { title: "Estimation", url: "/estimation", icon: Calculator },
-  { title: "Jobs", url: "/jobs", icon: Briefcase },
-  { title: "Calendrier", url: "/calendar", icon: CalendarDays },
-  { title: "Facturation", url: "/invoices", icon: FileText },
-  { title: "Finance", url: "/finance", icon: DollarSign },
-  { title: "Employés", url: "/employees", icon: UserCog },
-  { title: "Rappels", url: "/reminders", icon: Bell },
-  { title: "Messagerie", url: "/messagerie", icon: MessageSquare },
-  { title: "Analytics", url: "/analytics", icon: BarChart3 },
-  { title: "Paramètres", url: "/settings", icon: Settings },
+type NavItem =
+  | { type: "link"; title: string; url: string; icon: LucideIcon; end?: boolean }
+  | { type: "section"; title: string; icon: LucideIcon; defaultOpen?: boolean; items: { title: string; url: string; icon?: LucideIcon }[] };
+
+const navItems: NavItem[] = [
+  { type: "link", title: "Dashboard", url: "/", icon: LayoutDashboard, end: true },
+  {
+    type: "section",
+    title: "Clients",
+    icon: Users,
+    defaultOpen: true,
+    items: [
+      { title: "Clients", url: "/clients" },
+      { title: "Estimation clients", url: "/clients/estimation", icon: Calculator },
+    ],
+  },
+  { type: "link", title: "Estimation", url: "/estimation", icon: Calculator },
+  { type: "link", title: "Jobs", url: "/jobs", icon: Briefcase },
+  { type: "link", title: "Calendrier", url: "/calendar", icon: CalendarDays },
+  { type: "link", title: "Facturation", url: "/invoices", icon: FileText },
+  { type: "link", title: "Finance", url: "/finance", icon: DollarSign },
+  { type: "link", title: "Employés", url: "/employees", icon: UserCog },
+  { type: "link", title: "Rappels", url: "/reminders", icon: Bell },
+  { type: "link", title: "Messagerie", url: "/messagerie", icon: MessageSquare },
+  { type: "link", title: "Analytics", url: "/analytics", icon: BarChart3 },
+  { type: "link", title: "Paramètres", url: "/settings", icon: Settings },
 ];
 
 export function AppSidebar() {
@@ -77,44 +100,77 @@ export function AppSidebar() {
           <SidebarGroupLabel>Navigation</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      end={item.url === "/"}
-                      className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent"
-                      activeClassName="bg-sidebar-accent text-primary font-medium"
-                    >
-                      <item.icon className="h-4 w-4" />
-                      <span className="flex-1">{item.title}</span>
-                      {item.title === "Rappels" && activeReminders > 0 && (
-                        <Badge variant="destructive" className="h-5 min-w-5 text-xs flex items-center justify-center">
-                          {activeReminders}
-                        </Badge>
-                      )}
-                      {item.title === "Calendrier" && unseenRequests > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="h-5 min-w-5 text-xs flex items-center justify-center"
-                          title={`${unseenRequests} nouvelle(s) demande(s) d'estimation`}
-                        >
-                          {unseenRequests}
-                        </Badge>
-                      )}
-                      {item.title === "Messagerie" && unreadMessages.length > 0 && (
-                        <Badge
-                          variant="destructive"
-                          className="h-5 min-w-5 text-xs flex items-center justify-center"
-                          title={`${unreadMessages.length} message(s) non lu(s)`}
-                        >
-                          {unreadMessages.length}
-                        </Badge>
-                      )}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {navItems.map((item) =>
+                item.type === "link" ? (
+                  <SidebarMenuItem key={item.title}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        end={item.end}
+                        className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent"
+                        activeClassName="bg-sidebar-accent text-primary font-medium"
+                      >
+                        <item.icon className="h-4 w-4" />
+                        <span className="flex-1">{item.title}</span>
+                        {item.title === "Rappels" && activeReminders > 0 && (
+                          <Badge variant="destructive" className="h-5 min-w-5 text-xs flex items-center justify-center">
+                            {activeReminders}
+                          </Badge>
+                        )}
+                        {item.title === "Calendrier" && unseenRequests > 0 && (
+                          <Badge
+                            variant="destructive"
+                            className="h-5 min-w-5 text-xs flex items-center justify-center"
+                            title={`${unseenRequests} nouvelle(s) demande(s) d'estimation`}
+                          >
+                            {unseenRequests}
+                          </Badge>
+                        )}
+                        {item.title === "Messagerie" && unreadMessages.length > 0 && (
+                          <Badge
+                            variant="destructive"
+                            className="h-5 min-w-5 text-xs flex items-center justify-center"
+                            title={`${unreadMessages.length} message(s) non lu(s)`}
+                          >
+                            {unreadMessages.length}
+                          </Badge>
+                        )}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                ) : (
+                  <Collapsible key={item.title} defaultOpen={item.defaultOpen ?? true} className="group/collapsible">
+                    <SidebarMenuItem>
+                      <CollapsibleTrigger asChild>
+                        <SidebarMenuButton className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent data-[state=open]:hover:bg-sidebar-accent">
+                          <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
+                          <item.icon className="h-4 w-4" />
+                          <span className="flex-1">{item.title}</span>
+                        </SidebarMenuButton>
+                      </CollapsibleTrigger>
+                    </SidebarMenuItem>
+                    <CollapsibleContent>
+                      <SidebarMenuSub>
+                        {item.items.map((sub) => (
+                          <SidebarMenuSubItem key={sub.title}>
+                            <SidebarMenuSubButton asChild>
+                              <NavLink
+                                to={sub.url}
+                                end
+                                className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent"
+                                activeClassName="bg-sidebar-accent text-primary font-medium"
+                              >
+                                {sub.icon && <sub.icon className="h-4 w-4" />}
+                                <span>{sub.title}</span>
+                              </NavLink>
+                            </SidebarMenuSubButton>
+                          </SidebarMenuSubItem>
+                        ))}
+                      </SidebarMenuSub>
+                    </CollapsibleContent>
+                  </Collapsible>
+                )
+              )}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>

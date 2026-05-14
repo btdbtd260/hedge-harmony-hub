@@ -20,7 +20,7 @@ import {
   type DbEmployee,
   type DbJob,
 } from "@/hooks/useSupabaseData";
-import { formatDateQC } from "@/lib/utils";
+import { formatDateQC, formatDateOnly } from "@/lib/utils";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
 
 interface Props {
@@ -141,7 +141,7 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                               )}
                             </p>
                             <p className="text-xs text-muted-foreground">
-                              {formatDateQC(job.scheduled_date)} · {job.cut_type}
+                              {formatDateOnly(job.scheduled_date)} · {job.cut_type}
                               {!present && " · Absent"}
                             </p>
                           </div>
@@ -218,7 +218,7 @@ export function EmployeeProfileDialog({ employee, onOpenChange }: Props) {
                                 {getClientNameFromList(customers, job.client_id)}
                               </p>
                               <p className="text-xs text-muted-foreground">
-                                {formatDateQC(job.scheduled_date)} · {Number(ej.hours_worked ?? 0)}h
+                                {formatDateOnly(job.scheduled_date)} · {Number(ej.hours_worked ?? 0)}h
                               </p>
                             </div>
                             <p className="font-semibold text-emerald-600">
