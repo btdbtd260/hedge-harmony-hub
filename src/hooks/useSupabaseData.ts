@@ -508,7 +508,10 @@ export function useInsertEstimationRequest() {
   });
 }
 
-// ─── Helper: get client name ───
+// ─── Helper: get client name / address ───
 export function getClientNameFromList(customers: DbCustomer[], id: string): string {
   return customers.find((c) => c.id === id)?.name ?? "Client inconnu";
+}
+export function getClientAddressFromList(customers: DbCustomer[], id: string): string {
+  return customers.find((c) => c.id === id)?.address ?? "";
 }

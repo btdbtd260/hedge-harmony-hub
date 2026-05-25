@@ -19,7 +19,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimeWheelPicker } from "@/components/ui/time-wheel-picker";
 import { cn, formatDateOnly } from "@/lib/utils";
-import { useCustomers, useUpdateJob, useJobs, useDeleteJob, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
+import { useCustomers, useUpdateJob, useJobs, useDeleteJob, getClientNameFromList, getClientAddressFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { JobPhotosManager } from "@/components/jobs/JobPhotosManager";
 import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
 import {
@@ -246,6 +246,9 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
             <DialogHeader>
               <DialogTitle>Job — {getClientNameFromList(customers, job.client_id)}</DialogTitle>
               <DialogDescription>Détails du job, horaire et photos.</DialogDescription>
+              {getClientAddressFromList(customers, job.client_id) && (
+                <p className="text-xs text-muted-foreground">{getClientAddressFromList(customers, job.client_id)}</p>
+              )}
             </DialogHeader>
             <div className="space-y-3">
               <div className="flex justify-between items-center text-sm">
@@ -401,18 +404,47 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
               {/* Employees on this job (add/remove + hours + Absent button) */}
               <JobEmployeesSection job={job} />
 
-              {snap && (
-                <div className="border-t pt-3">
-                  <p className="text-sm font-medium mb-2">Mesures</p>
-                  <div className="grid grid-cols-2 gap-2 text-sm">
-                    <span className="text-muted-foreground">Façade: {snap.facadeLength ?? snap.facade_length ?? 0} pi</span>
-                    <span className="text-muted-foreground">Gauche: {snap.leftLength ?? snap.left_length ?? 0} pi</span>
-                    <span className="text-muted-foreground">Droite: {snap.rightLength ?? snap.right_length ?? 0} pi</span>
-                    <span className="text-muted-foreground">Arrière: {snap.backLength ?? snap.back_length ?? 0} pi</span>
-                    <span className="text-muted-foreground">Largeur: {snap.width ?? 0} pi</span>
+              {snap && (() => {
+                const avantGauche = snap.leftLength ?? snap.left_length ?? 0;
+                const avantFacade = snap.facadeLength ?? snap.facade_length ?? 0;
+                const avantDroite = snap.rightLength ?? snap.right_length ?? 0;
+                const arriereGauche = snap.backLeftLength ?? snap.back_left_length ?? 0;
+                const arriereFond = snap.backLength ?? snap.back_length ?? 0;
+                const arriereDroite = snap.backRightLength ?? snap.back_right_length ?? 0;
+                const largeur = snap.width ?? 0;
+                const hasAvant = avantGauche > 0 || avantFacade > 0 || avantDroite > 0;
+                const hasArriere = arriereGauche > 0 || arriereFond > 0 || arriereDroite > 0;
+                return (
+                  <div className="border-t pt-3">
+                    <p className="text-sm font-medium mb-2">Mesures</p>
+                    {hasAvant && (
+                      <div className="mb-3">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Avant</p>
+                        <div className="grid grid-cols-3 gap-1 text-sm">
+                          {avantGauche > 0 && <span>Gauche: {avantGauche} pi</span>}
+                          {avantFacade > 0 && <span>Façade: {avantFacade} pi</span>}
+                          {avantDroite > 0 && <span>Droite: {avantDroite} pi</span>}
+                        </div>
+                      </div>
+                    )}
+                    {hasArriere && (
+                      <div className="mb-3">
+                        <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Arrière</p>
+                        <div className="grid grid-cols-3 gap-1 text-sm">
+                          {arriereGauche > 0 && <span>Gauche: {arriereGauche} pi</span>}
+                          {arriereFond > 0 && <span>Fond: {arriereFond} pi</span>}
+                          {arriereDroite > 0 && <span>Droite: {arriereDroite} pi</span>}
+                        </div>
+                      </div>
+                    )}
+                    {largeur > 0 && (
+                      <div className="text-sm">
+                        <span className="text-muted-foreground">Largeur: {largeur} pi</span>
+                      </div>
+                    )}
                   </div>
-                </div>
-              )}
+                );
+              })()}
               <JobPhotosManager job={job} />
 
               {/* ── Action buttons (Compléter + Supprimer) ── */}
