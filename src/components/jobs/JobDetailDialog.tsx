@@ -1,5 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
-import { CalendarIcon, X, Trash2, Check } from "lucide-react";
+import { useNavigate } from "react-router-dom";
+import { CalendarIcon, X, Trash2, Check, Pencil } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -51,6 +52,7 @@ function toYmd(d: Date): string {
 }
 
 export function JobDetailDialog({ job, onOpenChange }: Props) {
+  const navigate = useNavigate();
   const { data: customers = [] } = useCustomers();
   const { data: allJobs = [] } = useJobs();
   const updateJob = useUpdateJob();
@@ -447,20 +449,32 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
               })()}
               <JobPhotosManager job={job} />
 
-              {/* ── Action buttons (Compléter + Supprimer) ── */}
+              {/* ── Action buttons (Compléter + Modifier + Supprimer) ── */}
               <div className="border-t pt-3 flex flex-wrap items-center justify-between gap-2">
-                {job.status !== "completed" ? (
-                  <Button
-                    size="sm"
-                    className="bg-success text-success-foreground hover:bg-success/90"
-                    onClick={() => handleStatusChange(job.id, "completed")}
-                  >
-                    <Check className="h-4 w-4 mr-1" />
-                    Marquer comme complété
-                  </Button>
-                ) : (
-                  <span className="text-xs text-muted-foreground">Job complété</span>
-                )}
+                <div className="flex flex-wrap items-center gap-2">
+                  {job.status !== "completed" ? (
+                    <Button
+                      size="sm"
+                      className="bg-success text-success-foreground hover:bg-success/90"
+                      onClick={() => handleStatusChange(job.id, "completed")}
+                    >
+                      <Check className="h-4 w-4 mr-1" />
+                      Marquer comme complété
+                    </Button>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">Job complété</span>
+                  )}
+                  {job.status !== "completed" && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => navigate(`/jobs/${job.id}/edit-details`)}
+                    >
+                      <Pencil className="h-4 w-4 mr-1" />
+                      Modifier détail job
+                    </Button>
+                  )}
+                </div>
                 <Button
                   variant="outline"
                   size="sm"

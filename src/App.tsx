@@ -9,6 +9,7 @@ import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import EstimationPage from "./pages/Estimation";
 import Jobs from "./pages/Jobs";
+import JobDetailEditor from "@/components/jobs/JobDetailEditor";
 import CalendarPage from "./pages/Calendar";
 import Invoices from "./pages/Invoices";
 import Finance from "./pages/Finance";
@@ -45,6 +46,7 @@ const App = () => (
                     <Route path="/clients/estimation" element={<Clients />} />
                     <Route path="/estimation" element={<EstimationPage />} />
                     <Route path="/jobs" element={<Jobs />} />
+                    <Route path="/jobs/:jobId/edit-details" element={<JobDetailEditor />} />
                     <Route path="/calendar" element={<CalendarPage />} />
                     <Route path="/invoices" element={<Invoices />} />
                     <Route path="/finance" element={<Finance />} />

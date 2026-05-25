@@ -10,6 +10,7 @@ import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
 import { render, cleanup } from "@testing-library/react";
 import { screen, fireEvent, waitFor } from "@testing-library/dom";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { MemoryRouter } from "react-router-dom";
 import React from "react";
 
 // --- Mocks ---------------------------------------------------------------
@@ -63,9 +64,11 @@ const mockJob: any = {
 function renderDialog() {
   const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
   return render(
-    <QueryClientProvider client={qc}>
-      <JobDetailDialog job={mockJob} onOpenChange={() => {}} />
-    </QueryClientProvider>,
+    <MemoryRouter>
+      <QueryClientProvider client={qc}>
+        <JobDetailDialog job={mockJob} onOpenChange={() => {}} />
+      </QueryClientProvider>
+    </MemoryRouter>,
   );
 }
 
@@ -108,9 +111,11 @@ describe("Job deletion — UI regression", () => {
     const onOpenChange = vi.fn();
     const qc = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
-      <QueryClientProvider client={qc}>
-        <JobDetailDialog job={mockJob} onOpenChange={onOpenChange} />
-      </QueryClientProvider>,
+      <MemoryRouter>
+        <QueryClientProvider client={qc}>
+          <JobDetailDialog job={mockJob} onOpenChange={onOpenChange} />
+        </QueryClientProvider>
+      </MemoryRouter>,
     );
 
     fireEvent.click(screen.getByRole("button", { name: /supprimer ce job/i }));

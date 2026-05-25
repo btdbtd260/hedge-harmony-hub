@@ -84,7 +84,7 @@ const Finance = () => {
   const adminRevenue = employeePayEntries.filter((x) => x.isAdmin).reduce((s, x) => s + x.amount, 0);
   const normalLaborCost = employeePayEntries.filter((x) => !x.isAdmin).reduce((s, x) => s + x.amount, 0);
 
-  const totalProfit = filteredInvoices.reduce((s, i) => s + i.amount, 0) + adminRevenue;
+  const totalProfit = adminRevenue;
   const totalExpenses = filteredExpenses.reduce((s, e) => s + e.amount, 0) + normalLaborCost;
   const netProfit = totalProfit - totalExpenses;
 

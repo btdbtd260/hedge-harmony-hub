@@ -118,6 +118,19 @@ export function useJobs() {
   });
 }
 
+export function useJobById(id: string | undefined) {
+  return useQuery({
+    queryKey: ["job", id],
+    queryFn: async () => {
+      if (!id) return null;
+      const { data, error } = await supabase.from("jobs").select("*").eq("id", id).single();
+      if (error) throw error;
+      return data as DbJob | null;
+    },
+    enabled: !!id,
+  });
+}
+
 // ─── INVOICES ───
 export function useInvoices() {
   return useQuery({
