@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -49,6 +49,15 @@ const Dashboard = () => {
   // Only count reminders due within next 7 days
   const activeReminders = reminders.filter((r) => !r.is_completed && r.due_date <= inOneWeekStr).length;
 
+  // Set of client IDs that have at least one job scheduled or completed ("active" clients)
+  const realClientIds = useMemo(() => {
+    const ids = new Set<string>();
+    jobs.forEach((j) => {
+      if (j.status === "scheduled" || j.status === "completed") ids.add(j.client_id);
+    });
+    return ids;
+  }, [jobs]);
+
   return (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -66,7 +75,7 @@ const Dashboard = () => {
         <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/clients")}>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Users className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-sm text-muted-foreground">Clients</p><p className="text-2xl font-bold">{customers.filter(c => !c.hidden).length}</p></div>
+            <div><p className="text-sm text-muted-foreground">Clients</p><p className="text-2xl font-bold">{customers.filter(c => !c.hidden && realClientIds.has(c.id)).length}</p></div>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/jobs")}>

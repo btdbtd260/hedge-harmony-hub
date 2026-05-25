@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/189</span>
+                <span class='fraction'>0/190</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/189</span>
+                <span class='fraction'>0/190</span>
             </div>
         
             
@@ -334,7 +334,8 @@
 <a name='L269'></a><a href='#L269'>269</a>
 <a name='L270'></a><a href='#L270'>270</a>
 <a name='L271'></a><a href='#L271'>271</a>
-<a name='L272'></a><a href='#L272'>272</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L272'></a><a href='#L272'>272</a>
+<a name='L273'></a><a href='#L273'>273</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -585,6 +586,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -605,7 +607,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import { useState } from "react";</span></span></span>
+<span class="cline-any cline-neutral">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { useState } from "react";<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
 <span class="cstat-no" title="statement not covered" >import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";</span>
 import { Badge } from "@/components/ui/badge";
 <span class="cstat-no" title="statement not covered" >import { Button } from "@/components/ui/button";</span>
@@ -615,7 +617,7 @@ import { Badge } from "@/components/ui/badge";
 <span class="cstat-no" title="statement not covered" >import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";</span>
 <span class="cstat-no" title="statement not covered" >import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";</span>
 <span class="cstat-no" title="statement not covered" >import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";</span>
-<span class="cstat-no" title="statement not covered" >import { useJobs, useCustomers, useUpdateJob, useInsertInvoice, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";</span>
+<span class="cstat-no" title="statement not covered" >import { useJobs, useCustomers, useUpdateJob, useInsertInvoice, getClientNameFromList, getClientAddressFromList, type DbJob } from "@/hooks/useSupabaseData";</span>
 <span class="cstat-no" title="statement not covered" >import { Search, Calendar, FileDown } from "lucide-react";</span>
 <span class="cstat-no" title="statement not covered" >import { toast } from "sonner";</span>
 <span class="cstat-no" title="statement not covered" >import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";</span>
@@ -735,7 +737,7 @@ import { Badge } from "@/components/ui/badge";
 <span class="cstat-no" title="statement not covered" >            &lt;CardHeader&gt;&lt;CardTitle&gt;Tous les jobs ({allJobs.length})&lt;/CardTitle&gt;&lt;/CardHeader&gt;</span>
 <span class="cstat-no" title="statement not covered" >            &lt;CardContent className="space-y-3"&gt;</span>
 <span class="cstat-no" title="statement not covered" >              {allJobs.length === 0 ? &lt;p className="text-muted-foreground text-sm"&gt;Aucun job trouvé.&lt;/p&gt; : allJobs.map((job) =&gt; (</span>
-<span class="cstat-no" title="statement not covered" >                &lt;JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() =&gt; setSelectedJobId(job.id)} onStatusChange={handleStatusChange} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} clientAddress={getClientAddressFromList(customers, job.client_id)} onClick={() =&gt; setSelectedJobId(job.id)} onStatusChange={handleStatusChange} /&gt;</span>
               ))}
             &lt;/CardContent&gt;
           &lt;/Card&gt;
@@ -746,7 +748,7 @@ import { Badge } from "@/components/ui/badge";
 <span class="cstat-no" title="statement not covered" >            &lt;CardHeader&gt;&lt;CardTitle className="flex items-center gap-2"&gt;&lt;Calendar className="h-5 w-5" /&gt; Prochains jobs&lt;/CardTitle&gt;&lt;/CardHeader&gt;</span>
 <span class="cstat-no" title="statement not covered" >            &lt;CardContent className="space-y-3"&gt;</span>
 <span class="cstat-no" title="statement not covered" >              {upcoming.length === 0 ? &lt;p className="text-muted-foreground text-sm"&gt;Aucun job à venir.&lt;/p&gt; : upcoming.map((job) =&gt; (</span>
-<span class="cstat-no" title="statement not covered" >                &lt;JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() =&gt; setSelectedJobId(job.id)} onStatusChange={handleStatusChange} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} clientAddress={getClientAddressFromList(customers, job.client_id)} onClick={() =&gt; setSelectedJobId(job.id)} onStatusChange={handleStatusChange} /&gt;</span>
               ))}
             &lt;/CardContent&gt;
           &lt;/Card&gt;
@@ -757,7 +759,7 @@ import { Badge } from "@/components/ui/badge";
 <span class="cstat-no" title="statement not covered" >            &lt;CardHeader&gt;&lt;CardTitle&gt;Jobs en attente ({pendingJobs.length})&lt;/CardTitle&gt;&lt;/CardHeader&gt;</span>
 <span class="cstat-no" title="statement not covered" >            &lt;CardContent className="space-y-3"&gt;</span>
 <span class="cstat-no" title="statement not covered" >              {pendingJobs.length === 0 ? &lt;p className="text-muted-foreground text-sm"&gt;Aucun job pending.&lt;/p&gt; : pendingJobs.map((job) =&gt; (</span>
-<span class="cstat-no" title="statement not covered" >                &lt;JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() =&gt; setSelectedJobId(job.id)} onStatusChange={handleStatusChange} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} clientAddress={getClientAddressFromList(customers, job.client_id)} onClick={() =&gt; setSelectedJobId(job.id)} onStatusChange={handleStatusChange} /&gt;</span>
               ))}
             &lt;/CardContent&gt;
           &lt;/Card&gt;
@@ -789,7 +791,7 @@ import { Badge } from "@/components/ui/badge";
 <span class="cstat-no" title="statement not covered" >              {completedFiltered.length === 0 ? (</span>
 <span class="cstat-no" title="statement not covered" >                &lt;p className="text-muted-foreground text-sm"&gt;Aucun job complété pour cette période.&lt;/p&gt;</span>
 <span class="cstat-no" title="statement not covered" >              ) : completedFiltered.map((job) =&gt; (</span>
-<span class="cstat-no" title="statement not covered" >                &lt;JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() =&gt; setSelectedJobId(job.id)} onStatusChange={handleStatusChange} /&gt;</span>
+<span class="cstat-no" title="statement not covered" >                &lt;JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} clientAddress={getClientAddressFromList(customers, job.client_id)} onClick={() =&gt; setSelectedJobId(job.id)} onStatusChange={handleStatusChange} /&gt;</span>
               ))}
             &lt;/CardContent&gt;
           &lt;/Card&gt;
@@ -843,7 +845,7 @@ import { Badge } from "@/components/ui/badge";
   );
 <span class="cstat-no" title="statement not covered" >};</span>
 &nbsp;
-<span class="cstat-no" title="statement not covered" >function JobRow({ job, clientName, onClick, onStatusChange }: { job: DbJob; clientName: string; onClick: () =&gt; void; onStatusChange?: (id: string, status: string) =&gt; void }) {</span>
+<span class="cstat-no" title="statement not covered" >function JobRow({ job, clientName, clientAddress, onClick, onStatusChange }: { job: DbJob; clientName: string; clientAddress: string; onClick: () =&gt; void; onStatusChange?: (id: string, status: string) =&gt; void }) {</span>
 <span class="cstat-no" title="statement not covered" >  const dateDisplay = job.scheduled_date</span>
 <span class="cstat-no" title="statement not covered" >    ? job.start_time</span>
 <span class="cstat-no" title="statement not covered" >      ? `${job.scheduled_date} ${job.start_time.slice(0, 5)}`</span>
@@ -853,6 +855,7 @@ import { Badge } from "@/components/ui/badge";
 <span class="cstat-no" title="statement not covered" >    &lt;div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={onClick}&gt;</span>
 <span class="cstat-no" title="statement not covered" >      &lt;div className="space-y-1"&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;p className="font-medium"&gt;{clientName}&lt;/p&gt;</span>
+<span class="cstat-no" title="statement not covered" >        {clientAddress &amp;&amp; &lt;p className="text-xs text-muted-foreground"&gt;{clientAddress}&lt;/p&gt;}</span>
 <span class="cstat-no" title="statement not covered" >        &lt;div className="flex gap-2 text-xs text-muted-foreground"&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;span&gt;{dateDisplay}&lt;/span&gt;&lt;span&gt;·&lt;/span&gt;&lt;span&gt;{job.cut_type}&lt;/span&gt;</span>
 <span class="cstat-no" title="statement not covered" >          {job.total_duration_minutes &amp;&amp; &lt;&gt;&lt;span&gt;·&lt;/span&gt;&lt;span&gt;{job.total_duration_minutes} min&lt;/span&gt;&lt;/&gt;}</span>
@@ -883,7 +886,7 @@ import { Badge } from "@/components/ui/badge";
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-25T02:24:57.106Z
+                at 2026-05-25T03:26:02.787Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

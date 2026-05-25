@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/305</span>
+                <span class='fraction'>0/308</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/305</span>
+                <span class='fraction'>0/308</span>
             </div>
         
             
@@ -484,7 +484,10 @@
 <a name='L419'></a><a href='#L419'>419</a>
 <a name='L420'></a><a href='#L420'>420</a>
 <a name='L421'></a><a href='#L421'>421</a>
-<a name='L422'></a><a href='#L422'>422</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L422'></a><a href='#L422'>422</a>
+<a name='L423'></a><a href='#L423'>423</a>
+<a name='L424'></a><a href='#L424'>424</a>
+<a name='L425'></a><a href='#L425'>425</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -497,6 +500,7 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -509,6 +513,8 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
+<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -905,7 +911,8 @@
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" ><span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" >import { useState, useMemo } from "react";</span></span></span>
+<span class="cline-any cline-no">&nbsp;</span></td><td class="text"><pre class="prettyprint lang-js"><span class="cstat-no" title="statement not covered" >import { useState, useMemo } from "react";<span class="fstat-no" title="function not covered" ><span class="branch-0 cbranch-no" title="branch not covered" ></span></span></span>
+<span class="cstat-no" title="statement not covered" >import { useLocation, useNavigate } from "react-router-dom";</span>
 <span class="cstat-no" title="statement not covered" >import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";</span>
 <span class="cstat-no" title="statement not covered" >import { Badge } from "@/components/ui/badge";</span>
 <span class="cstat-no" title="statement not covered" >import { Input } from "@/components/ui/input";</span>
@@ -931,6 +938,8 @@
 <span class="cstat-no" title="statement not covered" >};</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >const Clients = () =&gt; {</span>
+<span class="cstat-no" title="statement not covered" >  const location = useLocation();</span>
+<span class="cstat-no" title="statement not covered" >  const navigate = useNavigate();</span>
 <span class="cstat-no" title="statement not covered" >  const { data: customers = [] } = useCustomers();</span>
 <span class="cstat-no" title="statement not covered" >  const { data: jobs = [] } = useJobs();</span>
 <span class="cstat-no" title="statement not covered" >  const insertCustomer = useInsertCustomer();</span>
@@ -1076,7 +1085,7 @@
       &lt;/div&gt;
 &nbsp;
       {/* Tabs : vrais clients (au moins 1 job scheduled/completed) vs estimation seulement */}
-<span class="cstat-no" title="statement not covered" >      &lt;Tabs defaultValue="clients"&gt;</span>
+<span class="cstat-no" title="statement not covered" >      &lt;Tabs value={location.pathname === "/clients/estimation" ? "estimation" : "clients"} onValueChange={(val) =&gt; navigate(val === "estimation" ? "/clients/estimation" : "/clients", { replace: true })}&gt;</span>
 <span class="cstat-no" title="statement not covered" >        &lt;TabsList&gt;</span>
 <span class="cstat-no" title="statement not covered" >          &lt;TabsTrigger value="clients"&gt;</span>
 <span class="cstat-no" title="statement not covered" >            &lt;Users className="h-4 w-4 mr-1" /&gt; Clients ({currentYear.length})</span>
@@ -1333,7 +1342,7 @@
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-25T02:24:57.106Z
+                at 2026-05-25T03:26:02.787Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>

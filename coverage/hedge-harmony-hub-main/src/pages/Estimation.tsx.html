@@ -25,7 +25,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Statements</span>
-                <span class='fraction'>0/753</span>
+                <span class='fraction'>0/749</span>
             </div>
         
             
@@ -46,7 +46,7 @@
             <div class='fl pad1y space-right2'>
                 <span class="strong">0% </span>
                 <span class="quiet">Lines</span>
-                <span class='fraction'>0/753</span>
+                <span class='fraction'>0/749</span>
             </div>
         
             
@@ -1075,12 +1075,7 @@
 <a name='L1010'></a><a href='#L1010'>1010</a>
 <a name='L1011'></a><a href='#L1011'>1011</a>
 <a name='L1012'></a><a href='#L1012'>1012</a>
-<a name='L1013'></a><a href='#L1013'>1013</a>
-<a name='L1014'></a><a href='#L1014'>1014</a>
-<a name='L1015'></a><a href='#L1015'>1015</a>
-<a name='L1016'></a><a href='#L1016'>1016</a>
-<a name='L1017'></a><a href='#L1017'>1017</a>
-<a name='L1018'></a><a href='#L1018'>1018</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
+<a name='L1013'></a><a href='#L1013'>1013</a></td><td class="line-coverage quiet"><span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1222,7 +1217,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1498,7 +1492,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-neutral">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -1516,9 +1509,6 @@
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-no">&nbsp;</span>
-<span class="cline-any cline-neutral">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
 <span class="cline-any cline-no">&nbsp;</span>
@@ -2105,7 +2095,7 @@
 <span class="cstat-no" title="statement not covered" >import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";</span>
 <span class="cstat-no" title="statement not covered" >import { Label } from "@/components/ui/label";</span>
 <span class="cstat-no" title="statement not covered" >import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";</span>
-<span class="cstat-no" title="statement not covered" >import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInsertEstimation, useInsertJob, useInsertInvoice } from "@/hooks/useSupabaseData";</span>
+<span class="cstat-no" title="statement not covered" >import { useCustomers, useEstimations, useParameters, useInsertCustomer, useInsertEstimation, useInsertJob } from "@/hooks/useSupabaseData";</span>
 <span class="cstat-no" title="statement not covered" >import { Calculator, Plus, Trash2, Search, UserPlus, Download, Mail, RotateCcw } from "lucide-react";</span>
 import {
   AlertDialog,
@@ -2239,7 +2229,6 @@ interface DraftSnapshot {
 <span class="cstat-no" title="statement not covered" >  const insertCustomer = useInsertCustomer();</span>
 <span class="cstat-no" title="statement not covered" >  const insertEstimation = useInsertEstimation();</span>
 <span class="cstat-no" title="statement not covered" >  const insertJob = useInsertJob();</span>
-<span class="cstat-no" title="statement not covered" >  const insertInvoice = useInsertInvoice();</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >  // Hydrate from draft (or defaults if expired/missing). Computed once per mount.</span>
 <span class="cstat-no" title="statement not covered" >  const initialDraft = loadInitialDraft();</span>
@@ -2535,10 +2524,6 @@ interface DraftSnapshot {
 <span class="cstat-no" title="statement not covered" >          },</span>
 <span class="cstat-no" title="statement not covered" >        },</span>
 <span class="cstat-no" title="statement not covered" >      });</span>
-&nbsp;
-<span class="cstat-no" title="statement not covered" >      // Facture créée en BROUILLON (draft) — elle deviendra "unpaid" automatiquement</span>
-<span class="cstat-no" title="statement not covered" >      // (via trigger DB) quand la job passera à "completed".</span>
-<span class="cstat-no" title="statement not covered" >      await insertInvoice.mutateAsync({ client_id: clientId, job_id: job.id, amount: totalPrice, status: "draft" });</span>
 &nbsp;
 <span class="cstat-no" title="statement not covered" >      toast.success(</span>
 <span class="cstat-no" title="statement not covered" >        scheduledDate</span>
@@ -3121,7 +3106,7 @@ interface DraftSnapshot {
             <div class='footer quiet pad2 space-top1 center small'>
                 Code coverage generated by
                 <a href="https://istanbul.js.org/" target="_blank" rel="noopener noreferrer">istanbul</a>
-                at 2026-05-25T02:24:57.106Z
+                at 2026-05-25T03:26:02.787Z
             </div>
         <script src="../../../prettify.js"></script>
         <script>
