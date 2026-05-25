@@ -8,7 +8,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { useJobs, useCustomers, useUpdateJob, useInsertInvoice, getClientNameFromList, type DbJob } from "@/hooks/useSupabaseData";
+import { useJobs, useCustomers, useUpdateJob, useInsertInvoice, getClientNameFromList, getClientAddressFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { Search, Calendar, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
@@ -128,7 +128,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Tous les jobs ({allJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {allJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job trouvé.</p> : allJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} clientAddress={getClientAddressFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
               ))}
             </CardContent>
           </Card>
@@ -139,7 +139,7 @@ const Jobs = () => {
             <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Prochains jobs</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {upcoming.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job à venir.</p> : upcoming.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} clientAddress={getClientAddressFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
               ))}
             </CardContent>
           </Card>
@@ -150,7 +150,7 @@ const Jobs = () => {
             <CardHeader><CardTitle>Jobs en attente ({pendingJobs.length})</CardTitle></CardHeader>
             <CardContent className="space-y-3">
               {pendingJobs.length === 0 ? <p className="text-muted-foreground text-sm">Aucun job pending.</p> : pendingJobs.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} clientAddress={getClientAddressFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
               ))}
             </CardContent>
           </Card>
@@ -182,7 +182,7 @@ const Jobs = () => {
               {completedFiltered.length === 0 ? (
                 <p className="text-muted-foreground text-sm">Aucun job complété pour cette période.</p>
               ) : completedFiltered.map((job) => (
-                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
+                <JobRow key={job.id} job={job} clientName={getClientNameFromList(customers, job.client_id)} clientAddress={getClientAddressFromList(customers, job.client_id)} onClick={() => setSelectedJobId(job.id)} onStatusChange={handleStatusChange} />
               ))}
             </CardContent>
           </Card>
@@ -236,7 +236,7 @@ const Jobs = () => {
   );
 };
 
-function JobRow({ job, clientName, onClick, onStatusChange }: { job: DbJob; clientName: string; onClick: () => void; onStatusChange?: (id: string, status: string) => void }) {
+function JobRow({ job, clientName, clientAddress, onClick, onStatusChange }: { job: DbJob; clientName: string; clientAddress: string; onClick: () => void; onStatusChange?: (id: string, status: string) => void }) {
   const dateDisplay = job.scheduled_date
     ? job.start_time
       ? `${job.scheduled_date} ${job.start_time.slice(0, 5)}`
@@ -246,6 +246,7 @@ function JobRow({ job, clientName, onClick, onStatusChange }: { job: DbJob; clie
     <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={onClick}>
       <div className="space-y-1">
         <p className="font-medium">{clientName}</p>
+        {clientAddress && <p className="text-xs text-muted-foreground">{clientAddress}</p>}
         <div className="flex gap-2 text-xs text-muted-foreground">
           <span>{dateDisplay}</span><span>·</span><span>{job.cut_type}</span>
           {job.total_duration_minutes && <><span>·</span><span>{job.total_duration_minutes} min</span></>}
