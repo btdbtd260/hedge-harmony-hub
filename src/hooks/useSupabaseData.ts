@@ -20,7 +20,10 @@ export function useCustomers() {
   return useQuery({
     queryKey: ["customers"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("customers").select("*").order("name");
+      const { data, error } = await supabase
+        .from("customers")
+        .select("*")
+        .order("name");
       if (error) throw error;
       return data as DbCustomer[];
     },
@@ -33,8 +36,15 @@ export function useInsertCustomer() {
     mutationFn: async (c: TablesInsert<"customers">) => {
       // Normalize phone to "514-708-8976" format on every insert path
       // (manual creation, estimation request conversion, etc.).
-      const payload = { ...c, phone: c.phone !== undefined ? formatPhone(c.phone) : c.phone };
-      const { data, error } = await supabase.from("customers").insert(payload).select().single();
+      const payload = {
+        ...c,
+        phone: c.phone !== undefined ? formatPhone(c.phone) : c.phone,
+      };
+      const { data, error } = await supabase
+        .from("customers")
+        .insert(payload)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
@@ -45,10 +55,22 @@ export function useInsertCustomer() {
 export function useUpdateCustomer() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<TablesInsert<"customers">>) => {
+    mutationFn: async ({
+      id,
+      ...updates
+    }: { id: string } & Partial<TablesInsert<"customers">>) => {
       // Normalize phone if provided
-      const payload = { ...updates, phone: updates.phone !== undefined ? formatPhone(updates.phone) : updates.phone };
-      const { error } = await supabase.from("customers").update(payload).eq("id", id);
+      const payload = {
+        ...updates,
+        phone:
+          updates.phone !== undefined
+            ? formatPhone(updates.phone)
+            : updates.phone,
+      };
+      const { error } = await supabase
+        .from("customers")
+        .update(payload)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
@@ -59,7 +81,10 @@ export function useHideCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("customers").update({ hidden: true }).eq("id", id);
+      const { error } = await supabase
+        .from("customers")
+        .update({ hidden: true })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
@@ -70,7 +95,10 @@ export function useRestoreCustomer() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("customers").update({ hidden: false }).eq("id", id);
+      const { error } = await supabase
+        .from("customers")
+        .update({ hidden: false })
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["customers"] }),
@@ -90,7 +118,9 @@ export function useDeleteCustomerCascade() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.rpc("delete_customer_cascade" as any, { _customer_id: id });
+      const { error } = await supabase.rpc("delete_customer_cascade" as any, {
+        _customer_id: id,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -111,7 +141,10 @@ export function useJobs() {
   return useQuery({
     queryKey: ["jobs"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("jobs").select("*").order("scheduled_date", { ascending: true });
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .order("scheduled_date", { ascending: true });
       if (error) throw error;
       return data as DbJob[];
     },
@@ -123,7 +156,11 @@ export function useJobById(id: string | undefined) {
     queryKey: ["job", id],
     queryFn: async () => {
       if (!id) return null;
-      const { data, error } = await supabase.from("jobs").select("*").eq("id", id).single();
+      const { data, error } = await supabase
+        .from("jobs")
+        .select("*")
+        .eq("id", id)
+        .single();
       if (error) throw error;
       return data as DbJob | null;
     },
@@ -136,7 +173,10 @@ export function useInvoices() {
   return useQuery({
     queryKey: ["invoices"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("invoices").select("*").order("issued_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("invoices")
+        .select("*")
+        .order("issued_at", { ascending: false });
       if (error) throw error;
       return data as DbInvoice[];
     },
@@ -146,8 +186,14 @@ export function useInvoices() {
 export function useUpdateInvoice() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<TablesInsert<"invoices">>) => {
-      const { error } = await supabase.from("invoices").update(updates).eq("id", id);
+    mutationFn: async ({
+      id,
+      ...updates
+    }: { id: string } & Partial<TablesInsert<"invoices">>) => {
+      const { error } = await supabase
+        .from("invoices")
+        .update(updates)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["invoices"] }),
@@ -159,7 +205,10 @@ export function useExpenses() {
   return useQuery({
     queryKey: ["expenses"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("expenses").select("*").order("date", { ascending: false });
+      const { data, error } = await supabase
+        .from("expenses")
+        .select("*")
+        .order("date", { ascending: false });
       if (error) throw error;
       return data as DbExpense[];
     },
@@ -170,7 +219,11 @@ export function useInsertExpense() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (e: TablesInsert<"expenses">) => {
-      const { data, error } = await supabase.from("expenses").insert(e).select().single();
+      const { data, error } = await supabase
+        .from("expenses")
+        .insert(e)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
@@ -183,7 +236,10 @@ export function useEmployees() {
   return useQuery({
     queryKey: ["employees"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("employees").select("*").order("name");
+      const { data, error } = await supabase
+        .from("employees")
+        .select("*")
+        .order("name");
       if (error) throw error;
       return data as DbEmployee[];
     },
@@ -194,7 +250,11 @@ export function useInsertEmployee() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (e: TablesInsert<"employees">) => {
-      const { data, error } = await supabase.from("employees").insert(e).select().single();
+      const { data, error } = await supabase
+        .from("employees")
+        .insert(e)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
@@ -205,8 +265,14 @@ export function useInsertEmployee() {
 export function useUpdateEmployee() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<TablesInsert<"employees">>) => {
-      const { error } = await supabase.from("employees").update(updates).eq("id", id);
+    mutationFn: async ({
+      id,
+      ...updates
+    }: { id: string } & Partial<TablesInsert<"employees">>) => {
+      const { error } = await supabase
+        .from("employees")
+        .update(updates)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["employees"] }),
@@ -228,7 +294,15 @@ export function useEmployeeJobs() {
 export function useAddEmployeeToJob() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ employee_id, job_id, hours_worked = 0 }: { employee_id: string; job_id: string; hours_worked?: number }) => {
+    mutationFn: async ({
+      employee_id,
+      job_id,
+      hours_worked = 0,
+    }: {
+      employee_id: string;
+      job_id: string;
+      hours_worked?: number;
+    }) => {
       const { data, error } = await supabase
         .from("employee_jobs")
         .insert({ employee_id, job_id, hours_worked, calculated_pay: 0 })
@@ -247,8 +321,17 @@ export function useAddEmployeeToJob() {
 export function useUpdateEmployeeJob() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<{ hours_worked: number; is_present: boolean }>) => {
-      const { error } = await supabase.from("employee_jobs").update(updates as any).eq("id", id);
+    mutationFn: async ({
+      id,
+      ...updates
+    }: { id: string } & Partial<{
+      hours_worked: number;
+      is_present: boolean;
+    }>) => {
+      const { error } = await supabase
+        .from("employee_jobs")
+        .update(updates as any)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -262,7 +345,10 @@ export function useRemoveEmployeeFromJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (id: string) => {
-      const { error } = await supabase.from("employee_jobs").delete().eq("id", id);
+      const { error } = await supabase
+        .from("employee_jobs")
+        .delete()
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
@@ -290,7 +376,10 @@ export function useReminders() {
   return useQuery({
     queryKey: ["reminders"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("reminders").select("*").order("due_date");
+      const { data, error } = await supabase
+        .from("reminders")
+        .select("*")
+        .order("due_date");
       if (error) throw error;
       return data as DbReminder[];
     },
@@ -301,7 +390,11 @@ export function useInsertReminder() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (r: TablesInsert<"reminders">) => {
-      const { data, error } = await supabase.from("reminders").insert(r).select().single();
+      const { data, error } = await supabase
+        .from("reminders")
+        .insert(r)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
@@ -312,8 +405,14 @@ export function useInsertReminder() {
 export function useUpdateReminder() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<TablesInsert<"reminders">>) => {
-      const { error } = await supabase.from("reminders").update(updates).eq("id", id);
+    mutationFn: async ({
+      id,
+      ...updates
+    }: { id: string } & Partial<TablesInsert<"reminders">>) => {
+      const { error } = await supabase
+        .from("reminders")
+        .update(updates)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["reminders"] }),
@@ -325,7 +424,10 @@ export function useEstimations() {
   return useQuery({
     queryKey: ["estimations"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("estimations").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase
+        .from("estimations")
+        .select("*")
+        .order("created_at", { ascending: false });
       if (error) throw error;
       return data as DbEstimation[];
     },
@@ -336,7 +438,11 @@ export function useInsertEstimation() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (e: TablesInsert<"estimations">) => {
-      const { data, error } = await supabase.from("estimations").insert(e).select().single();
+      const { data, error } = await supabase
+        .from("estimations")
+        .insert(e)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
@@ -349,7 +455,11 @@ export function useInsertJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (j: TablesInsert<"jobs">) => {
-      const { data, error } = await supabase.from("jobs").insert(j).select().single();
+      const { data, error } = await supabase
+        .from("jobs")
+        .insert(j)
+        .select()
+        .single();
       if (error) throw error;
 
       // Auto-add all admin employees (always present on every job)
@@ -380,12 +490,20 @@ export function useInsertJob() {
 export function useUpdateJob() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<TablesInsert<"jobs">>) => {
-      const { error } = await supabase.from("jobs").update(updates).eq("id", id);
+    mutationFn: async ({
+      id,
+      ...updates
+    }: { id: string } & Partial<TablesInsert<"jobs">>) => {
+      const { error } = await supabase
+        .from("jobs")
+        .update(updates)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["jobs"] });
+      // Per-job cache so JobDetailEditor re-fetches the freshest snapshot
+      qc.invalidateQueries({ queryKey: ["job"] });
       // Status change (completed/uncompleted) affects employee earnings totals
       qc.invalidateQueries({ queryKey: ["employee_jobs"] });
       qc.invalidateQueries({ queryKey: ["invoices"] });
@@ -398,7 +516,11 @@ export function useInsertInvoice() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (inv: TablesInsert<"invoices">) => {
-      const { data, error } = await supabase.from("invoices").insert(inv).select().single();
+      const { data, error } = await supabase
+        .from("invoices")
+        .insert(inv)
+        .select()
+        .single();
       if (error) throw error;
       return data;
     },
@@ -427,7 +549,9 @@ export function useDeleteJob() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (jobId: string) => {
-      const { error } = await supabase.rpc("delete_job_cascade" as any, { _job_id: jobId });
+      const { error } = await supabase.rpc("delete_job_cascade" as any, {
+        _job_id: jobId,
+      });
       if (error) throw error;
     },
     onSuccess: () => {
@@ -445,7 +569,11 @@ export function useParameters() {
   return useQuery({
     queryKey: ["parameters"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("parameters").select("*").limit(1).maybeSingle();
+      const { data, error } = await supabase
+        .from("parameters")
+        .select("*")
+        .limit(1)
+        .maybeSingle();
       if (error) throw error;
       return data as DbParameters | null;
     },
@@ -455,8 +583,14 @@ export function useParameters() {
 export function useUpdateParameters() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, ...updates }: { id: string } & Partial<TablesInsert<"parameters">>) => {
-      const { error } = await supabase.from("parameters").update(updates).eq("id", id);
+    mutationFn: async ({
+      id,
+      ...updates
+    }: { id: string } & Partial<TablesInsert<"parameters">>) => {
+      const { error } = await supabase
+        .from("parameters")
+        .update(updates)
+        .eq("id", id);
       if (error) throw error;
     },
     onSuccess: () => qc.invalidateQueries({ queryKey: ["parameters"] }),
@@ -482,11 +616,21 @@ export function useEstimationRequests() {
 export function useUpdateEstimationRequest() {
   const qc = useQueryClient();
   return useMutation({
-    mutationFn: async ({ id, updates }: { id: string; updates: Partial<DbEstimationRequest> }) => {
-      const { error } = await supabase.from("estimation_requests").update(updates).eq("id", id);
+    mutationFn: async ({
+      id,
+      updates,
+    }: {
+      id: string;
+      updates: Partial<DbEstimationRequest>;
+    }) => {
+      const { error } = await supabase
+        .from("estimation_requests")
+        .update(updates)
+        .eq("id", id);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["estimation_requests"] }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["estimation_requests"] }),
   });
 }
 
@@ -505,7 +649,8 @@ export function useMarkEstimationRequestSeen() {
         .is("seen_at", null);
       if (error) throw error;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["estimation_requests"] }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["estimation_requests"] }),
   });
 }
 
@@ -513,18 +658,29 @@ export function useInsertEstimationRequest() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: async (payload: TablesInsert<"estimation_requests">) => {
-      const { data, error } = await supabase.from("estimation_requests").insert(payload).select().single();
+      const { data, error } = await supabase
+        .from("estimation_requests")
+        .insert(payload)
+        .select()
+        .single();
       if (error) throw error;
       return data as DbEstimationRequest;
     },
-    onSuccess: () => qc.invalidateQueries({ queryKey: ["estimation_requests"] }),
+    onSuccess: () =>
+      qc.invalidateQueries({ queryKey: ["estimation_requests"] }),
   });
 }
 
 // ─── Helper: get client name / address ───
-export function getClientNameFromList(customers: DbCustomer[], id: string): string {
+export function getClientNameFromList(
+  customers: DbCustomer[],
+  id: string,
+): string {
   return customers.find((c) => c.id === id)?.name ?? "Client inconnu";
 }
-export function getClientAddressFromList(customers: DbCustomer[], id: string): string {
+export function getClientAddressFromList(
+  customers: DbCustomer[],
+  id: string,
+): string {
   return customers.find((c) => c.id === id)?.address ?? "";
 }

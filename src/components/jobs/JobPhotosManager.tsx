@@ -1,9 +1,10 @@
-import { forwardRef, useRef, useState } from "react";
+import { forwardRef, useRef, useState, useMemo, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useUpdateJob, type DbJob } from "@/hooks/useSupabaseData";
 import { Button } from "@/components/ui/button";
 import { Camera, ImagePlus, Loader2, Trash2 } from "lucide-react";
 import { toast } from "sonner";
+import { PhotoGalleryDialog, type GalleryPhoto } from "./PhotoGalleryDialog";
 
 const BUCKET = "company-assets";
 
@@ -24,8 +25,32 @@ export function JobPhotosManager({ job }: Props) {
   const updateJob = useUpdateJob();
   const [busyKind, setBusyKind] = useState<Kind | null>(null);
 
-  const before = job.before_photos ?? [];
-  const after = job.after_photos ?? [];
+  const before = useMemo(() => job.before_photos ?? [], [job.before_photos]);
+  const after = useMemo(() => job.after_photos ?? [], [job.after_photos]);
+
+  // ── Gallery / Lightbox state ──
+  const [galleryOpen, setGalleryOpen] = useState(false);
+  const [galleryIndex, setGalleryIndex] = useState(0);
+
+  const allPhotos: GalleryPhoto[] = useMemo(() => {
+    const photos: GalleryPhoto[] = [];
+    for (const url of before) {
+      photos.push({ url, kind: "before" });
+    }
+    for (const url of after) {
+      photos.push({ url, kind: "after" });
+    }
+    return photos;
+  }, [before, after]);
+
+  const handleThumbnailClick = useCallback(
+    (url: string) => {
+      const idx = allPhotos.findIndex((p) => p.url === url);
+      setGalleryIndex(idx >= 0 ? idx : 0);
+      setGalleryOpen(true);
+    },
+    [allPhotos],
+  );
 
   const handleFiles = async (kind: Kind, files: FileList | null) => {
     if (!files || files.length === 0) return;
@@ -82,6 +107,7 @@ export function JobPhotosManager({ job }: Props) {
         busy={busyKind === "before"}
         onFiles={handleFiles}
         onRemove={handleRemove}
+        onThumbnailClick={handleThumbnailClick}
       />
       <PhotoSection
         title="Photos après"
@@ -90,6 +116,13 @@ export function JobPhotosManager({ job }: Props) {
         busy={busyKind === "after"}
         onFiles={handleFiles}
         onRemove={handleRemove}
+        onThumbnailClick={handleThumbnailClick}
+      />
+      <PhotoGalleryDialog
+        photos={allPhotos}
+        initialIndex={galleryIndex}
+        open={galleryOpen}
+        onOpenChange={setGalleryOpen}
       />
     </div>
   );
@@ -102,10 +135,11 @@ interface PhotoSectionProps {
   busy: boolean;
   onFiles: (kind: Kind, files: FileList | null) => void;
   onRemove: (kind: Kind, url: string) => void;
+  onThumbnailClick: (url: string) => void;
 }
 
 const PhotoSection = forwardRef<HTMLDivElement, PhotoSectionProps>(function PhotoSection(
-  { title, kind, photos, busy, onFiles, onRemove },
+  { title, kind, photos, busy, onFiles, onRemove, onThumbnailClick },
   ref,
 ) {
   const cameraRef = useRef<HTMLInputElement>(null);
@@ -168,14 +202,21 @@ const PhotoSection = forwardRef<HTMLDivElement, PhotoSectionProps>(function Phot
       ) : (
         <div className="grid grid-cols-3 gap-2">
           {photos.map((url) => (
-            <div key={url} className="relative group aspect-square rounded-md overflow-hidden border bg-muted">
+            <div
+              key={url}
+              className="relative group aspect-square rounded-md overflow-hidden border bg-muted cursor-pointer"
+              onClick={() => onThumbnailClick(url)}
+            >
               <img src={url} alt={title} loading="lazy" className="w-full h-full object-cover" />
               <Button
                 type="button"
                 variant="destructive"
                 size="icon"
                 className="absolute top-1 right-1 h-7 w-7 opacity-0 group-hover:opacity-100 transition-opacity"
-                onClick={() => onRemove(kind, url)}
+                onClick={(e) => {
+                  e.stopPropagation();
+                  onRemove(kind, url);
+                }}
                 title="Supprimer"
               >
                 <Trash2 className="h-3.5 w-3.5" />
