@@ -5,6 +5,7 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { AppLayout } from "@/components/AppLayout";
 import { AuthGuard } from "@/components/AuthGuard";
+import { ColdStartRedirect } from "@/components/ColdStartRedirect";
 import Dashboard from "./pages/Dashboard";
 import Clients from "./pages/Clients";
 import EstimationPage from "./pages/Estimation";
@@ -31,6 +32,7 @@ const App = () => (
       <Toaster />
       <Sonner />
       <BrowserRouter>
+        <ColdStartRedirect />
         <Routes>
           <Route path="/auth" element={<Auth />} />
           <Route path="/unauthorized" element={<Unauthorized />} />
