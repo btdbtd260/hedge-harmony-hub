@@ -433,6 +433,7 @@ const EstimationPage = () => {
             facade: twoSidesFacade, left: twoSidesLeft, right: twoSidesRight,
             back: twoSidesBack, back_left: twoSidesBackLeft, back_right: twoSidesBackRight,
           },
+          bushItems: bushItems.map(b => ({ id: b.id, description: b.description, count: b.count, price: b.price })),
         },
       });
 

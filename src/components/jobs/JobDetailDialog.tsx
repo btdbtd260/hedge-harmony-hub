@@ -413,9 +413,11 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                 const arriereGauche = snap.backLeftLength ?? snap.back_left_length ?? 0;
                 const arriereFond = snap.backLength ?? snap.back_length ?? 0;
                 const arriereDroite = snap.backRightLength ?? snap.back_right_length ?? 0;
-                const largeur = snap.width ?? 0;
                 const hasAvant = avantGauche > 0 || avantFacade > 0 || avantDroite > 0;
                 const hasArriere = arriereGauche > 0 || arriereFond > 0 || arriereDroite > 0;
+                const bushItems: Array<{ description: string; count: number; price: number }> =
+                  snap.bushItems ?? [];
+                const hasBushes = bushItems.length > 0;
                 return (
                   <div className="border-t pt-3">
                     <p className="text-sm font-medium mb-2">Mesures</p>
@@ -439,11 +441,39 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                         </div>
                       </div>
                     )}
-                    {largeur > 0 && (
-                      <div className="text-sm">
-                        <span className="text-muted-foreground">Largeur: {largeur} pi</span>
+                    {hasBushes && (
+                      <div>
+                        <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Arbustes</p>
+                        {bushItems.map((bush, idx) => {
+                          const totalPrice = bush.count * bush.price;
+                          return (
+                            <div key={idx} className="text-sm">
+                              {bush.description} (x{bush.count}) — ${totalPrice.toFixed(2)}
+                            </div>
+                          );
+                        })}
                       </div>
                     )}
+                  </div>
+                );
+              })()}
+              {/* Extras — visible extras from measurement snapshot */}
+              {snap && (() => {
+                const extras: Array<{ description: string; price: number }> =
+                  snap.extras ?? [];
+                const visibleExtras = extras.filter(
+                  (e) => e.description?.trim() !== "" || e.price !== 0,
+                );
+                if (visibleExtras.length === 0) return null;
+                return (
+                  <div className="border-t pt-3">
+                    <p className="text-sm font-medium mb-2">Extras</p>
+                    {visibleExtras.map((extra, idx) => (
+                      <div key={idx} className="text-sm">
+                        {extra.description}{" "}
+                        <span className="font-medium">${extra.price.toFixed(2)}</span>
+                      </div>
+                    ))}
                   </div>
                 );
               })()}

@@ -140,6 +140,7 @@ export default function JobDetailEditor() {
 
     setExtras(snap?.extras || []);
     setDiscounts(snap?.discounts || []);
+    setBushItems(snap?.bushItems || []);
     setScheduledDate(job.scheduled_date ?? "");
     setScheduledTime(job.start_time?.slice(0, 5) ?? "");
     // Intentionally exclude 'job' from deps — we only populate on job.id change (new job),
@@ -331,6 +332,7 @@ export default function JobDetailEditor() {
           back_left: twoSidesBackLeft,
           back_right: twoSidesBackRight,
         },
+        bushItems,
         extras,
         discounts,
       };
