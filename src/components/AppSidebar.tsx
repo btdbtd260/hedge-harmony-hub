@@ -15,6 +15,8 @@ import {
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
+import type { NavLinkCompatProps } from "@/components/NavLink";
+import { forwardRef } from "react";
 import {
   Sidebar,
   SidebarContent,
@@ -28,6 +30,7 @@ import {
   SidebarMenuSubItem,
   SidebarMenuSubButton,
   SidebarHeader,
+  useSidebar,
 } from "@/components/ui/sidebar";
 import {
   Collapsible,
@@ -65,6 +68,33 @@ const navItems: NavItem[] = [
   { type: "link", title: "Analytics", url: "/analytics", icon: BarChart3 },
   { type: "link", title: "Paramètres", url: "/settings", icon: Settings },
 ];
+
+/**
+ * SidebarNavLink — a wrapper around NavLink that closes the mobile sidebar
+ * when a nav link is clicked on mobile devices. On desktop, behaves identically
+ * to the regular NavLink.
+ */
+const SidebarNavLink = forwardRef<HTMLAnchorElement, NavLinkCompatProps & React.ComponentPropsWithoutRef<"a">>(
+  ({ onClick, ...props }, ref) => {
+    const { isMobile, setOpenMobile } = useSidebar();
+
+    const handleClick: React.MouseEventHandler<HTMLAnchorElement> = (e) => {
+      // Call the original onClick if provided
+      onClick?.(e);
+
+      // Close the mobile sidebar if on mobile — do NOT call on desktop
+      if (isMobile) {
+        setOpenMobile(false);
+      }
+    };
+
+    return <NavLink ref={ref} onClick={handleClick} {...props} />;
+  },
+);
+
+SidebarNavLink.displayName = "SidebarNavLink";
+
+export { SidebarNavLink };
 
 export function AppSidebar() {
   const { data: reminders = [] } = useReminders();
@@ -104,7 +134,7 @@ export function AppSidebar() {
                 item.type === "link" ? (
                   <SidebarMenuItem key={item.title}>
                     <SidebarMenuButton asChild>
-                      <NavLink
+                      <SidebarNavLink
                         to={item.url}
                         end={item.end}
                         className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent"
@@ -135,7 +165,7 @@ export function AppSidebar() {
                             {unreadMessages.length}
                           </Badge>
                         )}
-                      </NavLink>
+                      </SidebarNavLink>
                     </SidebarMenuButton>
                   </SidebarMenuItem>
                 ) : (
@@ -154,7 +184,7 @@ export function AppSidebar() {
                         {item.items.map((sub) => (
                           <SidebarMenuSubItem key={sub.title}>
                             <SidebarMenuSubButton asChild>
-                              <NavLink
+                              <SidebarNavLink
                                 to={sub.url}
                                 end
                                 className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent"
@@ -162,7 +192,7 @@ export function AppSidebar() {
                               >
                                 {sub.icon && <sub.icon className="h-4 w-4" />}
                                 <span>{sub.title}</span>
-                              </NavLink>
+                              </SidebarNavLink>
                             </SidebarMenuSubButton>
                           </SidebarMenuSubItem>
                         ))}
