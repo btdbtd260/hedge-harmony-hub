@@ -31,3 +31,10 @@ dist-ssr
 .od-skills/
 pnpm-lock.yaml
 pnpm-workspace.yaml
+
+# Large local address data
+Data/adresses-repentigny-50km.csv
+supabase/functions/address-autocomplete/data/*.ndjson
+
+# Test coverage output
+coverage/

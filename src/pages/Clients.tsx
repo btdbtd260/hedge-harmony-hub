@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+﻿import { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -9,6 +9,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 import { useCustomers, useJobs, useInsertCustomer, useUpdateCustomer, useHideCustomer, useRestoreCustomer, useDeleteCustomerCascade, type DbCustomer } from "@/hooks/useSupabaseData";
+import { AddressAutocomplete } from "@/components/clients/AddressAutocomplete";
 import { Search, Eye, EyeOff, Plus, Trash2, RotateCcw, AlertTriangle, Pencil, Calculator, Users } from "lucide-react";
 import { toast } from "sonner";
 import { formatPhone, formatPhoneLive } from "@/lib/phoneFormat";
@@ -43,6 +44,7 @@ const Clients = () => {
   const [formPhone, setFormPhone] = useState("");
   const [formEmail, setFormEmail] = useState("");
   const [formAddress, setFormAddress] = useState("");
+  const [formCity, setFormCity] = useState("");
   const [clientToDelete, setClientToDelete] = useState<DbCustomer | null>(null);
   const [clientToPurge, setClientToPurge] = useState<DbCustomer | null>(null);
   const [purgeConfirmText, setPurgeConfirmText] = useState("");
@@ -51,6 +53,7 @@ const Clients = () => {
   const [editPhone, setEditPhone] = useState("");
   const [editEmail, setEditEmail] = useState("");
   const [editAddress, setEditAddress] = useState("");
+  const [editCity, setEditCity] = useState("");
 
   const filtered = customers
     // Always hide the technical archive customer used to preserve Finance history
@@ -80,7 +83,7 @@ const Clients = () => {
     try {
       await insertCustomer.mutateAsync({ name: formName.trim(), phone: formPhone.trim(), email: formEmail.trim(), address: formAddress.trim() });
       setShowAddDialog(false);
-      setFormName(""); setFormPhone(""); setFormEmail(""); setFormAddress("");
+      setFormName(""); setFormPhone(""); setFormEmail(""); setFormAddress(""); setFormCity("");
       toast.success("Client créé");
     } catch (e: any) {
       toast.error(e.message);
@@ -126,6 +129,7 @@ const Clients = () => {
     setEditPhone(formatPhone(client.phone ?? ""));
     setEditEmail(client.email ?? "");
     setEditAddress(client.address ?? "");
+    setEditCity(client.ville ?? "");
     setClientToEdit(client);
   };
 
@@ -140,9 +144,9 @@ const Clients = () => {
         address: editAddress.trim(),
       });
       setClientToEdit(null);
-      toast.success("Client mis à jour");
+toast.success("Client mis à jour");
     } catch (e: any) {
-      toast.error(e.message ?? "Échec de la mise à jour");
+toast.error(e.message ?? "Échec de la mise à jour");
     }
   };
 
@@ -328,7 +332,8 @@ const Clients = () => {
             <div className="space-y-1"><Label>Nom *</Label><Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Nom complet" /></div>
             <div className="space-y-1"><Label>Téléphone</Label><Input value={formPhone} onChange={(e) => setFormPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
             <div className="space-y-1"><Label>Email</Label><Input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@exemple.com" /></div>
-            <div className="space-y-1"><Label>Adresse</Label><Input value={formAddress} onChange={(e) => setFormAddress(e.target.value)} placeholder="123 Rue Exemple" /></div>
+            <div className="space-y-1"><Label>Adresse</Label><AddressAutocomplete value={formAddress} onChange={setFormAddress} onSelect={(addr) => setFormCity(addr.ville)} placeholder="123 Rue Exemple" /></div>
+            <div className="space-y-1"><Label>Ville</Label><Input value={formCity} onChange={(e) => setFormCity(e.target.value)} placeholder="Ville" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Annuler</Button>
@@ -344,7 +349,8 @@ const Clients = () => {
             <div className="space-y-1"><Label>Nom *</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nom complet" /></div>
             <div className="space-y-1"><Label>Téléphone</Label><Input value={editPhone} onChange={(e) => setEditPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
             <div className="space-y-1"><Label>Email</Label><Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="email@exemple.com" /></div>
-            <div className="space-y-1"><Label>Adresse</Label><Input value={editAddress} onChange={(e) => setEditAddress(e.target.value)} placeholder="123 Rue Exemple" /></div>
+            <div className="space-y-1"><Label>Adresse</Label><AddressAutocomplete value={editAddress} onChange={setEditAddress} onSelect={(addr) => setEditCity(addr.ville)} placeholder="123 Rue Exemple" /></div>
+            <div className="space-y-1"><Label>Ville</Label><Input value={editCity} onChange={(e) => setEditCity(e.target.value)} placeholder="Ville" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setClientToEdit(null)}>Annuler</Button>
