@@ -9,11 +9,42 @@ export interface AddressSuggestion {
   longitude: number;
 }
 
-const EDGE_FUNCTION_URL = import.meta.env.DEV
-  ? "/api/address-autocomplete"
-  : import.meta.env.VITE_SUPABASE_URL
-    ? `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/address-autocomplete`
-    : "/functions/v1/address-autocomplete";
+export interface GetAddressAutocompleteUrlOptions {
+  /** Override for testability — defaults to import.meta.env.DEV */
+  isDev?: boolean;
+  /** Override for testability — defaults to import.meta.env.VITE_SUPABASE_URL */
+  supabaseUrl?: string;
+}
+
+/**
+ * Build the full address-autocomplete URL for the given query and max results.
+ *
+ * - DEV:  /api/address-autocomplete?q=...&max=...
+ * - PROD: {SUPABASE_URL}/functions/v1/address-autocomplete?q=...&max=...
+ *
+ * Accepts optional options hash for testability (isDev / supabaseUrl overrides).
+ */
+export function getAddressAutocompleteUrl(
+  query: string,
+  max: number = 10,
+  options: GetAddressAutocompleteUrlOptions = {},
+): string {
+  const isDev = options.isDev ?? import.meta.env.DEV;
+  const supabaseUrl = options.supabaseUrl ?? import.meta.env.VITE_SUPABASE_URL;
+
+  if (!isDev && !supabaseUrl) {
+    throw new Error(
+      "Supabase URL is not configured: set VITE_SUPABASE_URL or provide supabaseUrl option",
+    );
+  }
+
+  const base = isDev
+    ? "/api/address-autocomplete"
+    : `${supabaseUrl}/functions/v1/address-autocomplete`;
+
+  const params = new URLSearchParams({ q: query, max: String(max) });
+  return `${base}?${params.toString()}`;
+}
 
 interface UseAddressAutocompleteOptions {
   debounceMs?: number;
@@ -73,18 +104,12 @@ export function useAddressAutocomplete(
         abortRef.current = controller;
 
         try {
-          const params = new URLSearchParams({
-            q: trimmed,
-            max: String(maxResults),
-          });
+          const url = getAddressAutocompleteUrl(trimmed, maxResults);
 
-          const response = await fetch(
-            `${EDGE_FUNCTION_URL}?${params.toString()}`,
-            {
-              signal: controller.signal,
-              headers: { "Content-Type": "application/json" },
-            },
-          );
+          const response = await fetch(url, {
+            signal: controller.signal,
+            headers: { "Content-Type": "application/json" },
+          });
 
           if (!response.ok) {
             throw new Error(`Erreur serveur: ${response.status}`);
