@@ -23,6 +23,7 @@ export function AddressAutocomplete({
   const { suggestions, isLoading, search, clear } = useAddressAutocomplete();
   const [open, setOpen] = useState(false);
   const [highlightIndex, setHighlightIndex] = useState(-1);
+  const containerRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
   const selectionJustMadeRef = useRef(false);
 
@@ -86,16 +87,20 @@ export function AddressAutocomplete({
   };
 
   useEffect(() => {
-    const handleClickOutside = (e: MouseEvent) => {
+    const handleClickOutside = (e: MouseEvent | TouchEvent) => {
       if (
-        inputRef.current &&
-        !inputRef.current.parentElement?.contains(e.target as Node)
+        containerRef.current &&
+        !containerRef.current.contains(e.target as Node)
       ) {
         setOpen(false);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
+    document.addEventListener("touchstart", handleClickOutside);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("touchstart", handleClickOutside);
+    };
   }, []);
 
   const listItemClass = (isHighlighted: boolean) =>
@@ -103,7 +108,7 @@ export function AddressAutocomplete({
     (isHighlighted ? "bg-accent text-accent-foreground" : "text-popover-foreground");
 
   return (
-    <div className={`relative ${className}`}>
+    <div ref={containerRef} className={`relative ${className}`}>
       <div className="relative">
         <Input
           ref={inputRef}

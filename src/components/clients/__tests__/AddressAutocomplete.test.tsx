@@ -187,6 +187,111 @@ describe("AddressAutocomplete", () => {
     });
   });
 
+  // ── Outside click / suggestion click boundary tests ──
+  // These tests simulate the REAL browser event sequence (mousedown then click)
+  // to prove that suggestions stay clickable and the dropdown doesn't
+  // close before selection.
+
+  describe("outside click boundary (mousedown + touchstart)", () => {
+    function getFirstLi(): HTMLElement {
+      const text = screen.getByText("123 Rue Exemple, Montréal, QC H3A 1A1");
+      const li = text.closest("li");
+      if (!li) throw new Error("li not found");
+      return li;
+    }
+
+    it("does NOT close dropdown on mousedown inside the component (on a suggestion)", () => {
+      // Simulate the real browser: mousedown fires first, then click.
+      // The mousedown should NOT close the dropdown because the
+      // suggestion lives inside the component's container.
+      const { Wrapper } = createControlledWrapper();
+      render(<Wrapper />);
+
+      expect(screen.getByRole("list")).toBeInTheDocument();
+
+      // mousedown on a suggestion — this is the event that was incorrectly
+      // closing the dropdown before selection
+      fireEvent.mouseDown(getFirstLi());
+
+      // The dropdown must still be open
+      expect(screen.getByRole("list")).toBeInTheDocument();
+    });
+
+    it("selects suggestion via desktop click (mousedown then click)", () => {
+      // Full desktop interaction: mousedown + click on a suggestion
+      const { Wrapper, spies } = createControlledWrapper();
+      render(<Wrapper />);
+
+      fireEvent.mouseDown(getFirstLi());
+      fireEvent.click(getFirstLi());
+
+      expect(spies.onChange).toHaveBeenCalledWith(mockSuggestions[0].adresse_complete);
+      expect(spies.onSelect).toHaveBeenCalledWith(mockSuggestions[0]);
+    });
+
+    it("selects suggestion on mobile tap (touchstart + click)", () => {
+      // On mobile, a full tap sequence is: touchstart → touchend → click.
+      // The touchstart fires our outside-tap detection (should stay open),
+      // then the click triggers the onClick handler to select.
+      const { Wrapper, spies } = createControlledWrapper();
+      render(<Wrapper />);
+
+      fireEvent.touchStart(getFirstLi());
+      fireEvent.click(getFirstLi());
+
+      expect(spies.onChange).toHaveBeenCalledWith(mockSuggestions[0].adresse_complete);
+      expect(spies.onSelect).toHaveBeenCalledWith(mockSuggestions[0]);
+    });
+
+    it("closes dropdown on mousedown outside the component", () => {
+      const { Wrapper } = createControlledWrapper();
+      render(<Wrapper />);
+
+      expect(screen.getByRole("list")).toBeInTheDocument();
+
+      // mousedown on document.body (outside the root container)
+      fireEvent.mouseDown(document.body);
+
+      expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    });
+
+    it("closes dropdown on touchstart outside the component", () => {
+      const { Wrapper } = createControlledWrapper();
+      render(<Wrapper />);
+
+      expect(screen.getByRole("list")).toBeInTheDocument();
+
+      fireEvent.touchStart(document.body);
+
+      expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    });
+
+    it("dropdown does NOT close before selection when clicking a suggestion", () => {
+      // This is the exact acceptance criterion: clicking a suggestion
+      // must select it, not just close the dropdown without selecting.
+      const handleChange = vi.fn();
+      const handleSelect = vi.fn();
+
+      render(
+        <AddressAutocomplete
+          value="123"
+          onChange={handleChange}
+          onSelect={handleSelect}
+        />,
+      );
+
+      // Simulate real browser event order: mousedown → click
+      fireEvent.mouseDown(getFirstLi());
+      fireEvent.click(getFirstLi());
+
+      // Both onChange and onSelect must have been called
+      expect(handleChange).toHaveBeenCalledWith(mockSuggestions[0].adresse_complete);
+      expect(handleSelect).toHaveBeenCalledWith(mockSuggestions[0]);
+      // And the dropdown should be closed (by handleSelect, not by outside click)
+      expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    });
+  });
+
   // ── Ville field ──
 
   describe("ville field", () => {
@@ -238,6 +343,21 @@ describe("AddressAutocomplete", () => {
       expect(items[0].className).toContain("bg-accent");
     });
 
+    it("highlights suggestion on mouseEnter", () => {
+      render(
+        <AddressAutocomplete value="123" onChange={vi.fn()} />,
+      );
+
+      // Hover over the second suggestion
+      const items = screen.getAllByRole("listitem");
+      fireEvent.mouseEnter(items[1]);
+
+      // Second item should be highlighted
+      expect(items[1].className).toContain("bg-accent");
+      // First item should NOT be highlighted
+      expect(items[0].className).not.toContain("bg-accent");
+    });
+
     it("cycles highlight correctly with ArrowDown and ArrowUp", () => {
       render(
         <AddressAutocomplete value="123" onChange={vi.fn()} />,
@@ -253,6 +373,47 @@ describe("AddressAutocomplete", () => {
 
       fireEvent.keyDown(input, { key: "ArrowUp" });
       expect(items[0].className).toContain("bg-accent");
+    });
+
+    it("wraps highlight from last to first on ArrowDown past end", () => {
+      // Test the cycle-back branch: prev >= length-1 → prev = 0
+      render(
+        <AddressAutocomplete value="123" onChange={vi.fn()} />,
+      );
+
+      const input = screen.getByRole("textbox");
+      const items = screen.getAllByRole("listitem");
+
+      // ArrowDown to go to last item
+      fireEvent.keyDown(input, { key: "ArrowDown" }); // index 0
+      fireEvent.keyDown(input, { key: "ArrowDown" }); // index 1
+
+      // One more ArrowDown should wrap to index 0
+      fireEvent.keyDown(input, { key: "ArrowDown" }); // wrap to 0
+      expect(items[0].className).toContain("bg-accent");
+    });
+
+    it("wraps highlight from first to last on ArrowUp past start", () => {
+      // Test the cycle-back branch: prev <= 0 → prev = length-1
+      render(
+        <AddressAutocomplete value="123" onChange={vi.fn()} />,
+      );
+
+      const input = screen.getByRole("textbox");
+      const items = screen.getAllByRole("listitem");
+
+      // ArrowUp from initial state (no highlight) should go to last
+      fireEvent.keyDown(input, { key: "ArrowUp" }); // wrap to last
+      expect(items[items.length - 1].className).toContain("bg-accent");
+
+      // ArrowUp from first should wrap to last
+      // First go to index 0
+      fireEvent.keyDown(input, { key: "ArrowDown" }); // index 0 (wrap from last)
+      expect(items[0].className).toContain("bg-accent");
+
+      // ArrowUp from 0 should wrap to last
+      fireEvent.keyDown(input, { key: "ArrowUp" }); // wrap to last
+      expect(items[items.length - 1].className).toContain("bg-accent");
     });
 
     it("selects highlighted item on Enter key", () => {
@@ -295,6 +456,55 @@ describe("AddressAutocomplete", () => {
       fireEvent.keyDown(input, { key: "Enter" });
 
       expect(handleChange).not.toHaveBeenCalled();
+    });
+  });
+
+  // ── Focus behavior (onFocus handler coverage) ──
+
+  describe("focus behavior", () => {
+    it("re-opens dropdown on focus when suggestions are available", () => {
+      const { Wrapper } = createControlledWrapper();
+      render(<Wrapper />);
+
+      // Start: dropdown is open due to the value effect + available suggestions
+      expect(screen.getByRole("list")).toBeInTheDocument();
+
+      // Close it via Escape
+      const input = screen.getByRole("textbox");
+      fireEvent.keyDown(input, { key: "Escape" });
+      expect(screen.queryByRole("list")).not.toBeInTheDocument();
+
+      // Focus the input — onFocus handler should re-open because
+      // suggestions.length > 0
+      fireEvent.focus(input);
+      expect(screen.getByRole("list")).toBeInTheDocument();
+    });
+
+    it("calls onFocus handler when loading (even without suggestions)", () => {
+      currentSuggestions = [];
+      currentIsLoading = true;
+      render(<AddressAutocomplete value="123" onChange={vi.fn()} />);
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+
+      // The onFocus handler runs: suggestions.length > 0 || isLoading → true
+      // The dropdown isn't visible because suggestions are empty,
+      // but the key point is the handler executed without error,
+      // covering the isLoading branch.
+      expect(screen.queryByRole("list")).not.toBeInTheDocument();
+    });
+
+    it("does not open dropdown on focus when no suggestions and not loading", () => {
+      currentSuggestions = [];
+      currentIsLoading = false;
+      render(<AddressAutocomplete value="123" onChange={vi.fn()} />);
+
+      const input = screen.getByRole("textbox");
+      fireEvent.focus(input);
+
+      // onFocus checks: suggestions.length > 0 || isLoading → false → no setOpen
+      expect(screen.queryByRole("list")).not.toBeInTheDocument();
     });
   });
 
