@@ -1,5 +1,12 @@
 ﻿import { useState, useEffect, useRef, useCallback } from "react";
 
+/**
+ * Dedicated Supabase URL for the address-autocomplete edge function.
+ * This is different from the main app VITE_SUPABASE_URL.
+ */
+export const ADDRESS_AUTOCOMPLETE_SUPABASE_URL =
+  "https://atipsraxpxbjbecjobuv.supabase.co";
+
 export interface AddressSuggestion {
   adresse_complete: string;
   ville: string;
@@ -12,7 +19,10 @@ export interface AddressSuggestion {
 export interface GetAddressAutocompleteUrlOptions {
   /** Override for testability — defaults to import.meta.env.DEV */
   isDev?: boolean;
-  /** Override for testability — defaults to import.meta.env.VITE_SUPABASE_URL */
+  /**
+   * Override for testability — defaults to ADDRESS_AUTOCOMPLETE_SUPABASE_URL.
+   * Does NOT use the main app VITE_SUPABASE_URL.
+   */
   supabaseUrl?: string;
 }
 
@@ -20,7 +30,10 @@ export interface GetAddressAutocompleteUrlOptions {
  * Build the full address-autocomplete URL for the given query and max results.
  *
  * - DEV:  /api/address-autocomplete?q=...&max=...
- * - PROD: {SUPABASE_URL}/functions/v1/address-autocomplete?q=...&max=...
+ * - PROD: {ADDRESS_AUTOCOMPLETE_SUPABASE_URL}/functions/v1/address-autocomplete?q=...&max=...
+ *
+ * The production URL uses the dedicated autocomplete Supabase project
+ * (ADDRESS_AUTOCOMPLETE_SUPABASE_URL), NOT the main app VITE_SUPABASE_URL.
  *
  * Accepts optional options hash for testability (isDev / supabaseUrl overrides).
  */
@@ -30,7 +43,7 @@ export function getAddressAutocompleteUrl(
   options: GetAddressAutocompleteUrlOptions = {},
 ): string {
   const isDev = options.isDev ?? import.meta.env.DEV;
-  const supabaseUrl = options.supabaseUrl ?? import.meta.env.VITE_SUPABASE_URL;
+  const supabaseUrl = options.supabaseUrl ?? ADDRESS_AUTOCOMPLETE_SUPABASE_URL;
 
   if (!isDev && !supabaseUrl) {
     throw new Error(
