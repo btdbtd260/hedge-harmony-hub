@@ -14,6 +14,10 @@ import JobDetailEditor from "@/components/jobs/JobDetailEditor";
 import CalendarPage from "./pages/Calendar";
 import Invoices from "./pages/Invoices";
 import Finance from "./pages/Finance";
+import FinanceApercu from "./pages/FinanceApercu";
+import FinanceDepenses from "./pages/FinanceDepenses";
+import FinancePaie from "./pages/FinancePaie";
+import FinanceHistorique from "./pages/FinanceHistorique";
 import Employees from "./pages/Employees";
 import Reminders from "./pages/Reminders";
 import Analytics from "./pages/Analytics";
@@ -52,6 +56,10 @@ const App = () => (
                     <Route path="/calendar" element={<CalendarPage />} />
                     <Route path="/invoices" element={<Invoices />} />
                     <Route path="/finance" element={<Finance />} />
+                    <Route path="/finance/apercu" element={<FinanceApercu />} />
+                    <Route path="/finance/depenses" element={<FinanceDepenses />} />
+                    <Route path="/finance/paie" element={<FinancePaie />} />
+                    <Route path="/finance/historique" element={<FinanceHistorique />} />
                     <Route path="/employees" element={<Employees />} />
                     <Route path="/reminders" element={<Reminders />} />
                     <Route path="/messagerie" element={<Messagerie />} />

@@ -12,6 +12,8 @@ import {
   Settings,
   MessageSquare,
   ChevronRight,
+  TrendingDown,
+  TrendingUp,
 } from "lucide-react";
 import type { LucideIcon } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
@@ -61,7 +63,18 @@ const navItems: NavItem[] = [
   { type: "link", title: "Jobs", url: "/jobs", icon: Briefcase },
   { type: "link", title: "Calendrier", url: "/calendar", icon: CalendarDays },
   { type: "link", title: "Facturation", url: "/invoices", icon: FileText },
-  { type: "link", title: "Finance", url: "/finance", icon: DollarSign },
+  {
+    type: "section",
+    title: "Finance",
+    icon: DollarSign,
+    defaultOpen: true,
+    items: [
+      { title: "Aperçu", url: "/finance/apercu", icon: BarChart3 },
+      { title: "Dépenses", url: "/finance/depenses", icon: TrendingDown },
+      { title: "Paie employés", url: "/finance/paie", icon: UserCog },
+      { title: "Historique profit", url: "/finance/historique", icon: TrendingUp },
+    ],
+  },
   { type: "link", title: "Employés", url: "/employees", icon: UserCog },
   { type: "link", title: "Rappels", url: "/reminders", icon: Bell },
   { type: "link", title: "Messagerie", url: "/messagerie", icon: MessageSquare },
@@ -173,9 +186,9 @@ export function AppSidebar() {
                     <SidebarMenuItem>
                       <CollapsibleTrigger asChild>
                         <SidebarMenuButton className="flex items-center gap-3 px-3 py-2 rounded-md text-sidebar-foreground hover:bg-sidebar-accent data-[state=open]:hover:bg-sidebar-accent">
-                          <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
                           <item.icon className="h-4 w-4" />
                           <span className="flex-1">{item.title}</span>
+                          <ChevronRight className="h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-90" />
                         </SidebarMenuButton>
                       </CollapsibleTrigger>
                     </SidebarMenuItem>

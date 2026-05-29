@@ -1,6 +1,6 @@
 ﻿import { useState, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { CollapsibleCard } from "@/components/ui/collapsible-card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -187,85 +187,70 @@ toast.error(e.message ?? "Échec de la mise à jour");
         </TabsList>
 
         <TabsContent value="clients" className="mt-4">
-          <Card>
-            <CardHeader><CardTitle>Clients actifs ({currentYear.length})</CardTitle></CardHeader>
-            <CardContent className="space-y-3">
-              {currentYear.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucun client avec une job planifiée ou complétée.</p>
-              ) : currentYear.map((c) => (
-                <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedClient(c)}>
-                  <div>
-                    <p className="font-medium">{c.name}</p>
-                    <p className="text-sm text-muted-foreground">{c.address}</p>
-                    <p className="text-xs text-muted-foreground">{formatPhone(c.phone)} · {c.email}</p>
-                    <p className="text-xs text-muted-foreground mt-1">{jobs.filter((j) => j.client_id === c.id).length} job(s)</p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge className={statusColor[c.status]}>{c.status}</Badge>
-                    {c.hidden && (
-                      <Button variant="outline" size="sm" className="h-8 text-xs" onClick={(e) => { e.stopPropagation(); handleRestoreClient(c); }}>
-                        <RotateCcw className="h-3 w-3 mr-1" /> Restaurer
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-
-        <TabsContent value="estimation" className="mt-4">
-          <Card>
-            <CardHeader>
-              <CardTitle>Estimation seulement ({estimationOnly.length})</CardTitle>
-              <p className="text-xs text-muted-foreground">
-                Personnes pour qui une estimation a été faite, mais sans job planifiée ou complétée.
-                Ils passeront automatiquement dans <strong>Clients</strong> dès qu'une job devient <em>scheduled</em> ou <em>completed</em>.
-              </p>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {estimationOnly.length === 0 ? (
-                <p className="text-sm text-muted-foreground">Aucune estimation en attente.</p>
-              ) : estimationOnly.map((c) => (
-                <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedClient(c)}>
-                  <div>
-                    <p className="font-medium">{c.name}</p>
-                    <p className="text-sm text-muted-foreground">{c.address}</p>
-                    <p className="text-xs text-muted-foreground">{formatPhone(c.phone)} · {c.email}</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {jobs.filter((j) => j.client_id === c.id).length} estimation/job pending
-                    </p>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <Badge variant="outline" className="text-xs bg-muted">Estimation</Badge>
-                    {c.hidden && (
-                      <Button variant="outline" size="sm" className="h-8 text-xs" onClick={(e) => { e.stopPropagation(); handleRestoreClient(c); }}>
-                        <RotateCcw className="h-3 w-3 mr-1" /> Restaurer
-                      </Button>
-                    )}
-                  </div>
-                </div>
-              ))}
-            </CardContent>
-          </Card>
-        </TabsContent>
-      </Tabs>
-
-      {nextYear.length > 0 && (
-        <Card>
-          <CardHeader><CardTitle>Année prochaine ({nextYear.length})</CardTitle></CardHeader>
-          <CardContent className="space-y-3">
-            {nextYear.map((c) => (
+          <CollapsibleCard title={`Clients actifs (${currentYear.length})`}>
+            {currentYear.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucun client avec une job planifiée ou complétée.</p>
+            ) : currentYear.map((c) => (
               <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedClient(c)}>
                 <div>
                   <p className="font-medium">{c.name}</p>
                   <p className="text-sm text-muted-foreground">{c.address}</p>
+                  <p className="text-xs text-muted-foreground">{formatPhone(c.phone)} · {c.email}</p>
+                  <p className="text-xs text-muted-foreground mt-1">{jobs.filter((j) => j.client_id === c.id).length} job(s)</p>
                 </div>
-                <Badge className={statusColor.next_year}>année prochaine</Badge>
+                <div className="flex items-center gap-2">
+                  <Badge className={statusColor[c.status]}>{c.status}</Badge>
+                  {c.hidden && (
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={(e) => { e.stopPropagation(); handleRestoreClient(c); }}>
+                      <RotateCcw className="h-3 w-3 mr-1" /> Restaurer
+                    </Button>
+                  )}
+                </div>
               </div>
             ))}
-          </CardContent>
-        </Card>
+          </CollapsibleCard>
+        </TabsContent>
+
+        <TabsContent value="estimation" className="mt-4">
+          <CollapsibleCard title={`Estimation seulement (${estimationOnly.length})`}>
+            {estimationOnly.length === 0 ? (
+              <p className="text-sm text-muted-foreground">Aucune estimation en attente.</p>
+            ) : estimationOnly.map((c) => (
+              <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedClient(c)}>
+                <div>
+                  <p className="font-medium">{c.name}</p>
+                  <p className="text-sm text-muted-foreground">{c.address}</p>
+                  <p className="text-xs text-muted-foreground">{formatPhone(c.phone)} · {c.email}</p>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    {jobs.filter((j) => j.client_id === c.id).length} estimation/job pending
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline" className="text-xs bg-muted">Estimation</Badge>
+                  {c.hidden && (
+                    <Button variant="outline" size="sm" className="h-8 text-xs" onClick={(e) => { e.stopPropagation(); handleRestoreClient(c); }}>
+                      <RotateCcw className="h-3 w-3 mr-1" /> Restaurer
+                    </Button>
+                  )}
+                </div>
+              </div>
+            ))}
+          </CollapsibleCard>
+        </TabsContent>
+      </Tabs>
+
+      {nextYear.length > 0 && (
+        <CollapsibleCard title={`Année prochaine (${nextYear.length})`}>
+          {nextYear.map((c) => (
+            <div key={c.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedClient(c)}>
+              <div>
+                <p className="font-medium">{c.name}</p>
+                <p className="text-sm text-muted-foreground">{c.address}</p>
+              </div>
+              <Badge className={statusColor.next_year}>année prochaine</Badge>
+            </div>
+          ))}
+        </CollapsibleCard>
       )}
 
       <Dialog open={!!selectedClient} onOpenChange={(open) => !open && setSelectedClient(null)}>

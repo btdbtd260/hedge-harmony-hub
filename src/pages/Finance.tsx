@@ -1,35 +1,28 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
+import { Card as Card2 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
-import { Collapsible, CollapsibleTrigger, CollapsibleContent } from "@/components/ui/collapsible";
-import { useInvoices, useExpenses, useInsertExpense, useCustomers, useEmployees, useEmployeeJobs, useJobs, getClientNameFromList } from "@/hooks/useSupabaseData";
-import { DollarSign, TrendingUp, TrendingDown, BarChart3, Plus, Camera, FileText, Fuel, ChevronRight } from "lucide-react";
-import { formatDateQC } from "@/lib/utils";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
+import { useInvoices, useExpenses, useInsertExpense, useEmployees, useEmployeeJobs, useJobs } from "@/hooks/useSupabaseData";
+import { DollarSign, TrendingUp, TrendingDown, Plus, Camera, FileText, Fuel } from "lucide-react";
 import { toast } from "sonner";
 import type { ExpenseCategory } from "@/types";
 
 type FilterMode = "daily" | "weekly" | "yearly";
-type GroupMode = "name" | "date";
 
 const Finance = () => {
   const { data: invoices = [] } = useInvoices();
   const { data: expenseList = [] } = useExpenses();
-  const { data: customers = [] } = useCustomers();
   const { data: employees = [] } = useEmployees();
   const { data: employeeJobs = [] } = useEmployeeJobs();
   const { data: jobs = [] } = useJobs();
   const insertExpense = useInsertExpense();
 
   const [filter, setFilter] = useState<FilterMode>("yearly");
-  const [groupMode, setGroupMode] = useState<GroupMode>("name");
-  const [expandedGroups, setExpandedGroups] = useState<Set<string>>(new Set());
   const [showAddExpense, setShowAddExpense] = useState(false);
   const [addMode, setAddMode] = useState<"manual" | "auto">("manual");
 
@@ -61,98 +54,22 @@ const Finance = () => {
   const filteredInvoices = invoices.filter((i) => i.status === "paid" && filterByDate(i.paid_at || i.issued_at));
   const filteredExpenses = expenseList.filter((e) => filterByDate(e.date));
 
-  // ── Employee pay integration ──
-  // Normal employees' pay = expense (cost of labor)
-  // Admins' pay = revenue (their share of the job)
-  // Use job.scheduled_date as the financial date.
   const adminIds = new Set(employees.filter((e) => e.is_admin).map((e) => e.id));
-  type EJEntry = { id: string; date: string; amount: number; clientName: string; isAdmin: boolean };
-  const employeePayEntries: EJEntry[] = employeeJobs
+  const employeePayEntries = employeeJobs
     .map((ej) => {
       const job = jobs.find((j) => j.id === ej.job_id);
       if (!job || job.status !== "completed") return null;
       const dateStr = job.scheduled_date ?? job.created_at;
       if (!dateStr) return null;
-      const emp = employees.find((e) => e.id === ej.employee_id);
-      return {
-        id: ej.id,
-        date: dateStr,
-        amount: Number(ej.calculated_pay ?? 0),
-        clientName: emp?.name ?? "Employé",
-        isAdmin: adminIds.has(ej.employee_id),
-      };
+      return { amount: Number(ej.calculated_pay ?? 0), isAdmin: adminIds.has(ej.employee_id), date: dateStr };
     })
-    .filter((x): x is EJEntry => x !== null && x.amount !== 0)
+    .filter((x): x is { amount: number; isAdmin: boolean; date: string } => x !== null && x.amount !== 0)
     .filter((x) => filterByDate(x.date));
 
-  const adminRevenue = employeePayEntries.filter((x) => x.isAdmin).reduce((s, x) => s + x.amount, 0);
+  const totalProfit = employeePayEntries.filter((x) => x.isAdmin).reduce((s, x) => s + x.amount, 0);
   const normalLaborCost = employeePayEntries.filter((x) => !x.isAdmin).reduce((s, x) => s + x.amount, 0);
-
-  // ── Grouping logic ──
-  const handleGroupModeChange = (mode: GroupMode) => {
-    setGroupMode(mode);
-    setExpandedGroups(new Set());
-  };
-
-  const toggleGroup = (key: string) => {
-    setExpandedGroups((prev) => {
-      const next = new Set(prev);
-      if (next.has(key)) next.delete(key);
-      else next.add(key);
-      return next;
-    });
-  };
-
-  const groupedByName = useMemo(() => {
-    const groups: Record<string, EJEntry[]> = {};
-    for (const entry of employeePayEntries) {
-      if (!groups[entry.clientName]) groups[entry.clientName] = [];
-      groups[entry.clientName].push(entry);
-    }
-    // Sort entries within each group by date descending (newest first)
-    for (const name of Object.keys(groups)) {
-      groups[name].sort((a, b) => b.date.localeCompare(a.date));
-    }
-    // Sort groups alphabetically by employee name
-    return Object.entries(groups).sort(([aName], [bName]) => aName.localeCompare(bName));
-  }, [employeePayEntries]);
-
-  const groupedByDate = useMemo(() => {
-    const groups: Record<string, EJEntry[]> = {};
-    for (const entry of employeePayEntries) {
-      if (!groups[entry.date]) groups[entry.date] = [];
-      groups[entry.date].push(entry);
-    }
-    // Sort entries within each date group by client name
-    for (const date of Object.keys(groups)) {
-      groups[date].sort((a, b) => a.clientName.localeCompare(b.clientName));
-    }
-    // Sort groups by date descending (newest first)
-    return Object.entries(groups).sort(([aDate], [bDate]) => bDate.localeCompare(aDate));
-  }, [employeePayEntries]);
-
-  const renderEntryRow = (ej: EJEntry) => (
-    <div key={ej.id} className="flex items-center justify-between p-2 rounded border text-sm">
-      <div>
-        <p className="font-medium">
-          {ej.clientName} {ej.isAdmin && <span className="text-xs text-muted-foreground">(admin)</span>}
-        </p>
-        <p className="text-xs text-muted-foreground">{ej.date}</p>
-      </div>
-      <p className={`font-semibold ${ej.isAdmin ? "text-emerald-600" : "text-red-600"}`}>
-        {ej.isAdmin ? "+" : "-"}${ej.amount.toFixed(2)}
-      </p>
-    </div>
-  );
-
-  const totalProfit = adminRevenue;
   const totalExpenses = filteredExpenses.reduce((s, e) => s + e.amount, 0) + normalLaborCost;
   const netProfit = totalProfit - totalExpenses;
-
-  const chartData = [{ name: "Revenus", profit: totalProfit, expenses: totalExpenses, net: netProfit }];
-
-  const categoryLabels: Record<string, string> = { gas: "Essence", insurance: "Assurance", equipment: "Équipement", other: "Autre" };
-  const categoryTotals = filteredExpenses.reduce((acc, e) => { acc[e.category] = (acc[e.category] || 0) + e.amount; return acc; }, {} as Record<string, number>);
 
   const formatDateRange = () => {
     if (filter === "daily") return now.toLocaleDateString("fr-CA");
@@ -173,13 +90,8 @@ const Finance = () => {
   };
 
   const handleQuickExpense = async (category: ExpenseCategory, description: string) => {
-    setExpCategory(category);
-    setExpDesc(description);
-    setExpDate(new Date().toISOString().split("T")[0]);
-    setExpAmount("");
-    setAddMode("manual");
-    setOcrPreview(null);
-    setShowAddExpense(true);
+    setExpCategory(category); setExpDesc(description); setExpDate(new Date().toISOString().split("T")[0]);
+    setExpAmount(""); setAddMode("manual"); setOcrPreview(null); setShowAddExpense(true);
   };
 
   const handleOcrUpload = (file: File) => {
@@ -221,7 +133,6 @@ const Finance = () => {
 
       <p className="text-sm text-muted-foreground">Période : {formatDateRange()}</p>
 
-      {/* Quick expense buttons */}
       <div className="flex gap-2 flex-wrap">
         <Button variant="outline" size="sm" onClick={() => handleQuickExpense("gas", "Essence")}><Fuel className="h-4 w-4 mr-1" /> Essence</Button>
         <Button variant="outline" size="sm" onClick={() => handleQuickExpense("equipment", "Équipement")}>Équipement</Button>
@@ -233,150 +144,6 @@ const Finance = () => {
         <Card><CardContent className="p-4"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center"><TrendingDown className="h-5 w-5 text-red-600" /></div><div><p className="text-sm text-muted-foreground">Dépenses ({filterLabel[filter]})</p><p className="text-2xl font-bold text-red-600">${totalExpenses.toFixed(2)}</p></div></div></CardContent></Card>
         <Card><CardContent className="p-4"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><DollarSign className="h-5 w-5 text-primary" /></div><div><p className="text-sm text-muted-foreground">Net Profit ({filterLabel[filter]})</p><p className="text-2xl font-bold">${netProfit.toFixed(2)}</p></div></div></CardContent></Card>
       </div>
-
-      <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="h-5 w-5" /> Aperçu</CardTitle></CardHeader>
-        <CardContent>
-          <div className="h-64">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={chartData}><CartesianGrid strokeDasharray="3 3" /><XAxis dataKey="name" /><YAxis /><Tooltip /><Bar dataKey="profit" fill="hsl(152, 60%, 40%)" name="Profit" /><Bar dataKey="expenses" fill="hsl(0, 72%, 51%)" name="Dépenses" /><Bar dataKey="net" fill="hsl(152, 45%, 36%)" name="Net" /></BarChart>
-            </ResponsiveContainer>
-          </div>
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>Historique des profits</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          {filteredInvoices.length === 0 ? <p className="text-sm text-muted-foreground">Aucune facture payée pour cette période.</p> : filteredInvoices.map((inv) => (
-            <div key={inv.id} className="flex items-center justify-between p-3 rounded-lg border">
-              <div><p className="font-medium">{getClientNameFromList(customers, inv.client_id)}</p><p className="text-xs text-muted-foreground">{formatDateQC(inv.paid_at || inv.issued_at)}</p></div>
-              <p className="font-semibold text-emerald-600">+${inv.amount.toFixed(2)}</p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <CardTitle>Paies des employés (impact finance)</CardTitle>
-            <div className="flex gap-1">
-              <Button
-                variant={groupMode === "name" ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleGroupModeChange("name")}
-              >
-                Nom
-              </Button>
-              <Button
-                variant={groupMode === "date" ? "default" : "outline"}
-                size="sm"
-                onClick={() => handleGroupModeChange("date")}
-              >
-                Date
-              </Button>
-            </div>
-          </div>
-        </CardHeader>
-        <CardContent className="space-y-2">
-          <div className="flex gap-2 flex-wrap mb-2">
-            <Badge variant="outline" className="text-emerald-700 border-emerald-300">
-              Revenu admins : +${adminRevenue.toFixed(2)}
-            </Badge>
-            <Badge variant="outline" className="text-red-700 border-red-300">
-              Dépense employés normaux : -${normalLaborCost.toFixed(2)}
-            </Badge>
-          </div>
-          {employeePayEntries.length === 0 ? (
-            <p className="text-sm text-muted-foreground">Aucune paie d'employé pour cette période.</p>
-          ) : groupMode === "name" ? (
-            groupedByName.map(([name, entries]) => {
-              const isExpanded = expandedGroups.has(name);
-              const mostRecent = entries[0];
-              const remaining = entries.slice(1);
-              return (
-                <Collapsible
-                  key={name}
-                  open={isExpanded}
-                  onOpenChange={() => toggleGroup(name)}
-                >
-                  <CollapsibleTrigger
-                    data-testid={`group-trigger-${name}`}
-                    className="flex w-full items-center gap-2 rounded border p-2 text-sm hover:bg-accent"
-                  >
-                    <ChevronRight
-                      className={`h-4 w-4 shrink-0 transition-transform ${isExpanded ? "rotate-90" : ""}`}
-                    />
-                    <span className="font-medium">{name}</span>
-                    <Badge variant="outline" className="ml-auto text-xs">
-                      {entries.length} entrée{entries.length > 1 ? "s" : ""}
-                    </Badge>
-                  </CollapsibleTrigger>
-                  <div className="ml-6 mt-1">{renderEntryRow(mostRecent)}</div>
-                  {remaining.length > 0 && (
-                    <CollapsibleContent
-                      data-testid={`group-content-${name}`}
-                      className="ml-6 space-y-1 mt-1"
-                    >
-                      {remaining.map(renderEntryRow)}
-                    </CollapsibleContent>
-                  )}
-                </Collapsible>
-              );
-            })
-          ) : (
-            groupedByDate.map(([date, entries]) => {
-              const isExpanded = expandedGroups.has(date);
-              const isMostRecent = date === groupedByDate[0]?.[0];
-              // Most recent date group is expanded by default
-              const defaultOpen = isMostRecent && !expandedGroups.has(date) && expandedGroups.size === 0;
-              const effectiveOpen = isExpanded || defaultOpen;
-              return (
-                <Collapsible
-                  key={date}
-                  open={effectiveOpen}
-                  onOpenChange={() => toggleGroup(date)}
-                >
-                  <CollapsibleTrigger
-                    data-testid={`group-trigger-${date}`}
-                    className="flex w-full items-center gap-2 rounded border p-2 text-sm hover:bg-accent"
-                  >
-                    <ChevronRight
-                      className={`h-4 w-4 shrink-0 transition-transform ${effectiveOpen ? "rotate-90" : ""}`}
-                    />
-                    <span className="font-medium">{date}</span>
-                    <Badge variant="outline" className="ml-auto text-xs">
-                      {entries.length} entrée{entries.length > 1 ? "s" : ""}
-                    </Badge>
-                  </CollapsibleTrigger>
-                  <CollapsibleContent
-                    data-testid={`group-content-${date}`}
-                    className="ml-6 space-y-1 mt-1"
-                  >
-                    {entries.map(renderEntryRow)}
-                  </CollapsibleContent>
-                </Collapsible>
-              );
-            })
-          )}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader><CardTitle>Dépenses</CardTitle></CardHeader>
-        <CardContent className="space-y-3">
-          <div className="flex gap-2 flex-wrap mb-3">
-            {Object.entries(categoryTotals).map(([cat, total]) => (<Badge key={cat} variant="outline">{categoryLabels[cat] ?? cat}: ${total}</Badge>))}
-          </div>
-          {filteredExpenses.length === 0 ? <p className="text-sm text-muted-foreground">Aucune dépense pour cette période.</p> : filteredExpenses.map((exp) => (
-            <div key={exp.id} className="flex items-center justify-between p-3 rounded-lg border">
-              <div><p className="font-medium">{exp.description}</p><p className="text-xs text-muted-foreground">{exp.date} · {categoryLabels[exp.category] ?? exp.category}</p></div>
-              <p className="font-semibold text-red-600">-${exp.amount}</p>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
 
       <Dialog open={showAddExpense} onOpenChange={setShowAddExpense}>
         <DialogContent>

@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Users, FileText, Plus, Clock, DollarSign, Briefcase, Bell, ClipboardList } from "lucide-react";
-import { useCustomers, useJobs, useInvoices, useReminders, useEstimationRequests, getClientNameFromList } from "@/hooks/useSupabaseData";
+import { useCustomers, useJobs, useInvoices, useReminders, useEstimationRequests, useExpenses, useEmployees, useEmployeeJobs, getClientNameFromList } from "@/hooks/useSupabaseData";
 import { useNavigate } from "react-router-dom";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
 
@@ -20,6 +20,9 @@ const Dashboard = () => {
   const { data: invoices = [] } = useInvoices();
   const { data: reminders = [] } = useReminders();
   const { data: estimationRequests = [] } = useEstimationRequests();
+  const { data: expenses = [] } = useExpenses();
+  const { data: employees = [] } = useEmployees();
+  const { data: employeeJobs = [] } = useEmployeeJobs();
 
   const [selectedJobId, setSelectedJobId] = useState<string | null>(null);
   const selectedJob = selectedJobId ? jobs.find((j) => j.id === selectedJobId) ?? null : null;
@@ -40,7 +43,39 @@ const Dashboard = () => {
         j.scheduled_date <= inOneWeekStr,
     )
     .sort((a, b) => (a.scheduled_date ?? "").localeCompare(b.scheduled_date ?? ""));
-  const totalRevenue = invoices.filter((i) => i.status === "paid").reduce((s, i) => s + i.amount, 0);
+  const adminIds = useMemo(() => new Set(employees.filter((e) => e.is_admin).map((e) => e.id)), [employees]);
+
+  const employeePayEntries = useMemo(
+    () =>
+      employeeJobs
+        .map((ej) => {
+          const job = jobs.find((j) => j.id === ej.job_id);
+          if (!job || job.status !== "completed") return null;
+          return {
+            amount: Number(ej.calculated_pay ?? 0),
+            isAdmin: adminIds.has(ej.employee_id),
+          };
+        })
+        .filter((x): x is { amount: number; isAdmin: boolean } => x !== null && x.amount !== 0),
+    [employeeJobs, jobs, adminIds],
+  );
+
+  const totalProfit = useMemo(
+    () => employeePayEntries.filter((x) => x.isAdmin).reduce((s, x) => s + x.amount, 0),
+    [employeePayEntries],
+  );
+
+  const normalLaborCost = useMemo(
+    () => employeePayEntries.filter((x) => !x.isAdmin).reduce((s, x) => s + x.amount, 0),
+    [employeePayEntries],
+  );
+
+  const totalExpenses = useMemo(
+    () => expenses.reduce((s, e) => s + e.amount, 0) + normalLaborCost,
+    [expenses, normalLaborCost],
+  );
+
+  const netProfit = useMemo(() => Math.round(totalProfit - totalExpenses), [totalProfit, totalExpenses]);
 
   // Estimations restantes à faire = demandes non traitées (status === "pending", non masquées)
   // useEstimationRequests filtre déjà hidden = false
@@ -93,7 +128,7 @@ const Dashboard = () => {
         <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/finance")}>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><DollarSign className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-sm text-muted-foreground">Revenus (payé)</p><p className="text-2xl font-bold">${totalRevenue}</p></div>
+            <div><p className="text-sm text-muted-foreground">Revenu</p><p className="text-2xl font-bold">${netProfit}</p></div>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/reminders")}>

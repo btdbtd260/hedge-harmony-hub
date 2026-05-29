@@ -6,7 +6,7 @@
 
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, within } from "@testing-library/react";
-import Finance from "@/pages/Finance";
+import FinancePaie from "@/pages/FinancePaie";
 
 // ─── Hoisted mock helpers ───
 
@@ -106,7 +106,7 @@ describe("Finance — Paie des employés grouping", () => {
   // ── Toggle buttons ──
 
   it("renders Nom and Date toggle buttons inside the Paie card", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
 
     const nomBtn = screen.getByRole("button", { name: /^nom$/i });
     const dateBtn = screen.getByRole("button", { name: /^date$/i });
@@ -115,22 +115,23 @@ describe("Finance — Paie des employés grouping", () => {
     expect(dateBtn).toBeInTheDocument();
   });
 
-  it("defaults to Nom mode (Nom button has primary variant, Date has outline)", () => {
-    render(<Finance />);
+  it("defaults to Date mode (Date button has primary variant, Nom has outline)", () => {
+    render(<FinancePaie />);
 
     const nomBtn = screen.getByRole("button", { name: /^nom$/i });
     const dateBtn = screen.getByRole("button", { name: /^date$/i });
 
-    // Nom should be the active (primary) button
-    expect(nomBtn.className).toContain("bg-primary");
-    // Date should be non-active (outline)
-    expect(dateBtn.className).not.toContain("bg-primary");
+    // Date should be the active (primary) button
+    expect(dateBtn.className).toContain("bg-primary");
+    // Nom should be non-active (outline)
+    expect(nomBtn.className).not.toContain("bg-primary");
   });
 
   // ── Name mode grouping ──
 
   it("groups entries by employee name in Nom mode, showing employee names as headers", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
+    fireEvent.click(screen.getByRole("button", { name: /^nom$/i }));
 
     // In name mode, each group header should show the employee name
     // Names appear in both triggers and entry rows, so use getAllByText
@@ -141,7 +142,8 @@ describe("Finance — Paie des employés grouping", () => {
   });
 
   it("shows only the most recent entry per employee when collapsed in Nom mode", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
+    fireEvent.click(screen.getByRole("button", { name: /^nom$/i }));
 
     // Alice has two entries: $100 (2026-05-20) and $150 (2026-05-22)
     // The collapsed state should show only the most recent: $150
@@ -151,7 +153,8 @@ describe("Finance — Paie des employés grouping", () => {
   });
 
   it("expands a name group to reveal all entries for that employee when trigger is clicked", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
+    fireEvent.click(screen.getByRole("button", { name: /^nom$/i }));
 
     // Before clicking: The CollapsibleContent sections have data-state="closed" initially
     // Alice has 2 entries, so Alice's content should exist and be closed
@@ -179,7 +182,7 @@ describe("Finance — Paie des employés grouping", () => {
     // Re-render with extended mock — but we can't easily change mocks per test
     // Instead, skip this test or simplify
     // For now, just verify the basic admin revenue badges at the top work
-    render(<Finance />);
+    render(<FinancePaie />);
 
     // The summary badges should show admin revenue and normal labor cost
     expect(screen.getByText(/revenu admins/i)).toBeInTheDocument();
@@ -189,7 +192,7 @@ describe("Finance — Paie des employés grouping", () => {
   // ── Date mode grouping ──
 
   it("switches to Date mode when Date button is clicked", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
 
     const dateBtn = screen.getByRole("button", { name: /^date$/i });
     fireEvent.click(dateBtn);
@@ -205,7 +208,7 @@ describe("Finance — Paie des employés grouping", () => {
   });
 
   it("shows the most recent date group expanded by default in Date mode", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
 
     const dateBtn = screen.getByRole("button", { name: /^date$/i });
     fireEvent.click(dateBtn);
@@ -220,7 +223,7 @@ describe("Finance — Paie des employés grouping", () => {
   });
 
   it("groups entries under their respective dates in Date mode", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
 
     const dateBtn = screen.getByRole("button", { name: /^date$/i });
     fireEvent.click(dateBtn);
@@ -245,7 +248,7 @@ describe("Finance — Paie des employés grouping", () => {
   // ── Mode switching resets expanded state ──
 
   it("expanding a collapsed date group reveals entries", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
 
     const dateBtn = screen.getByRole("button", { name: /^date$/i });
     fireEvent.click(dateBtn);
@@ -259,10 +262,11 @@ describe("Finance — Paie des employés grouping", () => {
   });
 
   it("switching modes resets expanded groups, returning to Nom defaults", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
 
     // Start in Nom mode
     const nomBtn = screen.getByRole("button", { name: /^nom$/i });
+    fireEvent.click(nomBtn);
     const dateBtn = screen.getByRole("button", { name: /^date$/i });
 
     // Expand Alice's group in Nom mode
@@ -288,7 +292,7 @@ describe("Finance — Paie des employés grouping", () => {
   });
 
   it("does not break existing payroll summaries (admin revenue and labor cost badges)", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
 
     // Summary badges should always be present regardless of mode
     expect(screen.getByText(/revenu admins/i)).toBeInTheDocument();
@@ -304,7 +308,8 @@ describe("Finance — Paie des employés grouping", () => {
   });
 
   it("shows payment amounts with correct sign (admins: +, non-admins: -) in both modes", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
+    fireEvent.click(screen.getByRole("button", { name: /^nom$/i }));
 
     // In Nom mode (collapsed), Alice's most recent is $150, Bob's is $200
     // Both non-admins, so amounts are prefixed with "-"
@@ -327,7 +332,7 @@ describe("Finance — Paie des employés grouping", () => {
   });
 
   it("displays a ChevronRight icon in each collapsible trigger", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
 
     // Find chevron icons — they should have rotate-90 class when expanded
     const chevrons = document.querySelectorAll(".lucide-chevron-right");
@@ -335,7 +340,8 @@ describe("Finance — Paie des employés grouping", () => {
   });
 
   it("sorts entries inside each name group from newest to oldest", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
+    fireEvent.click(screen.getByRole("button", { name: /^nom$/i }));
 
     // Alice has entries on 2026-05-22 ($150, newest) and 2026-05-20 ($100, oldest)
     // In collapsed view, the most recent entry (2026-05-22) is shown in the preview
@@ -355,7 +361,7 @@ describe("Finance — Paie des employés grouping", () => {
   });
 
   it("sorts date groups from newest to oldest in Date mode", () => {
-    render(<Finance />);
+    render(<FinancePaie />);
 
     const dateBtn = screen.getByRole("button", { name: /^date$/i });
     fireEvent.click(dateBtn);
