@@ -56,6 +56,13 @@ export interface Estimation {
   pdfUrl?: string;
 }
 
+
+// === PAUSE ===
+export interface PauseInterval {
+  start: string; // "HH:mm"
+  end?: string;  // "HH:mm" — undefined/null means active pause (still ongoing)
+}
+
 // === JOB ===
 export type JobStatus = "pending" | "scheduled" | "completed" | "hidden";
 
@@ -83,6 +90,9 @@ export interface Job {
     heightRight: number;
     heightBack: number;
     width: number;
+    /** Pauses stored in measurement_snapshot to avoid new DB columns */
+    pauses?: PauseInterval[];
+    totalPauseMinutes?: number;
   };
   estimatedProfit: number;
   realProfit?: number;

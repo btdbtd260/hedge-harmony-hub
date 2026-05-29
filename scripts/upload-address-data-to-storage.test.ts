@@ -1,67 +1,71 @@
-// ============================================================
+﻿// ============================================================
 // Tests for upload-address-data-to-storage — TDD RED phase
 // ============================================================
 
-import { describe, it, expect, vi, beforeEach } from "vitest";
+import { describe, it, expect, vi, beforeEach, afterAll } from "vitest";
 import {
   getAllLocalFilePaths,
-  getExpectedFileNames,
   validateEnv,
 } from "./upload-address-data-to-storage";
 
-describe("getExpectedFileNames", () => {
-  it("returns 37 file names", () => {
-    const names = getExpectedFileNames();
-    expect(names.length).toBe(37);
-  });
+// Mock fs module for controlled testing
+vi.mock("node:fs", () => ({
+  readdirSync: vi.fn(),
+  statSync: vi.fn(),
+  existsSync: vi.fn(),
+  readFileSync: vi.fn(),
+}));
 
-  it("includes all digits 0-9", () => {
-    const names = getExpectedFileNames();
-    for (let i = 0; i <= 9; i++) {
-      expect(names).toContain(`${i}.ndjson`);
-    }
-  });
-
-  it("includes all letters a-z", () => {
-    const names = getExpectedFileNames();
-    for (let i = 97; i <= 122; i++) {
-      const letter = String.fromCharCode(i);
-      expect(names).toContain(`${letter}.ndjson`);
-    }
-  });
-
-  it('includes "other.ndjson"', () => {
-    const names = getExpectedFileNames();
-    expect(names).toContain("other.ndjson");
-  });
-
-  it("does not include the CSV file", () => {
-    const names = getExpectedFileNames();
-    const hasCsv = names.some((n) => n.includes(".csv"));
-    expect(hasCsv).toBe(false);
-  });
-});
+import * as fs from "node:fs";
 
 describe("getAllLocalFilePaths", () => {
-  const DATA_DIR = "C:\\fake\\data\\dir";
+  afterAll(() => {
+    vi.restoreAllMocks();
+  });
 
-  it("returns 37 file paths", () => {
+  it("returns only .ndjson files from the directory", () => {
+    const DATA_DIR = "C:\\fake\\data\\dir";
+    (fs.readdirSync as any).mockReturnValue([
+      "a.ndjson", "b.ndjson", "1-0.ndjson", "1-1.ndjson",
+      "other.ndjson", "_chunks.json", "some.csv",
+    ]);
+
     const paths = getAllLocalFilePaths(DATA_DIR);
-    expect(paths.length).toBe(37);
+    expect(paths.length).toBe(5);
+    for (const p of paths) {
+      expect(p.endsWith(".ndjson")).toBe(true);
+    }
+    expect(paths.every((p: string) => !p.includes("_chunks"))).toBe(true);
+    expect(paths.every((p: string) => !p.includes(".csv"))).toBe(true);
   });
 
   it("each path ends with .ndjson", () => {
+    const DATA_DIR = "C:\\fake\\data\\dir";
+    (fs.readdirSync as any).mockReturnValue(["a.ndjson", "b.ndjson", "other.ndjson"]);
+
     const paths = getAllLocalFilePaths(DATA_DIR);
     for (const p of paths) {
       expect(p.endsWith(".ndjson")).toBe(true);
     }
   });
 
-  it("each path contains the data dir", () => {
+  it("returns files sorted alphabetically", () => {
+    const DATA_DIR = "C:\\fake\\data\\dir";
+    (fs.readdirSync as any).mockReturnValue(["z.ndjson", "a.ndjson", "m.ndjson"]);
+
     const paths = getAllLocalFilePaths(DATA_DIR);
-    for (const p of paths) {
-      expect(p).toContain(DATA_DIR);
-    }
+    expect(paths).toEqual([
+      "C:\\fake\\data\\dir\\a.ndjson",
+      "C:\\fake\\data\\dir\\m.ndjson",
+      "C:\\fake\\data\\dir\\z.ndjson",
+    ]);
+  });
+
+  it("returns empty array if directory does not exist", () => {
+    (fs.readdirSync as any).mockImplementation(() => { throw new Error("ENOENT"); });
+
+    const paths = getAllLocalFilePaths("C:\\fake\\data\\dir");
+    expect(paths).toEqual([]);
   });
 });
 
@@ -102,7 +106,6 @@ describe("validateEnv", () => {
     process.env.SUPABASE_URL = "https://test.supabase.co";
     process.env.SUPABASE_SERVICE_ROLE_KEY = "test-key";
     delete process.env.SUPABASE_BUCKET_NAME;
-    // Should default to "address-autocomplete"
     expect(validateEnv()).toBe(true);
   });
 });

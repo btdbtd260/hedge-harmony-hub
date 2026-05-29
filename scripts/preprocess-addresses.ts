@@ -11,6 +11,8 @@ const OUT_DIR = path.resolve(
   "supabase", "functions", "address-autocomplete", "data",
 );
 
+const MAX_FILE_SIZE_BYTES = 45 * 1024 * 1024; // 45 MB safe limit
+
 fs.mkdirSync(OUT_DIR, { recursive: true });
 
 const COL_ID = 0;
@@ -71,6 +73,15 @@ function getFileName(label: string): string {
   return "other";
 }
 
+function getChunkSuffix(searchKey: string): string {
+  if (searchKey.length < 2) return "x";
+  const ch = searchKey[1];
+  const code = ch.charCodeAt(0);
+  if (code >= 48 && code <= 57) return ch;
+  if (code >= 97 && code <= 122) return ch;
+  return "x";
+}
+
 async function main() {
   console.log("Lecture du CSV: " + CSV_PATH);
   const fileStats = fs.statSync(CSV_PATH);
@@ -80,6 +91,10 @@ async function main() {
   const rl = readline.createInterface({ input: fileStream, crlfDelay: Infinity });
 
   const writers = new Map<string, fs.WriteStream>();
+  const digitChunkCounts = new Map<string, Map<string, number>>();
+  // Track which digits have been opened as single files
+  const digitSingleFiles = new Set<string>();
+
   let headerParsed = false;
   let totalRows = 0;
   let skippedRows = 0;
@@ -94,7 +109,7 @@ async function main() {
     return w;
   }
 
-  console.log("Traitement en cours...");
+  console.log("Phase 1: Parcours du CSV et ecriture des fichiers...");
 
   for await (const rawLine of rl) {
     if (!headerParsed) {
@@ -132,35 +147,152 @@ async function main() {
 
     const searchKey = normalizeSearchKey(label);
     const fileName = getFileName(label);
-    const writer = getWriter(fileName);
+    const firstCode = searchKey.charCodeAt(0);
 
-    const entry: AddressEntry = {
-      s: searchKey,
-      a: label,
-      v: ville,
-      cp: codePostal,
-      d: distance,
-      lat: latitude,
-      lng: longitude,
-    };
-    writer.write(JSON.stringify(entry) + "\n");
+    if (firstCode >= 48 && firstCode <= 57) {
+      // Digit entry: write to chunk file
+      const suffix = getChunkSuffix(searchKey);
+      const chunkFileName = `${fileName}-${suffix}`;
+
+      if (!digitChunkCounts.has(fileName)) {
+        digitChunkCounts.set(fileName, new Map());
+      }
+      const suffixCounts = digitChunkCounts.get(fileName)!;
+      suffixCounts.set(suffix, (suffixCounts.get(suffix) || 0) + 1);
+
+      let chunkWriter = writers.get(chunkFileName);
+      if (!chunkWriter) {
+        const chunkPath = path.join(OUT_DIR, chunkFileName + ".ndjson");
+        chunkWriter = fs.createWriteStream(chunkPath, { flags: "w" });
+        writers.set(chunkFileName, chunkWriter);
+      }
+      chunkWriter.write(JSON.stringify({
+        s: searchKey,
+        a: label,
+        v: ville,
+        cp: codePostal,
+        d: distance,
+        lat: latitude,
+        lng: longitude,
+      }) + "\n");
+    } else {
+      // Letter/other: write directly
+      digitSingleFiles.add(fileName); // Not a digit, so this is fine
+      const writer = getWriter(fileName);
+      writer.write(JSON.stringify({
+        s: searchKey,
+        a: label,
+        v: ville,
+        cp: codePostal,
+        d: distance,
+        lat: latitude,
+        lng: longitude,
+      }) + "\n");
+    }
+
     totalRows++;
-
     if (totalRows % 100_000 === 0) {
       console.log("  " + (totalRows / 1_000_000).toFixed(2) + "M lignes traitees...");
     }
   }
 
-  for (const [name, w] of writers) {
+  // Close all writers
+  for (const [, w] of writers) {
     w.end();
-    console.log("  Fichier: " + name + ".ndjson ecrit");
   }
+
+  // Phase 2: Merge or keep chunks
+  console.log("\nPhase 2: Verification des fichiers...");
+  const mergedIndex: Record<string, string[]> = {};
+
+  for (const digit of ["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]) {
+    const suffixCounts = digitChunkCounts.get(digit);
+    if (!suffixCounts) {
+      mergedIndex[digit] = [digit];
+      continue;
+    }
+
+    let totalEntries = 0;
+    const chunkFiles: string[] = [];
+    for (const [suffix] of suffixCounts) {
+      const chunkName = `${digit}-${suffix}`;
+      chunkFiles.push(chunkName);
+      totalEntries += suffixCounts.get(suffix) || 0;
+    }
+
+    const estimatedSizeBytes = totalEntries * 190;
+
+    if (estimatedSizeBytes <= MAX_FILE_SIZE_BYTES) {
+      // Merge chunks into single file
+      console.log(`  Fusion des chunks ${digit}-* vers ${digit}.ndjson...`);
+      const chunks: string[] = [];
+      for (const chunkName of chunkFiles) {
+        const chunkPath = path.join(OUT_DIR, `${chunkName}.ndjson`);
+        if (fs.existsSync(chunkPath)) {
+          chunks.push(chunkPath);
+        }
+      }
+      // Read and merge
+      const mergedWriter = fs.createWriteStream(path.join(OUT_DIR, `${digit}.ndjson`), { flags: "w" });
+      for (const chunkPath of chunks) {
+        const content = fs.readFileSync(chunkPath, "utf-8");
+        mergedWriter.write(content);
+        fs.unlinkSync(chunkPath);
+      }
+      mergedWriter.end();
+      mergedIndex[digit] = [digit];
+      const mergedSize = fs.statSync(path.join(OUT_DIR, `${digit}.ndjson`)).size;
+      console.log(`  ${digit}.ndjson garde comme fichier unique (${(mergedSize / 1024 / 1024).toFixed(2)} MB)`);
+    } else {
+      // Keep chunked
+      const actualChunks: string[] = [];
+      for (const chunkName of chunkFiles) {
+        const chunkPath = path.join(OUT_DIR, `${chunkName}.ndjson`);
+        if (fs.existsSync(chunkPath)) {
+          actualChunks.push(chunkName);
+        }
+      }
+      mergedIndex[digit] = actualChunks;
+      console.log(`  ${digit}.ndjson fractionne en ${actualChunks.length} chunks`);
+    }
+  }
+
+  // Phase 3: Clean up any empty files created by getWriter calls
+  console.log("\nPhase 3: Nettoyage...");
+  const allFiles = fs.readdirSync(OUT_DIR);
+  for (const f of allFiles) {
+    if (!f.endsWith(".ndjson")) continue;
+    const fullPath = path.join(OUT_DIR, f);
+    const stat = fs.statSync(fullPath);
+    if (stat.size === 0) {
+      fs.unlinkSync(fullPath);
+      console.log(`  Suppression: ${f} (fichier vide)`);
+    }
+  }
+
+  // Phase 4: Write index file
+  const indexPath = path.join(OUT_DIR, "_chunks.json");
+  fs.writeFileSync(indexPath, JSON.stringify(mergedIndex, null, 2));
+  console.log(`\nIndex ecrit: _chunks.json`);
+
+  // Final listing
+  console.log("\nFichiers finaux:");
+  const finalFiles = fs.readdirSync(OUT_DIR)
+    .filter(f => f.endsWith(".ndjson") || f === "_chunks.json")
+    .sort();
+  for (const f of finalFiles) {
+    const fullPath = path.join(OUT_DIR, f);
+    const size = fs.statSync(fullPath).size;
+    if (size > 0 || f === "_chunks.json") {
+      console.log(`  ${f} (${(size / 1024 / 1024).toFixed(2)} MB)`);
+    }
+  }
+  console.log(`\nTotal: ${finalFiles.filter(f => f.endsWith('.ndjson')).length} fichiers NDJSON`);
 
   console.log("");
   console.log("Traitement termine !");
   console.log("Total: " + totalRows.toLocaleString() + " adresses");
   console.log("Ignorees: " + skippedRows.toLocaleString());
-  console.log("Fichiers crees: " + writers.size);
 }
 
 main().catch((err) => {

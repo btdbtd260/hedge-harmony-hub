@@ -4,8 +4,15 @@ import {
   measurementsFromJob,
   computeRealDuration,
   addMinutesToTime,
+  computeTotalPauseMinutes,
+  parseTimeToMinutes,
+  computeElapsedMinutes,
+  formatDurationMinutes,
+  workedTimeInfo,
+  getActivePause,
   type MeasurementInput,
 } from "@/lib/jobDurationEstimator";
+import type { PauseInterval } from "@/types";
 import type { DbJob } from "@/hooks/useSupabaseData";
 
 // ── helpers ──
@@ -478,5 +485,210 @@ describe("addMinutesToTime", () => {
 
   it("handles large minute values", () => {
     expect(addMinutesToTime("08:00", 1440)).toBe("08:00"); // exactly 24h later
+  });
+});
+
+// -- computeTotalPauseMinutes --
+
+describe("computeTotalPauseMinutes", () => {
+  
+
+  it("returns 0 for null/undefined/empty pauses", () => {
+    expect(computeTotalPauseMinutes(null)).toBe(0);
+    expect(computeTotalPauseMinutes(undefined)).toBe(0);
+    expect(computeTotalPauseMinutes([])).toBe(0);
+  });
+
+  it("sums single pause interval", () => {
+    expect(computeTotalPauseMinutes([{ start: "12:00", end: "12:15" }])).toBe(15);
+  });
+
+  it("sums multiple pause intervals", () => {
+    expect(computeTotalPauseMinutes([
+      { start: "10:00", end: "10:10" },
+      { start: "12:00", end: "12:30" },
+    ])).toBe(40);
+  });
+
+  it("handles pauses crossing midnight", () => {
+    expect(computeTotalPauseMinutes([{ start: "23:45", end: "00:15" }])).toBe(30);
+  });
+
+  it("treats end-before-start as midnight crossing (23h 30m)", () => {
+    // When end < start, the function assumes midnight crossing
+    // Since computeElapsedMinutes handles this, it returns 1410 min
+    expect(computeTotalPauseMinutes([{ start: "12:30", end: "12:00" }])).toBe(1410);
+  });
+
+  it("counts active pause (no end) up to provided now", () => {
+    expect(computeTotalPauseMinutes([{ start: "10:00" }], "10:15")).toBe(15);
+  });
+
+  it("counts active pause with current time when no now provided", () => {
+    const result = computeTotalPauseMinutes([{ start: "00:00" }]);
+    expect(result).toBeGreaterThan(0);
+  });
+
+  it("handles mixed completed and active pauses", () => {
+    expect(computeTotalPauseMinutes([
+      { start: "09:00", end: "09:10" },
+      { start: "10:00" },
+    ], "10:30")).toBe(40); // 10 completed + 30 active
+  });
+});
+
+// -- getActivePause --
+
+describe("getActivePause", () => {
+
+  it("returns undefined for null/undefined/empty", () => {
+    expect(getActivePause(null)).toBeUndefined();
+    expect(getActivePause(undefined)).toBeUndefined();
+    expect(getActivePause([])).toBeUndefined();
+  });
+
+  it("returns undefined when all pauses have end", () => {
+    expect(getActivePause([{ start: "09:00", end: "09:10" }])).toBeUndefined();
+  });
+
+  it("finds the active pause (no end)", () => {
+    const active = { start: "10:00" } as PauseInterval;
+    expect(getActivePause([{ start: "09:00", end: "09:10" }, active])).toBe(active);
+  });
+});
+
+// -- computeRealDuration with pauses --
+
+describe("computeRealDuration with pauses", () => {
+  
+
+  it("subtracts pauses from elapsed time", () => {
+    const result = computeRealDuration("08:00", "10:30", [
+      { start: "09:00", end: "09:15" },
+    ]);
+    // 150 min elapsed - 15 min pause = 135 min
+    expect(result).toBe(135);
+  });
+
+  it("returns same as elapsed when no pauses", () => {
+    const result = computeRealDuration("08:00", "10:30", []);
+    expect(result).toBe(150);
+  });
+
+  it("returns same as elapsed when pauses is null/undefined", () => {
+    expect(computeRealDuration("08:00", "10:30", null)).toBe(150);
+    expect(computeRealDuration("08:00", "10:30", undefined)).toBe(150);
+  });
+
+  it("handles multiple pauses", () => {
+    const result = computeRealDuration("08:00", "12:00", [
+      { start: "09:00", end: "09:10" },
+      { start: "10:30", end: "10:45" },
+      { start: "11:30", end: "11:35" },
+    ]);
+    // 240 min elapsed - 30 min total pause = 210 min
+    expect(result).toBe(210);
+  });
+
+  it("returns 0 if pauses exceed elapsed time", () => {
+    const result = computeRealDuration("08:00", "09:00", [
+      { start: "08:00", end: "09:00" },
+    ]);
+    expect(result).toBe(0);
+  });
+});
+
+// -- formatDurationMinutes --
+
+describe("formatDurationMinutes", () => {
+  
+
+  it("formats 0 minutes", () => {
+    expect(formatDurationMinutes(0)).toBe("0m");
+  });
+
+  it("formats less than an hour", () => {
+    expect(formatDurationMinutes(45)).toBe("45m");
+  });
+
+  it("formats exactly one hour", () => {
+    expect(formatDurationMinutes(60)).toBe("1h");
+  });
+
+  it("formats hours and minutes", () => {
+    expect(formatDurationMinutes(150)).toBe("2h 30m");
+  });
+
+  it("formats multiple hours", () => {
+    expect(formatDurationMinutes(480)).toBe("8h");
+  });
+});
+
+// -- parseTimeToMinutes --
+
+describe("parseTimeToMinutes", () => {
+  
+
+  it("parses valid time", () => {
+    expect(parseTimeToMinutes("08:30")).toBe(510);
+  });
+
+  it("returns null for null/undefined", () => {
+    expect(parseTimeToMinutes(null)).toBeNull();
+    expect(parseTimeToMinutes(undefined)).toBeNull();
+  });
+
+  it("returns null for invalid format", () => {
+    expect(parseTimeToMinutes("bad")).toBeNull();
+  });
+});
+
+// -- computeElapsedMinutes --
+
+describe("computeElapsedMinutes", () => {
+  
+
+  it("computes elapsed time", () => {
+    expect(computeElapsedMinutes("08:00", "10:30")).toBe(150);
+  });
+
+  it("handles midnight crossing", () => {
+    expect(computeElapsedMinutes("22:00", "01:30")).toBe(210);
+  });
+
+  it("returns null for invalid input", () => {
+    expect(computeElapsedMinutes(null, "10:00")).toBeNull();
+  });
+});
+
+// -- workedTimeInfo --
+
+describe("workedTimeInfo", () => {
+  
+
+  it("returns info without pauses", () => {
+    const info = workedTimeInfo("08:00", "10:30", []);
+    expect(info.elapsed).toBe(150);
+    expect(info.worked).toBe(150);
+    expect(info.pauseTotal).toBe(0);
+    expect(info.label).toBe("2h 30m");
+  });
+
+  it("returns info with pauses", () => {
+    const info = workedTimeInfo("08:00", "10:30", [
+      { start: "09:00", end: "09:15" },
+    ]);
+    expect(info.elapsed).toBe(150);
+    expect(info.worked).toBe(135);
+    expect(info.pauseTotal).toBe(15);
+    expect(info.label).toContain("2h 15m");
+    expect(info.label).toContain("pause");
+  });
+
+  it("returns null elapsed for missing times", () => {
+    const info = workedTimeInfo(null, "10:00", []);
+    expect(info.elapsed).toBeNull();
+    expect(info.worked).toBeNull();
+    expect(info.label).toBe("");
   });
 });

@@ -1,8 +1,8 @@
-// ============================================================
+﻿// ============================================================
 // Upload address NDJSON files to Supabase Storage
 // ============================================================
-// This script uploads all 37 NDJSON files to the
-// address-autocomplete Supabase Storage bucket.
+// This script uploads all NDJSON files from the data directory
+// to the address-autocomplete Supabase Storage bucket.
 //
 // Usage:
 //   SUPABASE_URL="https://...supabase.co" \
@@ -12,10 +12,11 @@
 
 import * as fs from "node:fs";
 import * as path from "node:path";
+import { fileURLToPath } from "node:url";
 import { createClient } from "@supabase/supabase-js";
-import {
-  ALL_STORAGE_FILES,
-} from "./address-search-core";
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const DATA_DIR = path.resolve(
   __dirname,
@@ -26,12 +27,25 @@ const DATA_DIR = path.resolve(
   "data",
 );
 
-export function getExpectedFileNames(): string[] {
-  return ALL_STORAGE_FILES.map((name) => `${name}.ndjson`);
-}
+const NDJSON_REGEX = /\.ndjson$/;
 
+/**
+ * Dynamically discover all NDJSON files in the data directory.
+ * Includes: a.ndjson through z.ndjson, digit chunks (1-0.ndjson etc.),
+ * and other.ndjson if it exists.
+ */
 export function getAllLocalFilePaths(dataDir: string): string[] {
-  return getExpectedFileNames().map((name) => path.join(dataDir, name));
+  let files: string[];
+  try {
+    files = fs.readdirSync(dataDir);
+  } catch {
+    return [];
+  }
+
+  return files
+    .filter((f) => NDJSON_REGEX.test(f) && f !== "_chunks.json")
+    .map((f) => path.join(dataDir, f))
+    .sort();
 }
 
 export function validateEnv(): boolean {
@@ -62,27 +76,21 @@ async function main() {
 
   // ── Check local files ──
   const filePaths = getAllLocalFilePaths(DATA_DIR);
-  console.log(`Expecting ${filePaths.length} NDJSON files...\n`);
+  console.log(`Found ${filePaths.length} NDJSON files in data directory.\n`);
+
+  if (filePaths.length === 0) {
+    console.error("\nERROR: No NDJSON files found. Run preprocess-addresses.ts first.");
+    process.exit(1);
+  }
 
   const existingFiles: { name: string; path: string }[] = [];
 
   for (const fp of filePaths) {
     const fileName = path.basename(fp);
-    if (fs.existsSync(fp)) {
-      const stats = fs.statSync(fp);
-      console.log(`  ✓ ${fileName} (${(stats.size / 1024).toFixed(1)} KB)`);
-      existingFiles.push({ name: fileName, path: fp });
-    } else {
-      console.warn(`  ⚠ WARNING: ${fileName} not found, skipping.`);
-    }
+    const stats = fs.statSync(fp);
+    console.log(`  ${fileName} (${(stats.size / 1024).toFixed(1)} KB)`);
+    existingFiles.push({ name: fileName, path: fp });
   }
-
-  if (existingFiles.length === 0) {
-    console.error("\nERROR: No NDJSON files found. Run preprocess-addresses.ts first.");
-    process.exit(1);
-  }
-
-  console.log(`\nFound ${existingFiles.length}/${filePaths.length} files.`);
 
   // ── Create Supabase client ──
   console.log("\nCreating Supabase client...");
@@ -120,30 +128,55 @@ async function main() {
         });
 
       if (error) {
-        console.error(`  ✗ ${name}: ${error.message}`);
+        console.error(`  \u2717 ${name}: ${error.message}`);
         failed++;
       } else {
-        console.log(`  ✓ ${name} uploaded`);
+        console.log(`  \u2713 ${name} uploaded`);
         uploaded++;
       }
     } catch (err: any) {
-      console.error(`  ✗ ${name}: ${err.message}`);
+      console.error(`  \u2717 ${name}: ${err.message}`);
       failed++;
     }
   }
 
+  // ── Upload chunks index if it exists ──
+  const indexPath = path.join(DATA_DIR, "_chunks.json");
+  if (fs.existsSync(indexPath)) {
+    try {
+      const content = fs.readFileSync(indexPath, "utf-8");
+      const blob = new Blob([content], { type: "application/json" });
+      const { error } = await supabase.storage
+        .from(bucketName)
+        .upload("_chunks.json", blob, {
+          contentType: "application/json",
+          upsert: true,
+        });
+      if (error) {
+        console.error(`  \u2717 _chunks.json: ${error.message}`);
+      } else {
+        console.log(`  \u2713 _chunks.json uploaded`);
+        uploaded++;
+      }
+    } catch (err: any) {
+      console.error(`  \u2717 _chunks.json: ${err.message}`);
+    }
+  } else {
+    console.log(`  - _chunks.json not found, skipping`);
+  }
+
   // ── Summary ──
   console.log("\n=== Upload Summary ===");
-  console.log(`  Total:    ${existingFiles.length}`);
-  console.log(`  Uploaded: ${uploaded}`);
-  console.log(`  Failed:   ${failed}`);
+  console.log(`  Total files: ${existingFiles.length}`);
+  console.log(`  Uploaded:    ${uploaded}`);
+  console.log(`  Failed:      ${failed}`);
 
   if (failed > 0) {
-    console.warn("\n⚠ Some files failed to upload. Check errors above.");
+    console.warn("\n\u26a0 Some files failed to upload. Check errors above.");
     process.exit(1);
   }
 
-  console.log("\n✓ All files uploaded successfully!");
+  console.log("\n\u2713 All files uploaded successfully!");
 }
 
 // Execute if run directly

@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // Tests for address search core — TDD RED phase
 // ============================================================
 
@@ -14,6 +14,8 @@ import {
   ALL_STORAGE_FILES,
   LETTER_FILES,
   DIGIT_FILES,
+  getChunkSuffix,
+  ALL_CHUNK_PREFIXES,
   type Address,
   type Suggestion,
 } from "./address-search-core";
@@ -33,10 +35,6 @@ function makeAddress(overrides: Partial<Address> = {}): Address {
   };
 }
 
-/**
- * Create addresses whose search key (s) includes a searchable term.
- * The addresses will match a query containing that term.
- */
 function letterAddressesFor(letter: string, count = 5, searchTerm?: string): Address[] {
   const term = searchTerm ?? `${letter}test`;
   const base = letter.toLowerCase();
@@ -56,6 +54,17 @@ function digitAddressesFor(digit: string, count = 3, searchTerm?: string): Addre
       s: `${term} ${digit}${i} rue`,
       a: `${digit}${digit}${digit} Rue Digit Test #${i}`,
       v: "Digit Ville",
+    })
+  );
+}
+
+function chunkAddressesFor(digit: string, prefix: string, count = 3, searchTerm?: string): Address[] {
+  const term = searchTerm ?? `${digit}${prefix}searchterm`;
+  return Array.from({ length: count }, (_, i) =>
+    makeAddress({
+      s: `${digit}${prefix}${i} ${term} rue`,
+      a: `${digit}${prefix}${i} Rue Chunk Test`,
+      v: "Chunk Ville",
     })
   );
 }
@@ -120,27 +129,52 @@ describe("getFileName", () => {
   });
 });
 
+// ─── getChunkSuffix ───
+
+describe("getChunkSuffix", () => {
+  it("returns the second character for digit second chars", () => {
+    expect(getChunkSuffix("13607 rue test")).toBe("3");
+    expect(getChunkSuffix("12345 rue test")).toBe("2");
+    expect(getChunkSuffix("10000 rue test")).toBe("0");
+  });
+
+  it("returns the second character for letter second chars", () => {
+    expect(getChunkSuffix("1a rue test")).toBe("a");
+    expect(getChunkSuffix("2b rue test")).toBe("b");
+  });
+
+  it('returns "x" for single-character keys', () => {
+    expect(getChunkSuffix("1")).toBe("x");
+    expect(getChunkSuffix("a")).toBe("x");
+  });
+
+  it('returns "x" for special character second chars', () => {
+    expect(getChunkSuffix("1@test")).toBe("x");
+    expect(getChunkSuffix("1 test")).toBe("x");
+  });
+});
+
 // ─── isLetterChar ───
 
 describe("isLetterChar", () => {
   it("returns true for lowercase ASCII letters", () => {
-    expect(isLetterChar(97)).toBe(true);  // a
-    expect(isLetterChar(122)).toBe(true); // z
+    expect(isLetterChar(97)).toBe(true);
+    expect(isLetterChar(122)).toBe(true);
   });
 
   it("returns true for uppercase ASCII letters", () => {
-    expect(isLetterChar(65)).toBe(true);  // A
-    expect(isLetterChar(90)).toBe(true);  // Z
+    expect(isLetterChar(65)).toBe(true);
+    expect(isLetterChar(90)).toBe(true);
   });
 
   it("returns false for digits", () => {
-    expect(isLetterChar(48)).toBe(false); // 0
-    expect(isLetterChar(57)).toBe(false); // 9
+    expect(isLetterChar(48)).toBe(false);
+    expect(isLetterChar(57)).toBe(false);
   });
 
   it("returns false for special characters", () => {
-    expect(isLetterChar(64)).toBe(false); // @
-    expect(isLetterChar(35)).toBe(false); // #
+    expect(isLetterChar(64)).toBe(false);
+    expect(isLetterChar(35)).toBe(false);
   });
 });
 
@@ -148,17 +182,17 @@ describe("isLetterChar", () => {
 
 describe("isDigitChar", () => {
   it("returns true for digit codes", () => {
-    expect(isDigitChar(48)).toBe(true);  // 0
-    expect(isDigitChar(57)).toBe(true);  // 9
+    expect(isDigitChar(48)).toBe(true);
+    expect(isDigitChar(57)).toBe(true);
   });
 
   it("returns false for letter codes", () => {
-    expect(isDigitChar(65)).toBe(false); // A
-    expect(isDigitChar(97)).toBe(false); // a
+    expect(isDigitChar(65)).toBe(false);
+    expect(isDigitChar(97)).toBe(false);
   });
 
   it("returns false for special characters", () => {
-    expect(isDigitChar(64)).toBe(false); // @
+    expect(isDigitChar(64)).toBe(false);
   });
 });
 
@@ -168,7 +202,6 @@ describe("toSuggestion", () => {
   it("maps Address to Suggestion correctly", () => {
     const addr = makeAddress();
     const result = toSuggestion(addr);
-
     expect(result.adresse_complete).toBe(addr.a);
     expect(result.ville).toBe(addr.v);
     expect(result.code_postal).toBe(addr.cp);
@@ -180,8 +213,6 @@ describe("toSuggestion", () => {
   it("produces correct Suggestion shape", () => {
     const addr = makeAddress();
     const result = toSuggestion(addr);
-
-    // All fields must be present with correct types
     expect(result).toEqual({
       adresse_complete: expect.any(String),
       ville: expect.any(String),
@@ -227,7 +258,7 @@ describe("isValidSuggestion", () => {
 // ─── ALL_STORAGE_FILES ───
 
 describe("ALL_STORAGE_FILES", () => {
-  it("contains exactly 37 entries", () => {
+  it("contains 37 entries", () => {
     expect(ALL_STORAGE_FILES.length).toBe(37);
   });
 
@@ -247,261 +278,263 @@ describe("ALL_STORAGE_FILES", () => {
   });
 
   it("includes all digits, letters, and other", () => {
-    const expected = [
-      ...DIGIT_FILES,
-      ...LETTER_FILES,
-      "other",
-    ];
+    const expected = [...DIGIT_FILES, ...LETTER_FILES, "other"];
     expect([...ALL_STORAGE_FILES].sort()).toEqual([...expected].sort());
+  });
+});
+
+// ─── ALL_CHUNK_PREFIXES ───
+
+describe("ALL_CHUNK_PREFIXES", () => {
+  it("contains 37 prefixes (10 digits + 26 letters + 1 other)", () => {
+    expect(ALL_CHUNK_PREFIXES.length).toBe(37);
+  });
+
+  it("includes digits 0-9", () => {
+    expect(ALL_CHUNK_PREFIXES.slice(0, 10)).toEqual(["0", "1", "2", "3", "4", "5", "6", "7", "8", "9"]);
+  });
+
+  it("includes letters a-z", () => {
+    expect(ALL_CHUNK_PREFIXES[10]).toBe("a");
+    expect(ALL_CHUNK_PREFIXES[35]).toBe("z");
+  });
+
+  it('includes "x" for other', () => {
+    expect(ALL_CHUNK_PREFIXES[36]).toBe("x");
   });
 });
 
 // ─── searchAddressesCore ───
 
 describe("searchAddressesCore", () => {
-  // Helper to create a mock loader that returns addresses by file name
   function createMockLoader(
     addressesByFile: Record<string, Address[]>,
   ): (fileName: string) => Address[] {
     return (fileName: string) => addressesByFile[fileName] ?? [];
   }
 
-  // ── q length < 2 returns empty ──
-
   describe("q length < 2", () => {
     it("returns empty array for empty string", () => {
-      const loader = createMockLoader({});
-      const results = searchAddressesCore("", 10, loader);
-      expect(results).toEqual([]);
+      expect(searchAddressesCore("", 10, createMockLoader({}))).toEqual([]);
     });
-
     it("returns empty array for single character", () => {
-      const loader = createMockLoader({});
-      const results = searchAddressesCore("a", 10, loader);
-      expect(results).toEqual([]);
+      expect(searchAddressesCore("a", 10, createMockLoader({}))).toEqual([]);
     });
-
     it("returns empty array for whitespace-only input", () => {
-      const loader = createMockLoader({});
-      const results = searchAddressesCore("   ", 10, loader);
-      expect(results).toEqual([]);
+      expect(searchAddressesCore("   ", 10, createMockLoader({}))).toEqual([]);
     });
   });
 
-  // ── Digit query loads only that digit file ──
+  describe("digit query with chunked files", () => {
+    it("loads only the matching digit chunk", () => {
+      const addrs13 = chunkAddressesFor("1", "3", 5, "13searchterm");
+      const addrs15 = chunkAddressesFor("1", "5", 3, "15searchterm");
+      const loadSpy = vi.fn((fileName: string) => {
+        if (fileName === "1-3") return addrs13;
+        if (fileName === "1-5") return addrs15;
+        return [];
+      });
+      const getDC = vi.fn((d: string) => d === "1" ? ["1-3", "1-5"] : [d]);
 
-  describe("digit query", () => {
-    it("loads only the single digit file", () => {
+      const results = searchAddressesCore("13searchterm", 10, loadSpy, getDC);
+      expect(loadSpy).toHaveBeenCalledTimes(1);
+      expect(loadSpy).toHaveBeenCalledWith("1-3");
+      expect(loadSpy).not.toHaveBeenCalledWith("1-5");
+      expect(results.length).toBeGreaterThan(0);
+    });
+
+    it("does not load all chunks for a digit query", () => {
+      const allChunks = ["1-0","1-1","1-2","1-3","1-4","1-5","1-6","1-7","1-8","1-9"];
+      const loadSpy = vi.fn((fileName: string) => {
+        if (fileName === "1-3") return chunkAddressesFor("1", "3", 5, "13searchterm");
+        return [];
+      });
+      const getDC = vi.fn((d: string) => d === "1" ? allChunks : [d]);
+
+      searchAddressesCore("13searchterm", 10, loadSpy, getDC);
+      expect(loadSpy).toHaveBeenCalledTimes(1);
+      expect(loadSpy).toHaveBeenCalledWith("1-3");
+      allChunks.filter(c => c !== "1-3").forEach(c => {
+        expect(loadSpy).not.toHaveBeenCalledWith(c);
+      });
+    });
+
+    it("falls back to single digit file if not chunked", () => {
       const loadSpy = vi.fn((fileName: string) => {
         if (fileName === "5") return digitAddressesFor("5", 15, "555test");
         return [];
       });
-
       const results = searchAddressesCore("555test", 10, loadSpy);
-
-      // Should only have loaded "5"
       expect(loadSpy).toHaveBeenCalledTimes(1);
       expect(loadSpy).toHaveBeenCalledWith("5");
       expect(results.length).toBeGreaterThan(0);
     });
 
-    it("does not fallback to other files for digits", () => {
+    it("loads all digit chunks as fallback when exact chunk not found", () => {
+      // Available chunks: "1-0", "1-1", "1-9" — no "1-s"
+      // Each chunk has addresses containing "1searchterm" in their search key
       const loadSpy = vi.fn((fileName: string) => {
-        if (fileName === "9") return digitAddressesFor("9", 3, "999test");
+        if (fileName === "1-0") return chunkAddressesFor("1", "0", 2, "1searchterm");
+        if (fileName === "1-1") return chunkAddressesFor("1", "1", 2, "1searchterm");
+        if (fileName === "1-9") return chunkAddressesFor("1", "9", 1, "1searchterm");
         return [];
       });
+      const getDC = vi.fn((d: string) => d === "1" ? ["1-0", "1-1", "1-9"] : [d]);
 
-      // Only 3 results in digit file, but should NOT fallback
-      const results = searchAddressesCore("999test", 10, loadSpy);
+      // Query "1searchterm": first char "1", suffix "s" (second char)
+      // "1-s" is NOT in the available chunks → loads all chunks
+      // Each chunk has addresses with search key containing "1searchterm" → matches!
+      const results = searchAddressesCore("1searchterm", 10, loadSpy, getDC);
 
-      expect(loadSpy).toHaveBeenCalledTimes(1);
-      expect(loadSpy).toHaveBeenCalledWith("9");
-      expect(results.length).toBe(3);
+      expect(loadSpy).toHaveBeenCalledWith("1-0");
+      expect(loadSpy).toHaveBeenCalledWith("1-1");
+      expect(loadSpy).toHaveBeenCalledWith("1-9");
+      expect(results.length).toBeGreaterThan(0);
     });
 
-    it("returns matching results from digit file", () => {
+    it("returns matching results from chunked digit file", () => {
       const addresses = [
-        makeAddress({ s: "3test montreal", a: "123 Test St" }),
+        makeAddress({ s: "13test montreal", a: "123 Test St" }),
         makeAddress({ s: "456 autre rue", a: "456 Autre Rue" }),
       ];
-      const loader = createMockLoader({ "3": addresses });
-
-      // Search for "3test" which matches first address
-      const results = searchAddressesCore("3test", 10, loader);
+      const getDC = vi.fn((d: string) => [d, `${d}-3`]);
+      const results = searchAddressesCore("13test", 10, createMockLoader({ "1-3": addresses }), getDC);
       expect(results.length).toBe(1);
       expect(results[0].adresse_complete).toBe("123 Test St");
     });
   });
 
-  // ── Letter query loads letter file first, then digit fallback ──
-
   describe("letter query with digit fallback", () => {
     it("loads only the letter file when enough results exist", () => {
-      const loadSpy = vi.fn((fileName: string) => {
-        if (fileName === "m") return letterAddressesFor("m", 15, "mytest");
-        return [];
-      });
-
+      const loadSpy = vi.fn((fn: string) => fn === "m" ? letterAddressesFor("m", 15, "mytest") : []);
       const results = searchAddressesCore("mytest", 10, loadSpy);
-
-      // Should only have loaded "m" since 15 > 10
       expect(loadSpy).toHaveBeenCalledTimes(1);
       expect(loadSpy).toHaveBeenCalledWith("m");
       expect(results.length).toBe(10);
     });
 
-    it("falls back to digit files when letter file has fewer than 10 results", () => {
-      const loadSpy = vi.fn((fileName: string) => {
-        if (fileName === "a") return letterAddressesFor("a", 3, "atest"); // Only 3
-        if (DIGIT_FILES.includes(fileName as any)) return digitAddressesFor(fileName, 2, "atest");
+    it("falls back to digit chunks when letter file has fewer than 10 results", () => {
+      const loadSpy = vi.fn((fn: string) => {
+        if (fn === "a") return letterAddressesFor("a", 3, "atest");
+        if (fn === "0") return chunkAddressesFor("0", "a", 2, "atest");
+        if (fn === "1") return chunkAddressesFor("1", "a", 2, "atest");
         return [];
       });
-
       const results = searchAddressesCore("atest", 10, loadSpy);
+      expect(loadSpy.mock.calls[0][0]).toBe("a");
+      expect(results.length).toBe(7);
+    });
 
-      // Should have loaded "a" first, then digits until 10 results
-      const loadedFiles = loadSpy.mock.calls.map(([name]) => name);
-      expect(loadedFiles[0]).toBe("a");
-      // Should include digit files (loaded progressively)
-      expect(loadedFiles.length).toBeGreaterThan(1);
+    it("falls back through digit chunks progressively", () => {
+      const loadSpy = vi.fn((fn: string) => {
+        if (fn === "t") return letterAddressesFor("t", 4, "ttest");
+        if (fn === "0") return chunkAddressesFor("0", "t", 3, "ttest");
+        if (fn === "1") return chunkAddressesFor("1", "t", 3, "ttest");
+        return [];
+      });
+      const results = searchAddressesCore("ttest", 10, loadSpy);
+      expect(loadSpy).toHaveBeenCalledWith("t");
+      expect(loadSpy).toHaveBeenCalledWith("0");
+      expect(loadSpy).toHaveBeenCalledWith("1");
       expect(results.length).toBe(10);
     });
 
     it("stops fallback once 10 results are found", () => {
-      const loadSpy = vi.fn((fileName: string) => {
-        // Return increasing numbers to reach 10 quickly
-        if (fileName === "t") return letterAddressesFor("t", 4, "ttest");
-        if (fileName === "0") return digitAddressesFor("0", 3, "ttest"); // 4+3=7
-        if (fileName === "1") return digitAddressesFor("1", 3, "ttest"); // 7+3=10 ✓ stop
-        if (fileName === "2") return digitAddressesFor("2", 3, "ttest");
+      const loadSpy = vi.fn((fn: string) => {
+        if (fn === "t") return letterAddressesFor("t", 4, "ttest");
+        if (fn === "0") return chunkAddressesFor("0", "t", 3, "ttest");
+        if (fn === "1") return chunkAddressesFor("1", "t", 3, "ttest");
+        if (fn === "2") return chunkAddressesFor("2", "t", 3, "ttest");
         return [];
       });
-
       const results = searchAddressesCore("ttest", 10, loadSpy);
-
-      // Should have stopped after "1" because 4+3+3 = 10
       expect(loadSpy).toHaveBeenCalledWith("t");
       expect(loadSpy).toHaveBeenCalledWith("0");
       expect(loadSpy).toHaveBeenCalledWith("1");
-      // "2" should NOT have been called
       expect(loadSpy).not.toHaveBeenCalledWith("2");
       expect(results.length).toBe(10);
     });
 
-    it("returns fewer than 10 if not enough matches across all files", () => {
+    it("returns fewer than 10 if not enough matches", () => {
       const loader = createMockLoader({
         "x": [makeAddress({ s: "xrare 1", a: "X Rare 1" }), makeAddress({ s: "xrare 2", a: "X Rare 2" })],
         "0": [makeAddress({ s: "xrare 0", a: "X0 Match" })],
         "1": [],
       });
-
-      const results = searchAddressesCore("xrare", 10, loader);
-      expect(results.length).toBe(3);
+      expect(searchAddressesCore("xrare", 10, loader).length).toBe(3);
     });
 
     it("returns empty array when no matches found", () => {
-      const loader = createMockLoader({
-        "z": letterAddressesFor("z", 5, "zzmatch"),
-      });
+      const loader = createMockLoader({ "z": letterAddressesFor("z", 5, "zzmatch") });
+      expect(searchAddressesCore("zzz nonexistent", 10, loader)).toEqual([]);
+    });
 
-      const results = searchAddressesCore("zzz nonexistent", 10, loader);
-      expect(results).toEqual([]);
+    it("does not load all digit chunks at once for fallback", () => {
+      const loadSpy = vi.fn((fn: string) => {
+        if (fn === "r") return letterAddressesFor("r", 3, "rtest");
+        return [];
+      });
+      const getDC = vi.fn((d: string) => [d, `${d}-0`, `${d}-1`, `${d}-2`]);
+      const results = searchAddressesCore("rtest", 10, loadSpy, getDC);
+      expect(loadSpy).toHaveBeenCalledWith("r");
+      expect(loadSpy.mock.calls.length).toBeLessThanOrEqual(41);
+      expect(results.length).toBe(3);
     });
   });
 
-  // ── Special/other character query uses other.ndjson ──
-
   describe("other character query", () => {
     it('loads only "other" file', () => {
-      const loadSpy = vi.fn((fileName: string) => {
-        if (fileName === "other") return [
-          makeAddress({ s: "@special addresse", a: "@ Special Address" }),
-        ];
+      const loadSpy = vi.fn((fn: string) => {
+        if (fn === "other") return [makeAddress({ s: "@special addresse", a: "@ Special Address" })];
         return [];
       });
-
       const results = searchAddressesCore("@special", 10, loadSpy);
-
       expect(loadSpy).toHaveBeenCalledTimes(1);
       expect(loadSpy).toHaveBeenCalledWith("other");
       expect(results.length).toBe(1);
     });
   });
 
-  // ── Response shape ──
-
   describe("response shape", () => {
     it("returns suggestions with correct shape", () => {
-      const addresses = [
-        makeAddress({
-          s: "rue principale",
-          a: "100 Rue Principale, Montréal, QC H3A 1A1",
-          v: "Montréal",
-          cp: "H3A 1A1",
-          d: 2.5,
-          lat: 45.5,
-          lng: -73.6,
-        }),
-      ];
+      const addresses = [makeAddress({
+        s: "rue principale", a: "100 Rue Principale, Montréal, QC H3A 1A1",
+        v: "Montréal", cp: "H3A 1A1", d: 2.5, lat: 45.5, lng: -73.6,
+      })];
       const loader = createMockLoader({ "r": addresses });
-
       const results = searchAddressesCore("rue", 10, loader);
-
       expect(results.length).toBe(1);
-      const s = results[0];
-      expect(isValidSuggestion(s)).toBe(true);
-      expect(s).toEqual({
+      expect(isValidSuggestion(results[0])).toBe(true);
+      expect(results[0]).toEqual({
         adresse_complete: "100 Rue Principale, Montréal, QC H3A 1A1",
-        ville: "Montréal",
-        code_postal: "H3A 1A1",
-        distance_km: 2.5,
-        latitude: 45.5,
-        longitude: -73.6,
+        ville: "Montréal", code_postal: "H3A 1A1",
+        distance_km: 2.5, latitude: 45.5, longitude: -73.6,
       });
     });
 
     it("returns max 10 suggestions", () => {
-      const manyAddresses = Array.from({ length: 25 }, (_, i) =>
-        makeAddress({ s: `test${i}`, a: `Test Address ${i}` })
-      );
-      const loader = createMockLoader({ "t": manyAddresses });
-
-      const results = searchAddressesCore("test", 10, loader);
-      expect(results.length).toBeLessThanOrEqual(10);
+      const many = Array.from({ length: 25 }, (_, i) => makeAddress({ s: `test${i}`, a: `Test Address ${i}` }));
+      const loader = createMockLoader({ "t": many });
+      expect(searchAddressesCore("test", 10, loader).length).toBeLessThanOrEqual(10);
     });
 
     it("result array is empty when no data available", () => {
-      const loader = createMockLoader({});
-      const results = searchAddressesCore("query", 10, loader);
-      expect(results).toEqual([]);
+      expect(searchAddressesCore("query", 10, createMockLoader({}))).toEqual([]);
     });
   });
 
-  // ── Query normalization ──
-
   describe("query normalization in search", () => {
     it("matches addresses with accented characters", () => {
-      const addresses = [
-        makeAddress({ s: "montreal quebec", a: "Montréal Address" }),
-      ];
+      const addresses = [makeAddress({ s: "montreal quebec", a: "Montréal Address" })];
       const loader = createMockLoader({ "m": addresses });
-
-      // Query with accent or without should both work since both are normalized
-      const results = searchAddressesCore("montréal", 10, loader);
-      expect(results.length).toBe(1);
+      expect(searchAddressesCore("montréal", 10, loader).length).toBe(1);
     });
 
     it("is case insensitive", () => {
-      const addresses = [
-        makeAddress({ s: "rue principale", a: "Rue Principale" }),
-      ];
+      const addresses = [makeAddress({ s: "rue principale", a: "Rue Principale" })];
       const loader = createMockLoader({ "r": addresses });
-
-      const resultsUpper = searchAddressesCore("RUE", 10, loader);
-      const resultsLower = searchAddressesCore("rue", 10, loader);
-
-      expect(resultsUpper.length).toBe(1);
-      expect(resultsLower.length).toBe(1);
+      expect(searchAddressesCore("RUE", 10, loader).length).toBe(1);
+      expect(searchAddressesCore("rue", 10, loader).length).toBe(1);
     });
   });
 });

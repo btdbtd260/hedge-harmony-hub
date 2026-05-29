@@ -19,9 +19,10 @@ import {
   getClientNameFromList,
   type DbJob,
 } from "@/hooks/useSupabaseData";
-import { Calculator, Plus, Trash2, Save, ArrowLeft } from "lucide-react";
+import { Calculator, Plus, Trash2, Save, ArrowLeft, X } from "lucide-react";
+import { computeTotalPauseMinutes, formatDurationMinutes } from "@/lib/jobDurationEstimator";
 import { toast } from "sonner";
-import type {
+import type { PauseInterval,
   CutType,
   HeightMode,
   EstimationExtra,
@@ -87,6 +88,7 @@ export default function JobDetailEditor() {
   const [bushItems, setBushItems] = useState<BushItem[]>([]);
   const [scheduledDate, setScheduledDate] = useState("");
   const [scheduledTime, setScheduledTime] = useState("");
+  const [pauses, setPauses] = useState<PauseInterval[]>([]);
 
   // ── Bug fix: populate form fields when job data arrives async ──
   // On first visit, React Query hasn't fetched the job yet, so all fields
@@ -143,6 +145,12 @@ export default function JobDetailEditor() {
     setBushItems(snap?.bushItems || []);
     setScheduledDate(job.scheduled_date ?? "");
     setScheduledTime(job.start_time?.slice(0, 5) ?? "");
+    const jobPauses = (snap as any)?.pauses ?? (job as any).pauses;
+    if (Array.isArray(jobPauses)) {
+      setPauses(jobPauses);
+    } else {
+      setPauses([]);
+    }
     // Intentionally exclude 'job' from deps — we only populate on job.id change (new job),
     // not on every refetch of the same job (which would overwrite user edits).
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -337,6 +345,7 @@ export default function JobDetailEditor() {
         discounts,
       };
 
+      const pauseMinutes = computeTotalPauseMinutes(pauses);
       await updateJob.mutateAsync({
         id: job.id,
         cut_type: cutType,
@@ -345,7 +354,12 @@ export default function JobDetailEditor() {
         start_time: scheduledDate ? scheduledTime || "09:00" : null,
         status:
           scheduledDate && job.status === "pending" ? "scheduled" : job.status,
-        measurement_snapshot: measurementSnapshot,
+        // Merge pauses into measurement_snapshot (preserving all existing fields)
+        measurement_snapshot: {
+          ...measurementSnapshot,
+          pauses,
+          totalPauseMinutes: pauseMinutes,
+        },
       } as any);
 
       toast.success("Job mis à jour avec succès");
@@ -746,6 +760,57 @@ export default function JobDetailEditor() {
                   onChange={(e) => setScheduledTime(e.target.value)}
                   disabled={!scheduledDate}
                 />
+              </div>
+
+              {/* Pauses management */}
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <Label>Pauses</Label>
+                  <Button variant="outline" size="sm" onClick={() => {
+                    const now = new Date();
+                    const hhmm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+                    setPauses([...pauses, { start: hhmm }]);
+                  }}>
+                    <Plus className="h-3 w-3 mr-1" /> Ajouter
+                  </Button>
+                </div>
+                {pauses.length > 0 && (
+                  <div className="text-xs text-muted-foreground mb-1">
+                    Total pauses : {formatDurationMinutes(computeTotalPauseMinutes(pauses))}
+                  </div>
+                )}
+                {pauses.map((p, i) => (
+                  <div key={i} className="flex gap-1 items-center">
+                    <Input
+                      type="time"
+                      value={p.start}
+                      onChange={(e) => {
+                        const updated = pauses.map((pp, j) => j === i ? { ...pp, start: e.target.value } : pp);
+                        setPauses(updated);
+                      }}
+                      className="h-8 w-28"
+                    />
+                    <span className="text-xs text-muted-foreground">→</span>
+                    <Input
+                      type="time"
+                      value={p.end ?? ""}
+                      onChange={(e) => {
+                        const updated = pauses.map((pp, j) => j === i ? { ...pp, end: e.target.value || undefined } : pp);
+                        setPauses(updated);
+                      }}
+                      className="h-8 w-28"
+                      placeholder="En cours"
+                    />
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => setPauses(pauses.filter((_, j) => j !== i))}
+                    >
+                      <X className="h-4 w-4 text-destructive" />
+                    </Button>
+                  </div>
+                ))}
               </div>
 
               {bushItems.length > 0 && (

@@ -33,6 +33,7 @@
 // ============================================================
 
 import type { DbJob } from "@/hooks/useSupabaseData";
+import type { PauseInterval } from "@/types";
 
 // Tunable constants — kept in one place for clarity / future tuning
 const BASE_MIN_PER_FOOT = {
@@ -80,6 +81,15 @@ export interface MeasurementInput {
 }
 
 /** Extract measurement inputs from a DbJob row (handles snake_case/camelCase snapshots). */
+
+/** Extract pauses from a DbJob's measurement_snapshot.
+ *  Reads `job.measurement_snapshot.pauses` (the canonical storage location).
+ *  Returns an empty array if missing or malformed. */
+export function getPausesFromJob(job: DbJob | null | undefined): PauseInterval[] {
+  const snap = (job?.measurement_snapshot ?? {}) as any;
+  const p = snap.pauses;
+  return Array.isArray(p) ? p : [];
+}
 export function measurementsFromJob(job: DbJob): MeasurementInput {
   const s = (job.measurement_snapshot ?? {}) as any;
   return {
@@ -234,16 +244,63 @@ export function estimateJobDuration(
   };
 }
 
-/** Compute real duration in minutes from "HH:mm" start/end strings. */
-export function computeRealDuration(start: string | null | undefined, end: string | null | undefined): number | null {
-  if (!start || !end) return null;
-  const ms = start.match(/(\d{1,2}):(\d{2})/);
-  const me = end.match(/(\d{1,2}):(\d{2})/);
-  if (!ms || !me) return null;
-  const s = Number(ms[1]) * 60 + Number(ms[2]);
-  let e = Number(me[1]) * 60 + Number(me[2]);
-  if (e < s) e += 24 * 60; // crossed midnight
+/** Parse "HH:mm" into total minutes since midnight. */
+export function parseTimeToMinutes(time: string | null | undefined): number | null {
+  if (!time) return null;
+  const m = time.match(/(\d{1,2}):(\d{2})/);
+  if (!m) return null;
+  return Number(m[1]) * 60 + Number(m[2]);
+}
+
+/**
+ * Compute total elapsed minutes from start to end (handles midnight crossing).
+ * Returns elapsed time (wall clock), NOT accounting for pauses.
+ */
+export function computeElapsedMinutes(start: string | null | undefined, end: string | null | undefined): number | null {
+  const s = parseTimeToMinutes(start);
+  const e = parseTimeToMinutes(end);
+  if (s === null || e === null) return null;
+  if (e < s) return e + 24 * 60 - s; // crossed midnight
   return e - s;
+}
+
+/** Compute total pause duration in minutes from an array of pause intervals.
+ *  Active pauses (end is null/undefined) are counted up to `now`.
+ *  If `now` is not provided, uses the current time. */
+export function computeTotalPauseMinutes(
+  pauses: PauseInterval[] | null | undefined,
+  now?: string,
+): number {
+  if (!pauses || !Array.isArray(pauses) || pauses.length === 0) return 0;
+  let total = 0;
+  for (const p of pauses) {
+    const end = p.end ?? now ?? getCurrentHHMM();
+    const duration = computeElapsedMinutes(p.start, end);
+    if (duration !== null && duration > 0) {
+      total += duration;
+    }
+  }
+  return total;
+}
+
+function getCurrentHHMM(): string {
+  const d = new Date();
+  return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+/**
+ * Compute real WORKED duration in minutes = elapsed time minus total pause time.
+ * This is the value stored as total_duration_minutes for completed jobs.
+ */
+export function computeRealDuration(
+  start: string | null | undefined,
+  end: string | null | undefined,
+  pauses?: PauseInterval[] | null | undefined,
+): number | null {
+  const elapsed = computeElapsedMinutes(start, end);
+  if (elapsed === null) return null;
+  const pauseTotal = computeTotalPauseMinutes(pauses);
+  return Math.max(0, elapsed - pauseTotal);
 }
 
 /** Add minutes to "HH:mm" → "HH:mm" (wraps within a single day display). */
@@ -256,4 +313,48 @@ export function addMinutesToTime(time: string | null | undefined, minutes: numbe
   const hh = String(Math.floor(wrapped / 60)).padStart(2, "0");
   const mm = String(wrapped % 60).padStart(2, "0");
   return `${hh}:${mm}`;
+}
+
+/** Format a duration in minutes to a human-readable string like "2h 30m" or "45m". */
+export function formatDurationMinutes(minutes: number): string {
+  if (minutes <= 0) return "0m";
+  const h = Math.floor(minutes / 60);
+  const m = minutes % 60;
+  if (h > 0 && m > 0) return h + "h " + m + "m";
+  if (h > 0) return h + "h";
+  return m + "m";
+}
+
+/**
+ * Get the active (ongoing) pause from an array, if any.
+ */
+export function getActivePause(pauses: PauseInterval[] | null | undefined): PauseInterval | undefined {
+  if (!pauses || !Array.isArray(pauses)) return undefined;
+  return pauses.find((p) => !p.end);
+}
+
+/**
+ * Compute worked (pause-adjusted) duration and return both elapsed and worked,
+ * plus a formatted label suitable for display in the UI.
+ */
+export function workedTimeInfo(
+  start: string | null | undefined,
+  end: string | null | undefined,
+  pauses?: PauseInterval[] | null | undefined,
+): { elapsed: number | null; worked: number | null; pauseTotal: number; label: string } {
+  const elapsed = computeElapsedMinutes(start, end);
+  const pauseTotal = computeTotalPauseMinutes(pauses, end ?? undefined);
+  let worked: number | null = null;
+  if (elapsed !== null) {
+    worked = Math.max(0, elapsed - pauseTotal);
+  }
+  let label = "";
+  if (elapsed !== null && worked !== null) {
+    if (pauseTotal > 0) {
+      label = formatDurationMinutes(worked) + " (incl. " + formatDurationMinutes(pauseTotal) + " de pause, " + formatDurationMinutes(elapsed) + " total)";
+    } else {
+      label = formatDurationMinutes(worked);
+    }
+  }
+  return { elapsed, worked, pauseTotal, label };
 }

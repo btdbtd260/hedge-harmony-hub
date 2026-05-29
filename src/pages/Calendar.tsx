@@ -26,7 +26,7 @@ import {
 } from "@/hooks/useSupabaseData";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
 import { EstimationRequestDialog } from "@/components/calendar/EstimationRequestDialog";
-import { addMinutesToTime, computeRealDuration } from "@/lib/jobDurationEstimator";
+import { addMinutesToTime, computeRealDuration, computeTotalPauseMinutes, getPausesFromJob } from "@/lib/jobDurationEstimator";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -420,7 +420,9 @@ const CalendarPage = () => {
                         null;
                       if (end) {
                         patch.end_time = end;
-                        const real = computeRealDuration(j.start_time, end);
+                        const jobPauses = getPausesFromJob(j);
+                        const pausesForCalc = Array.isArray(jobPauses) ? jobPauses : [];
+                        const real = computeRealDuration(j.start_time, end, pausesForCalc);
                         if (real && real > 0) {
                           patch.total_duration_minutes = real;
                           if (j.estimated_duration_minutes) {

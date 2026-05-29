@@ -1,6 +1,6 @@
 import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
-import { CalendarIcon, X, Trash2, Check, Pencil } from "lucide-react";
+import { CalendarIcon, X, Trash2, Check, Pencil, Pause, Play, Plus } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   AlertDialog,
@@ -27,8 +27,14 @@ import {
   estimateJobDuration,
   measurementsFromJob,
   computeRealDuration,
+  computeTotalPauseMinutes,
+  formatDurationMinutes,
+  workedTimeInfo,
+  getActivePause,
+  getPausesFromJob,
   addMinutesToTime,
 } from "@/lib/jobDurationEstimator";
+import type { PauseInterval } from "@/types";
 import { toast } from "sonner";
 import { supabase } from "@/integrations/supabase/client";
 
@@ -76,6 +82,50 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   useEffect(() => {
     setStartTimeDraft(job?.start_time?.slice(0, 5) ?? "");
   }, [job?.id]);
+
+  // ── Pause/resume state ──
+  const [pausesDraft, setPausesDraft] = useState<PauseInterval[]>([]);
+  useEffect(() => {
+    setPausesDraft(getPausesFromJob(job));
+  }, [job?.id]);
+  const activePause = getActivePause(pausesDraft);
+  const [savingPauses, setSavingPauses] = useState(false);
+
+  const savePauses = async (updated: PauseInterval[]) => {
+    if (!job) return;
+    setSavingPauses(true);
+    try {
+      const total = computeTotalPauseMinutes(updated);
+      const existingSnap = (job.measurement_snapshot ?? {}) as any;
+      await updateJob.mutateAsync({
+        id: job.id,
+        measurement_snapshot: { ...existingSnap, pauses: updated, totalPauseMinutes: total },
+      } as any);
+      setPausesDraft(updated);
+    } catch (e: any) {
+      toast.error(e.message);
+    } finally {
+      setSavingPauses(false);
+    }
+  };
+
+  const handlePause = async () => {
+    const now = new Date();
+    const hhmm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    const updated = [...pausesDraft, { start: hhmm }];
+    await savePauses(updated);
+    toast.success("Pause démarrée à " + hhmm);
+  };
+
+  const handleResume = async () => {
+    const active = getActivePause(pausesDraft);
+    if (!active) return;
+    const now = new Date();
+    const hhmm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    const updated = pausesDraft.map((p) => p === active ? { ...p, end: hhmm } : p);
+    await savePauses(updated);
+    toast.success("Reprise à " + hhmm);
+  };
 
   // Compute (or read) the estimated duration for the current job
   const estimation = useMemo(() => {
@@ -132,7 +182,16 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
       toast.error("Heure de début manquante pour calculer la durée réelle.");
       return;
     }
-    const real = computeRealDuration(job.start_time, completionEndTime);
+    const pausesForCompletion = getPausesFromJob(job);
+    // Close any active pause before computing duration
+    let finalPauses = pausesForCompletion;
+    const active = getActivePause(pausesForCompletion);
+    if (active) {
+      finalPauses = pausesForCompletion.map((p) =>
+        p === active ? { ...p, end: completionEndTime } : p,
+      );
+    }
+    const real = computeRealDuration(job.start_time, completionEndTime, finalPauses);
     if (real === null || real <= 0) {
       toast.error("Heure de fin invalide.");
       return;
@@ -160,6 +219,8 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
         }
       }
 
+      const existingSnap = (job.measurement_snapshot ?? {}) as any;
+      const pauseTotal = computeTotalPauseMinutes(finalPauses, completionEndTime);
       await updateJob.mutateAsync({
         id: job.id,
         status: "completed",
@@ -168,6 +229,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
         estimated_duration_minutes: estimated || null,
         duration_variance_minutes: variance,
         tip: Number.isFinite(tipNum) && tipNum >= 0 ? tipNum : 0,
+        measurement_snapshot: { ...existingSnap, pauses: finalPauses, totalPauseMinutes: pauseTotal },
       } as any);
 
       // After completion succeeds, create invoice if needed
@@ -331,6 +393,48 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                       </span>
                     </div>
                   )}
+
+                  {/* Pause controls */}
+                  {job.start_time && (
+                    <div className="flex items-center justify-between text-sm">
+                      <span className="text-muted-foreground">Pause</span>
+                      <div className="flex items-center gap-2">
+                        {activePause ? (
+                          <>
+                            <span className="text-amber-600 text-xs">
+                              En pause depuis {activePause.start}
+                            </span>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              className="h-7 text-xs gap-1 text-green-600 border-green-300 hover:bg-green-50"
+                              disabled={savingPauses}
+                              onClick={handleResume}
+                            >
+                              <Play className="h-3 w-3" />
+                              Reprendre
+                            </Button>
+                          </>
+                        ) : (
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            className="h-7 text-xs gap-1 text-amber-600 border-amber-300 hover:bg-amber-50"
+                            disabled={savingPauses}
+                            onClick={handlePause}
+                          >
+                            <Pause className="h-3 w-3" />
+                            Pause
+                          </Button>
+                        )}
+                      </div>
+                    </div>
+                  )}
+                  {pausesDraft.length > 0 && (
+                    <div className="text-xs text-muted-foreground text-right">
+                      Pauses totales : {formatDurationMinutes(computeTotalPauseMinutes(pausesDraft))}
+                    </div>
+                  )}
                 </>
               )}
 
@@ -349,12 +453,27 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                       <span>{job.end_time.slice(0, 5)}</span>
                     </div>
                   )}
-                  {job.total_duration_minutes && (
-                    <div className="flex justify-between text-sm">
-                      <span className="text-muted-foreground">Durée réelle</span>
-                      <span className="font-medium">{job.total_duration_minutes} min</span>
-                    </div>
-                  )}
+                  {(() => {
+                    const info = workedTimeInfo(job.start_time, job.end_time, pausesDraft.length > 0 ? pausesDraft : undefined);
+                    return (
+                      <>
+                        <div className="flex justify-between text-sm">
+                          <span className="text-muted-foreground">Temps total écoulé</span>
+                          <span>{info.elapsed !== null ? formatDurationMinutes(info.elapsed) : "—"}</span>
+                        </div>
+                        {info.pauseTotal > 0 && (
+                          <div className="flex justify-between text-sm">
+                            <span className="text-muted-foreground">Temps de pause</span>
+                            <span className="text-amber-600">{formatDurationMinutes(info.pauseTotal)}</span>
+                          </div>
+                        )}
+                        <div className="flex justify-between text-sm font-medium">
+                          <span className="text-muted-foreground">Temps travaillé</span>
+                          <span>{info.worked !== null ? formatDurationMinutes(info.worked) : "—"}</span>
+                        </div>
+                      </>
+                    );
+                  })()}
                   {job.estimated_duration_minutes && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Durée estimée</span>
@@ -479,6 +598,15 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
               })()}
               <JobPhotosManager job={job} />
 
+              {/* ── Admin pause editor ── */}
+              {job.status !== "pending" && pausesDraft.length > 0 && (
+                <AdminPauseEditor
+                  pauses={pausesDraft}
+                  onChange={async (updated) => { await savePauses(updated); }}
+                  saving={savingPauses}
+                />
+              )}
+
               {/* ── Action buttons (Compléter + Modifier + Supprimer) ── */}
               <div className="border-t pt-3 flex flex-wrap items-center justify-between gap-2">
                 <div className="flex flex-wrap items-center gap-2">
@@ -590,14 +718,32 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
             <div className="flex justify-center">
               <TimeWheelPicker value={completionEndTime} onChange={setCompletionEndTime} />
             </div>
-            {job?.start_time && (
-              <p className="text-sm text-center text-muted-foreground">
-                Durée réelle : <span className="font-semibold text-foreground">
-                  {computeRealDuration(job.start_time, completionEndTime) ?? 0} min
-                </span>
-                {storedEstimate ? <> · estimée {storedEstimate} min</> : null}
-              </p>
-            )}
+            {job?.start_time && (() => {
+              const pausesNow = getPausesFromJob(job);
+              const active = getActivePause(pausesNow);
+              const finalP = active
+                ? pausesNow.map((p) => p === active ? { ...p, end: completionEndTime } : p)
+                : pausesNow;
+              const est = computeRealDuration(job.start_time, completionEndTime) ?? 0;
+              const pauseTotal = computeTotalPauseMinutes(finalP, completionEndTime);
+              const worked = Math.max(0, est - pauseTotal);
+              return (
+                <div className="text-sm text-center text-muted-foreground space-y-1">
+                  <p>
+                    Durée totale : <span className="font-semibold text-foreground">{est} min</span>
+                    {storedEstimate ? <> · estimée {storedEstimate} min</> : null}
+                  </p>
+                  {pauseTotal > 0 && (
+                    <p>
+                      Pauses : <span className="font-semibold text-amber-600">{pauseTotal} min</span>
+                    </p>
+                  )}
+                  <p>
+                    Temps travaillé : <span className="font-semibold text-foreground">{worked} min</span>
+                  </p>
+                </div>
+              );
+            })()}
             <div className="space-y-1">
               <Label>Tip reçu ($)</Label>
               <Input
@@ -635,5 +781,92 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
         </DialogContent>
       </Dialog>
     </Dialog>
+  );
+}
+
+// ── Admin pause editor (collapsible) ──
+function AdminPauseEditor({
+  pauses,
+  onChange,
+  saving,
+}: {
+  pauses: PauseInterval[];
+  onChange: (updated: PauseInterval[]) => Promise<void>;
+  saving: boolean;
+}) {
+  const [open, setOpen] = useState(false);
+
+  const updatePause = async (index: number, field: "start" | "end", value: string) => {
+    const updated = pauses.map((p, i) => (i === index ? { ...p, [field]: value || undefined } : p));
+    await onChange(updated);
+  };
+
+  const deletePause = async (index: number) => {
+    const updated = pauses.filter((_, i) => i !== index);
+    await onChange(updated);
+  };
+
+  const addPause = async () => {
+    const now = new Date();
+    const hhmm = String(now.getHours()).padStart(2, "0") + ":" + String(now.getMinutes()).padStart(2, "0");
+    const updated = [...pauses, { start: hhmm }];
+    await onChange(updated);
+  };
+
+  return (
+    <div className="border-t pt-3">
+      <button
+        type="button"
+        className="flex items-center gap-1 text-sm text-muted-foreground hover:text-foreground cursor-pointer"
+        onClick={() => setOpen(!open)}
+      >
+        <span className="text-xs">{open ? "▾" : "▸"}</span>
+        Modifier les pauses ({pauses.length})
+      </button>
+      {open && (
+        <div className="mt-2 space-y-2">
+          {pauses.map((p, i) => (
+            <div key={i} className="flex items-center gap-1 text-sm">
+              <span className="text-xs text-muted-foreground w-4">{i + 1}.</span>
+              <input
+                type="time"
+                value={p.start}
+                onChange={(e) => updatePause(i, "start", e.target.value)}
+                className="h-7 w-28 rounded border px-1 text-xs"
+                disabled={saving}
+              />
+              <span className="text-xs text-muted-foreground">→</span>
+              <input
+                type="time"
+                value={p.end ?? ""}
+                onChange={(e) => updatePause(i, "end", e.target.value)}
+                className="h-7 w-28 rounded border px-1 text-xs"
+                disabled={saving}
+                placeholder="En cours"
+              />
+              <button
+                type="button"
+                className="text-destructive hover:text-destructive/80 ml-1"
+                onClick={() => deletePause(i)}
+                disabled={saving}
+              >
+                <X className="h-3.5 w-3.5" />
+              </button>
+            </div>
+          ))}
+          <Button
+            type="button"
+            size="sm"
+            variant="outline"
+            className="h-7 text-xs gap-1"
+            disabled={saving}
+            onClick={addPause}
+          >
+            <Plus className="h-3 w-3" />
+            Ajouter une pause
+          </Button>
+        </div>
+      )}
+    </div>
   );
 }
