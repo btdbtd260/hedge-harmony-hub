@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, Users, FileText, Plus, Clock, DollarSign, Briefcase, Bell, ClipboardList } from "lucide-react";
+import { Calendar, CalendarDays, Users, FileText, Plus, Clock, DollarSign, Briefcase, Bell, ClipboardList } from "lucide-react";
 import { useCustomers, useJobs, useInvoices, useReminders, useEstimationRequests, useExpenses, useEmployees, useEmployeeJobs, getClientNameFromList } from "@/hooks/useSupabaseData";
 import { useNavigate } from "react-router-dom";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
@@ -33,6 +33,8 @@ const Dashboard = () => {
   const inOneWeekStr = inOneWeek.toISOString().split("T")[0];
 
   const todayJobs = jobs.filter((j) => j.scheduled_date === today);
+  const scheduledJobCount = jobs.filter((j) => j.status === "scheduled").length;
+  const completedJobCount = jobs.filter((j) => j.status === "completed").length;
   // Prochains jobs: tous les jobs planifiés entre aujourd'hui et +7 jours
   const upcomingJobs = jobs
     .filter(
@@ -106,7 +108,7 @@ const Dashboard = () => {
         </div>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
         <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/clients")}>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Users className="h-5 w-5 text-primary" /></div>
@@ -116,7 +118,13 @@ const Dashboard = () => {
         <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/jobs")}>
           <CardContent className="p-4 flex items-center gap-4">
             <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Briefcase className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-sm text-muted-foreground">Jobs actifs</p><p className="text-2xl font-bold">{jobs.filter(j => j.status !== "completed" && j.status !== "hidden").length}</p></div>
+            <div><p className="text-sm text-muted-foreground">Jobs complétés</p><p className="text-2xl font-bold">{completedJobCount}</p></div>
+          </CardContent>
+        </Card>
+        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/calendar")}>
+          <CardContent className="p-4 flex items-center gap-4">
+            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><CalendarDays className="h-5 w-5 text-primary" /></div>
+            <div><p className="text-sm text-muted-foreground">Planifiés</p><p className="text-2xl font-bold">{scheduledJobCount}</p></div>
           </CardContent>
         </Card>
         <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/calendar")}>
