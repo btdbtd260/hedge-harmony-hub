@@ -1,4 +1,4 @@
-import { describe, it, expect } from "vitest";
+﻿import { describe, it, expect } from "vitest";
 import {
   estimateJobDuration,
   measurementsFromJob,
@@ -10,6 +10,9 @@ import {
   formatDurationMinutes,
   workedTimeInfo,
   getActivePause,
+  isDateTimeFormat,
+  parseDateTime,
+  getCurrentDateTimeStr,
   type MeasurementInput,
 } from "@/lib/jobDurationEstimator";
 import type { PauseInterval } from "@/types";
@@ -140,7 +143,7 @@ describe("estimateJobDuration", () => {
     const input: MeasurementInput = {
       cut_type: "trim",
       facade: 60,
-      height_global: 7, // Above 5ft threshold → boost
+      height_global: 7, // Above 5ft threshold -> boost
       height_mode: "global",
       width: 2,
     };
@@ -163,7 +166,7 @@ describe("estimateJobDuration", () => {
       facade: 60,
       height_global: 4,
       height_mode: "global",
-      width: 5, // Above 3ft threshold → boost
+      width: 5, // Above 3ft threshold -> boost
     };
     const result = estimateJobDuration(input, []);
     const inputNormal: MeasurementInput = {
@@ -205,7 +208,7 @@ describe("estimateJobDuration", () => {
       width: 2,
     };
 
-    // Create 3+ similar completed jobs (within ±40% linearFeet, ±1.5ft height)
+    // Create 3+ similar completed jobs (within +-40% linearFeet, +-1.5ft height)
     const history: DbJob[] = [
       makeJob({
         id: "h1",
@@ -315,7 +318,7 @@ describe("estimateJobDuration", () => {
     expect(result.similarCount).toBe(0);
   });
 
-  it("excludes jobs outside linearFeet range (±40%)", () => {
+  it("excludes jobs outside linearFeet range (+-40%)", () => {
     const input: MeasurementInput = {
       cut_type: "trim",
       facade: 40,
@@ -325,7 +328,7 @@ describe("estimateJobDuration", () => {
     };
 
     const history: DbJob[] = [
-      // 100 linear feet vs 40 target → ratio 2.5 → outside 0.6-1.4
+      // 100 linear feet vs 40 target -> ratio 2.5 -> outside 0.6-1.4
       makeJob({
         id: "h1",
         cut_type: "trim",
@@ -345,7 +348,7 @@ describe("estimateJobDuration", () => {
     expect(result.similarCount).toBe(0);
   });
 
-  it("excludes jobs outside height range (±1.5ft)", () => {
+  it("excludes jobs outside height range (+-1.5ft)", () => {
     const input: MeasurementInput = {
       cut_type: "trim",
       facade: 40,
@@ -363,7 +366,7 @@ describe("estimateJobDuration", () => {
         measurement_snapshot: {
           facade_length: 40,
           height_mode: "global",
-          height_global: 7, // 7 - 4 = 3 > 1.5 → excluded
+          height_global: 7, // 7 - 4 = 3 > 1.5 -> excluded
           width: 2,
         },
       }),
@@ -386,7 +389,7 @@ describe("estimateJobDuration", () => {
     // Create 10+ similar jobs to test weight cap
     const history: DbJob[] = Array.from({ length: 10 }, (_, i) =>
       makeJob({
-        id: `h${i}`,
+        id: "h" + i,
         cut_type: "trim",
         status: "completed",
         total_duration_minutes: 150 + i,
@@ -432,7 +435,7 @@ describe("estimateJobDuration", () => {
   });
 });
 
-// ── computeRealDuration ──
+// -- computeRealDuration --
 
 describe("computeRealDuration", () => {
   it("returns null for null/undefined input", () => {
@@ -459,7 +462,7 @@ describe("computeRealDuration", () => {
   });
 });
 
-// ── addMinutesToTime ──
+// -- addMinutesToTime --
 
 describe("addMinutesToTime", () => {
   it("returns null for null/undefined input", () => {
@@ -491,7 +494,6 @@ describe("addMinutesToTime", () => {
 // -- computeTotalPauseMinutes --
 
 describe("computeTotalPauseMinutes", () => {
-  
 
   it("returns 0 for null/undefined/empty pauses", () => {
     expect(computeTotalPauseMinutes(null)).toBe(0);
@@ -560,7 +562,6 @@ describe("getActivePause", () => {
 // -- computeRealDuration with pauses --
 
 describe("computeRealDuration with pauses", () => {
-  
 
   it("subtracts pauses from elapsed time", () => {
     const result = computeRealDuration("08:00", "10:30", [
@@ -601,7 +602,6 @@ describe("computeRealDuration with pauses", () => {
 // -- formatDurationMinutes --
 
 describe("formatDurationMinutes", () => {
-  
 
   it("formats 0 minutes", () => {
     expect(formatDurationMinutes(0)).toBe("0m");
@@ -627,7 +627,6 @@ describe("formatDurationMinutes", () => {
 // -- parseTimeToMinutes --
 
 describe("parseTimeToMinutes", () => {
-  
 
   it("parses valid time", () => {
     expect(parseTimeToMinutes("08:30")).toBe(510);
@@ -646,7 +645,6 @@ describe("parseTimeToMinutes", () => {
 // -- computeElapsedMinutes --
 
 describe("computeElapsedMinutes", () => {
-  
 
   it("computes elapsed time", () => {
     expect(computeElapsedMinutes("08:00", "10:30")).toBe(150);
@@ -664,7 +662,6 @@ describe("computeElapsedMinutes", () => {
 // -- workedTimeInfo --
 
 describe("workedTimeInfo", () => {
-  
 
   it("returns info without pauses", () => {
     const info = workedTimeInfo("08:00", "10:30", []);
@@ -690,5 +687,226 @@ describe("workedTimeInfo", () => {
     expect(info.elapsed).toBeNull();
     expect(info.worked).toBeNull();
     expect(info.label).toBe("");
+  });
+});
+
+// ================================================================
+// DATETIME TESTS
+// ================================================================
+
+// -- isDateTimeFormat --
+
+describe("isDateTimeFormat", () => {
+
+  it("returns true for YYYY-MM-DDTHH:mm format", () => {
+    expect(isDateTimeFormat("2026-05-31T08:00")).toBe(true);
+  });
+
+  it("returns false for legacy HH:mm", () => {
+    expect(isDateTimeFormat("08:00")).toBe(false);
+  });
+
+  it("returns false for null/undefined", () => {
+    expect(isDateTimeFormat(null)).toBe(false);
+    expect(isDateTimeFormat(undefined)).toBe(false);
+  });
+
+  it("returns false for invalid strings", () => {
+    expect(isDateTimeFormat("not-a-date")).toBe(false);
+    expect(isDateTimeFormat("2026-05-31")).toBe(false);
+  });
+});
+
+// -- parseDateTime --
+
+describe("parseDateTime", () => {
+
+  it("parses valid datetime string", () => {
+    const d = parseDateTime("2026-05-31T08:00");
+    expect(d).toBeInstanceOf(Date);
+    expect(d!.getFullYear()).toBe(2026);
+    expect(d!.getMonth()).toBe(4); // 0-indexed: May = 4
+    expect(d!.getDate()).toBe(31);
+    expect(d!.getHours()).toBe(8);
+    expect(d!.getMinutes()).toBe(0);
+  });
+
+  it("returns null for legacy HH:mm", () => {
+    expect(parseDateTime("08:00")).toBeNull();
+  });
+
+  it("returns null for null/undefined", () => {
+    expect(parseDateTime(null)).toBeNull();
+    expect(parseDateTime(undefined)).toBeNull();
+  });
+});
+
+// -- getCurrentDateTimeStr --
+
+describe("getCurrentDateTimeStr", () => {
+
+  it("returns a string in YYYY-MM-DDTHH:mm format", () => {
+    const result = getCurrentDateTimeStr();
+    expect(result).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+  });
+
+  it("returns a valid date part that can be parsed", () => {
+    const result = getCurrentDateTimeStr();
+    const datePart = result.substring(0, 10);
+    expect(datePart).toMatch(/^\d{4}-\d{2}-\d{2}$/);
+  });
+});
+
+// -- computeElapsedMinutes with datetime --
+
+describe("computeElapsedMinutes with datetime", () => {
+
+  it("computes duration for same-day datetimes", () => {
+    expect(computeElapsedMinutes("2026-05-31T08:00", "2026-05-31T10:30")).toBe(150);
+  });
+
+  it("computes duration across multiple days", () => {
+    // From May 31 22:00 to June 1 01:30 = 210 min
+    expect(computeElapsedMinutes("2026-05-31T22:00", "2026-06-01T01:30")).toBe(210);
+  });
+
+  it("computes duration across 2+ days", () => {
+    // From May 31 08:00 to June 2 10:00 = 50h = 3000 min
+    const result = computeElapsedMinutes("2026-05-31T08:00", "2026-06-02T10:00");
+    expect(result).toBe(3000);
+  });
+
+  it("returns null for null/undefined with datetime", () => {
+    expect(computeElapsedMinutes(null, "2026-05-31T10:00")).toBeNull();
+    expect(computeElapsedMinutes("2026-05-31T08:00", undefined)).toBeNull();
+  });
+
+  it("handles mixed datetime and HH:mm with jobScheduledDate fallback", () => {
+    // If start is a datetime, and end is HH:mm, use the start's date as fallback
+    expect(computeElapsedMinutes("2026-05-31T08:00", "10:30", "2026-05-31")).toBe(150);
+  });
+
+  it("handles mixed datetime and HH:mm midnight crossing", () => {
+    // start is datetime at 22:00, end is HH:mm at 01:30 -> should detect as next day
+    expect(computeElapsedMinutes("2026-05-31T22:00", "01:30")).toBe(210);
+  });
+});
+
+// -- computeTotalPauseMinutes with datetime pauses --
+
+describe("computeTotalPauseMinutes with datetime pauses", () => {
+
+  it("sums pauses with full datetime start/end", () => {
+    const pauses = [
+      { start: "2026-05-31T12:00", end: "2026-05-31T12:15" },
+    ];
+    expect(computeTotalPauseMinutes(pauses)).toBe(15);
+  });
+
+  it("handles pause spanning midnight with datetimes", () => {
+    const pauses = [
+      { start: "2026-05-31T23:45", end: "2026-06-01T00:15" },
+    ];
+    expect(computeTotalPauseMinutes(pauses)).toBe(30);
+  });
+
+  it("handles legacy HH:mm pauses with jobScheduledDate fallback", () => {
+    const pauses: PauseInterval[] = [
+      { start: "12:00", end: "12:15" },
+    ];
+    expect(computeTotalPauseMinutes(pauses, undefined, "2026-05-31")).toBe(15);
+  });
+
+  it("handles mixed datetime and HH:mm pauses", () => {
+    const pauses = [
+      { start: "2026-05-31T12:00", end: "12:15" },
+    ];
+    expect(computeTotalPauseMinutes(pauses, undefined, "2026-05-31")).toBe(15);
+  });
+
+  it("counts active datetime pause up to now", () => {
+    const pauses = [
+      { start: "2026-05-31T10:00" },
+    ];
+    expect(computeTotalPauseMinutes(pauses, "2026-05-31T10:15")).toBe(15);
+  });
+});
+
+// -- computeRealDuration with datetime --
+
+describe("computeRealDuration with datetime", () => {
+
+  it("computes worked duration with datetime start/end", () => {
+    const result = computeRealDuration(
+      "2026-05-31T08:00",
+      "2026-05-31T10:30",
+      [{ start: "2026-05-31T09:00", end: "2026-05-31T09:15" }],
+    );
+    expect(result).toBe(135); // 150 - 15 = 135
+  });
+
+  it("computes multi-day worked duration", () => {
+    const result = computeRealDuration(
+      "2026-05-31T08:00",
+      "2026-06-01T10:00", // 26h later = 1560 min
+      [{ start: "2026-05-31T12:00", end: "2026-05-31T12:30" }], // 30min pause
+    );
+    expect(result).toBe(1530); // 1560 - 30
+  });
+
+  it("works with legacy HH:mm values", () => {
+    const result = computeRealDuration(
+      "08:00",
+      "10:30",
+      [{ start: "09:00", end: "09:15" }],
+    );
+    expect(result).toBe(135);
+  });
+});
+
+// -- workedTimeInfo with datetime --
+
+describe("workedTimeInfo with datetime", () => {
+
+  it("returns info with datetime values", () => {
+    const info = workedTimeInfo(
+      "2026-05-31T08:00",
+      "2026-05-31T10:30",
+      [{ start: "2026-05-31T09:00", end: "2026-05-31T09:15" }],
+    );
+    expect(info.elapsed).toBe(150);
+    expect(info.worked).toBe(135);
+    expect(info.pauseTotal).toBe(15);
+    expect(info.label).toContain("2h 15m");
+  });
+
+  it("handles multi-day job", () => {
+    const info = workedTimeInfo(
+      "2026-05-31T22:00",
+      "2026-06-01T02:00",
+      [],
+    );
+    expect(info.elapsed).toBe(240); // 4 hours
+    expect(info.worked).toBe(240);
+  });
+});
+
+// -- getCurrentDateTimeStr in pause workflows --
+
+describe("getCurrentDateTimeStr usage in pause workflows", () => {
+
+  it("returns a full datetime for handlePause", () => {
+    const pauseStart = getCurrentDateTimeStr();
+    expect(pauseStart).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+  });
+
+  it("returns a full datetime for handleResume", () => {
+    const pauseEnd = getCurrentDateTimeStr();
+    expect(pauseEnd).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
+  });
+
+  it("default completion time returns full datetime", () => {
+    const completionTime = getCurrentDateTimeStr();
+    expect(completionTime).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
   });
 });

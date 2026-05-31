@@ -1,4 +1,4 @@
-// === CLIENT ===
+﻿// === CLIENT ===
 export type CustomerStatus = "pending" | "scheduled" | "completed" | "next_year";
 
 export interface Customer {
@@ -58,9 +58,14 @@ export interface Estimation {
 
 
 // === PAUSE ===
+/** A pause interval.
+ *  start and end can be:
+ *    - "HH:mm" (legacy — date falls back to the job's scheduled date)
+ *    - "YYYY-MM-DDTHH:mm" (full datetime, no seconds)
+ *  end = undefined/null means the pause is still active (ongoing). */
 export interface PauseInterval {
-  start: string; // "HH:mm"
-  end?: string;  // "HH:mm" — undefined/null means active pause (still ongoing)
+  start: string;
+  end?: string;
 }
 
 // === JOB ===

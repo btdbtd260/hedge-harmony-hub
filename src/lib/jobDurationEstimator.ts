@@ -1,4 +1,4 @@
-// ============================================================
+﻿// ============================================================
 // Job duration estimator
 // ============================================================
 // Estimates how long a job should take (in minutes) based on:
@@ -26,8 +26,8 @@
 //
 // Similarity rules (cheap + explainable):
 //   - same cut_type
-//   - linearFeet within ±40 %
-//   - effectiveHeight within ±1.5 ft
+//   - linearFeet within +/- 40 %
+//   - effectiveHeight within +/- 1.5 ft
 //
 // Result is rounded to the nearest 5 minutes, min 15 min.
 // ============================================================
@@ -35,11 +35,11 @@
 import type { DbJob } from "@/hooks/useSupabaseData";
 import type { PauseInterval } from "@/types";
 
-// Tunable constants — kept in one place for clarity / future tuning
+// Tunable constants - kept in one place for clarity / future tuning
 const BASE_MIN_PER_FOOT = {
   trim: 0.9,        // ~54 sec per linear foot for a basic trim ("Taillage")
   levelling: 1.6,   // levelling is heavier work ("Nivelage")
-  restoration: 2.2, // restoration is the heaviest — overgrown / re-shaping work
+  restoration: 2.2, // restoration is the heaviest - overgrown / re-shaping work
   default: 1.1,
 };
 const MIN_PER_BUSH = 6;
@@ -53,7 +53,7 @@ const WIDTH_BOOST = 1.2;
 
 const MIN_HISTORY = 3;          // need at least this many similar jobs to blend
 
-// ─── helpers ───
+// --- helpers ---
 function num(v: any, d = 0): number {
   const n = Number(v);
   return Number.isFinite(n) ? n : d;
@@ -80,16 +80,15 @@ export interface MeasurementInput {
   extras_count?: number;
 }
 
-/** Extract measurement inputs from a DbJob row (handles snake_case/camelCase snapshots). */
-
 /** Extract pauses from a DbJob's measurement_snapshot.
- *  Reads `job.measurement_snapshot.pauses` (the canonical storage location).
+ *  Reads job.measurement_snapshot.pauses (the canonical storage location).
  *  Returns an empty array if missing or malformed. */
 export function getPausesFromJob(job: DbJob | null | undefined): PauseInterval[] {
   const snap = (job?.measurement_snapshot ?? {}) as any;
   const p = snap.pauses;
   return Array.isArray(p) ? p : [];
 }
+
 export function measurementsFromJob(job: DbJob): MeasurementInput {
   const s = (job.measurement_snapshot ?? {}) as any;
   return {
@@ -205,7 +204,7 @@ export function estimateJobDuration(
 ): EstimationResult {
   const base = basePrediction(input);
   if (base <= 0) {
-    return { minutes: 0, basis: "base", similarCount: 0, explanation: "Aucune mesure renseignée." };
+    return { minutes: 0, basis: "base", similarCount: 0, explanation: "Aucune mesure renseignee." };
   }
 
   const similar = findSimilarJobs(input, history);
@@ -214,7 +213,7 @@ export function estimateJobDuration(
       minutes: tidy(base),
       basis: "base",
       similarCount: similar.length,
-      explanation: `Estimation de base (${similar.length} job(s) similaire(s) dans l'historique, min ${MIN_HISTORY}).`,
+      explanation: "Estimation de base (" + similar.length + " job(s) similaire(s) dans l'historique, min " + MIN_HISTORY + ").",
     };
   }
 
@@ -240,8 +239,44 @@ export function estimateJobDuration(
     minutes: tidy(blended),
     basis: "blended",
     similarCount: similar.length,
-    explanation: `Mélangé : ${Math.round((1 - weight) * 100)}% formule de base + ${Math.round(weight * 100)}% historique (${similar.length} jobs similaires, ${avgMinPerFoot.toFixed(2)} min/pi).`,
+    explanation: "Melange : " + Math.round((1 - weight) * 100) + "% formule de base + " + Math.round(weight * 100) + "% historique (" + similar.length + " jobs similaires, " + avgMinPerFoot.toFixed(2) + " min/pi).",
   };
+}
+
+// ===============================================================
+// DATETIME HELPERS
+// ===============================================================
+
+/** Regex for a full datetime string "YYYY-MM-DDTHH:mm" */
+const DATETIME_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/;
+
+/** Check whether a string is a full datetime (vs legacy "HH:mm"). */
+export function isDateTimeFormat(str: string | null | undefined): boolean {
+  if (!str) return false;
+  return DATETIME_RE.test(str);
+}
+
+/** Parse a full datetime string "YYYY-MM-DDTHH:mm" into a Date.
+ *  Returns null for invalid/missing input or legacy HH:mm strings. */
+export function parseDateTime(str: string | null | undefined): Date | null {
+  if (!str) return null;
+  if (isDateTimeFormat(str)) {
+    // Append ":00" seconds so the ISO parser works
+    const d = new Date(str + ":00");
+    return Number.isFinite(d.getTime()) ? d : null;
+  }
+  return null;
+}
+
+/** Get the current date+time as "YYYY-MM-DDTHH:mm". */
+export function getCurrentDateTimeStr(): string {
+  const d = new Date();
+  const y = d.getFullYear();
+  const mo = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  const h = String(d.getHours()).padStart(2, "0");
+  const mi = String(d.getMinutes()).padStart(2, "0");
+  return y + "-" + mo + "-" + day + "T" + h + ":" + mi;
 }
 
 /** Parse "HH:mm" into total minutes since midnight. */
@@ -253,39 +288,128 @@ export function parseTimeToMinutes(time: string | null | undefined): number | nu
 }
 
 /**
- * Compute total elapsed minutes from start to end (handles midnight crossing).
- * Returns elapsed time (wall clock), NOT accounting for pauses.
+ * Build a full Date from "YYYY-MM-DD" and "HH:mm".
+ * Returns null if either part is missing/invalid.
  */
-export function computeElapsedMinutes(start: string | null | undefined, end: string | null | undefined): number | null {
+function combineDateAndTime(dateStr: string | null | undefined, timeStr: string | null | undefined): Date | null {
+  if (!dateStr || !timeStr) return null;
+  // dateStr is expected as "YYYY-MM-DD"
+  if (!/^\d{4}-\d{2}-\d{2}$/.test(dateStr)) return null;
+  const time = parseTimeToMinutes(timeStr);
+  if (time === null) return null;
+  // Parse date parts as local (avoid TZ shift)
+  const [y, m, d] = dateStr.split("-").map(Number);
+  if (!y || !m || !d) return null;
+  const date = new Date(y, m - 1, d);
+  date.setHours(Math.floor(time / 60), time % 60, 0, 0);
+  return date;
+}
+
+/**
+ * Normalize a time/datetime value to a Date for computation.
+ */
+function toDate(value: string | null | undefined, jobDate?: string | null | undefined): Date | null {
+  if (!value) return null;
+
+  // Try full datetime first
+  const dt = parseDateTime(value);
+  if (dt) return dt;
+
+  // Legacy HH:mm - try to combine with job date
+  if (jobDate && parseTimeToMinutes(value) !== null) {
+    return combineDateAndTime(jobDate, value);
+  }
+
+  return null;
+}
+
+/**
+ * Compute total elapsed minutes from start to end.
+ *
+ * Supports:
+ *  - Both values as full datetime "YYYY-MM-DDTHH:mm" -> precise diff
+ *  - Both values as legacy "HH:mm" -> old logic (handles midnight crossing)
+ *  - Mixed formats -> uses jobScheduledDate as fallback date for HH:mm values
+ *
+ * Returns elapsed wall-clock time (NOT accounting for pauses).
+ */
+export function computeElapsedMinutes(
+  start: string | null | undefined,
+  end: string | null | undefined,
+  jobScheduledDate?: string | null | undefined,
+): number | null {
+  if (!start || !end) return null;
+
+  const startIsDt = isDateTimeFormat(start);
+  const endIsDt = isDateTimeFormat(end);
+
+  // If both are full datetimes -> precise Date diff
+  if (startIsDt && endIsDt) {
+    const s = parseDateTime(start);
+    const e = parseDateTime(end);
+    if (!s || !e) return null;
+    return (e.getTime() - s.getTime()) / 60000;
+  }
+
+  // If one or both are legacy HH:mm, try to get dates
+  if (startIsDt || endIsDt) {
+    // At least one is a datetime: use that date as the reference
+    const refParsed = parseDateTime(startIsDt ? start : end);
+    if (!refParsed) return null;
+
+    // Build the reference date string "YYYY-MM-DD" from the datetime
+    const refStr = startIsDt ? start! : end!;
+    const refDateStr = refStr.substring(0, 10);
+
+    const s = startIsDt ? parseDateTime(start) : combineDateAndTime(refDateStr, start);
+    const eVal = endIsDt ? parseDateTime(end) : combineDateAndTime(refDateStr, end);
+    if (!s || !eVal) return null;
+
+    const diff = (eVal.getTime() - s.getTime()) / 60000;
+    // If negative, the HH:mm likely refers to the next day (midnight crossing)
+    if (diff < 0) {
+      eVal.setDate(eVal.getDate() + 1);
+      return (eVal.getTime() - s.getTime()) / 60000;
+    }
+    return diff;
+  }
+
+  // Both legacy HH:mm - use old logic (with optional jobDate as fallback for midnight)
   const s = parseTimeToMinutes(start);
   const e = parseTimeToMinutes(end);
   if (s === null || e === null) return null;
-  if (e < s) return e + 24 * 60 - s; // crossed midnight
+  if (e < s) return e + 24 * 60 - s;
   return e - s;
-}
-
-/** Compute total pause duration in minutes from an array of pause intervals.
- *  Active pauses (end is null/undefined) are counted up to `now`.
- *  If `now` is not provided, uses the current time. */
-export function computeTotalPauseMinutes(
-  pauses: PauseInterval[] | null | undefined,
-  now?: string,
-): number {
-  if (!pauses || !Array.isArray(pauses) || pauses.length === 0) return 0;
-  let total = 0;
-  for (const p of pauses) {
-    const end = p.end ?? now ?? getCurrentHHMM();
-    const duration = computeElapsedMinutes(p.start, end);
-    if (duration !== null && duration > 0) {
-      total += duration;
-    }
-  }
-  return total;
 }
 
 function getCurrentHHMM(): string {
   const d = new Date();
   return String(d.getHours()).padStart(2, "0") + ":" + String(d.getMinutes()).padStart(2, "0");
+}
+
+/**
+ * Compute total pause duration in minutes from an array of pause intervals.
+ * Active pauses (end is null/undefined) are counted up to 
+ow.
+ * If 
+ow is not provided, uses the current time.
+ * jobScheduledDate is used as fallback date for legacy HH:mm pause values.
+ */
+export function computeTotalPauseMinutes(
+  pauses: PauseInterval[] | null | undefined,
+  now?: string,
+  jobScheduledDate?: string | null | undefined,
+): number {
+  if (!pauses || !Array.isArray(pauses) || pauses.length === 0) return 0;
+  let total = 0;
+  for (const p of pauses) {
+    const end = p.end ?? now ?? getCurrentDateTimeStr();
+    const duration = computeElapsedMinutes(p.start, end, jobScheduledDate);
+    if (duration !== null && duration > 0) {
+      total += duration;
+    }
+  }
+  return total;
 }
 
 /**
@@ -296,14 +420,15 @@ export function computeRealDuration(
   start: string | null | undefined,
   end: string | null | undefined,
   pauses?: PauseInterval[] | null | undefined,
+  jobScheduledDate?: string | null | undefined,
 ): number | null {
-  const elapsed = computeElapsedMinutes(start, end);
+  const elapsed = computeElapsedMinutes(start, end, jobScheduledDate);
   if (elapsed === null) return null;
-  const pauseTotal = computeTotalPauseMinutes(pauses);
+  const pauseTotal = computeTotalPauseMinutes(pauses, end ?? undefined, jobScheduledDate);
   return Math.max(0, elapsed - pauseTotal);
 }
 
-/** Add minutes to "HH:mm" → "HH:mm" (wraps within a single day display). */
+/** Add minutes to "HH:mm" -> "HH:mm" (wraps within a single day display). */
 export function addMinutesToTime(time: string | null | undefined, minutes: number): string | null {
   if (!time) return null;
   const m = time.match(/(\d{1,2}):(\d{2})/);
@@ -312,7 +437,7 @@ export function addMinutesToTime(time: string | null | undefined, minutes: numbe
   const wrapped = ((total % (24 * 60)) + 24 * 60) % (24 * 60);
   const hh = String(Math.floor(wrapped / 60)).padStart(2, "0");
   const mm = String(wrapped % 60).padStart(2, "0");
-  return `${hh}:${mm}`;
+  return hh + ":" + mm;
 }
 
 /** Format a duration in minutes to a human-readable string like "2h 30m" or "45m". */
@@ -341,9 +466,10 @@ export function workedTimeInfo(
   start: string | null | undefined,
   end: string | null | undefined,
   pauses?: PauseInterval[] | null | undefined,
+  jobScheduledDate?: string | null | undefined,
 ): { elapsed: number | null; worked: number | null; pauseTotal: number; label: string } {
-  const elapsed = computeElapsedMinutes(start, end);
-  const pauseTotal = computeTotalPauseMinutes(pauses, end ?? undefined);
+  const elapsed = computeElapsedMinutes(start, end, jobScheduledDate);
+  const pauseTotal = computeTotalPauseMinutes(pauses, end ?? undefined, jobScheduledDate);
   let worked: number | null = null;
   if (elapsed !== null) {
     worked = Math.max(0, elapsed - pauseTotal);
