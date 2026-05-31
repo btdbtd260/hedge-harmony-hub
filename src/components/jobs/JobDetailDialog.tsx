@@ -283,9 +283,9 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
           : variance === 0
             ? " (pile sur l'estimation)"
             : variance > 0
-              ? ` (+${variance} min vs estimé)`
-              : ` (${variance} min vs estimé)`;
-      toast.success(`Job complété — ${real} min réelles${variancePart}`);
+              ? ` (+${formatDurationMinutes(variance)} vs estimé)`
+              : ` (${formatDurationMinutes(variance)} vs estimé)`;
+      toast.success(`Job complété — ${formatDurationMinutes(real)} réelles${variancePart}`);
     } catch (err: any) {
       toast.error(err.message);
     }
@@ -412,7 +412,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Durée estimée</span>
                       <span title={estimation?.explanation ?? undefined}>
-                        ~{storedEstimate} min
+                        ~{formatDurationMinutes(storedEstimate)}
                         {projectedEnd && (
                           <span className="text-muted-foreground"> · fin estimée {projectedEnd}</span>
                         )}
@@ -503,7 +503,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                   {job.estimated_duration_minutes && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Durée estimée</span>
-                      <span>{job.estimated_duration_minutes} min</span>
+                      <span>{formatDurationMinutes(job.estimated_duration_minutes)}</span>
                     </div>
                   )}
                   {typeof job.duration_variance_minutes === "number" && (
@@ -513,7 +513,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                         "font-semibold",
                         job.duration_variance_minutes > 0 ? "text-cut-levelling" : "text-cut-trim",
                       )}>
-                        {job.duration_variance_minutes > 0 ? "+" : ""}{job.duration_variance_minutes} min
+                        {job.duration_variance_minutes > 0 ? "+" : ""}{formatDurationMinutes(Math.abs(job.duration_variance_minutes))}
                       </span>
                     </div>
                   )}
@@ -784,16 +784,16 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                     Début : <span className="font-medium text-foreground">{job.scheduled_date ?? "—"} {job.start_time.slice(0, 5)}</span>
                   </p>
                   <p>
-                    Durée totale : <span className="font-semibold text-foreground">{est} min</span>
-                    {storedEstimate ? <> · estimée {storedEstimate} min</> : null}
+                    Durée totale : <span className="font-semibold text-foreground">{formatDurationMinutes(est)}</span>
+                    {storedEstimate ? <> · estimée {formatDurationMinutes(storedEstimate)}</> : null}
                   </p>
                   {pauseTotal > 0 && (
                     <p>
-                      Pauses : <span className="font-semibold text-amber-600">{pauseTotal} min</span>
+                      Pauses : <span className="font-semibold text-amber-600">{formatDurationMinutes(pauseTotal)}</span>
                     </p>
                   )}
                   <p>
-                    Temps travaillé : <span className="font-semibold text-foreground">{worked} min</span>
+                    Temps travaillé : <span className="font-semibold text-foreground">{formatDurationMinutes(worked)}</span>
                   </p>
                 </div>
               );

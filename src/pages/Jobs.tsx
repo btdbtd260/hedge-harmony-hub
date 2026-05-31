@@ -12,6 +12,7 @@ import { useJobs, useCustomers, useUpdateJob, useInsertInvoice, getClientNameFro
 import { Search, Calendar, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
+import { formatDurationMinutes } from "@/lib/jobDurationEstimator";
 
 const statusColor: Record<string, string> = {
   pending: "bg-amber-100 text-amber-700",
@@ -249,7 +250,7 @@ function JobRow({ job, clientName, clientAddress, onClick, onStatusChange }: { j
         {clientAddress && <p className="text-xs text-muted-foreground">{clientAddress}</p>}
         <div className="flex gap-2 text-xs text-muted-foreground">
           <span>{dateDisplay}</span><span>·</span><span>{job.cut_type}</span>
-          {job.total_duration_minutes && <><span>·</span><span>{job.total_duration_minutes} min</span></>}
+          {job.total_duration_minutes && <><span>·</span><span>{formatDurationMinutes(job.total_duration_minutes)}</span></>}
         </div>
       </div>
       <div className="flex items-center gap-2">

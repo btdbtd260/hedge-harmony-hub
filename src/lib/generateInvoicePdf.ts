@@ -4,6 +4,7 @@ import type { DbInvoice, DbCustomer, DbJob, DbParameters } from "@/hooks/useSupa
 import { formatDateQC } from "@/lib/utils";
 import { loadLogoForPdf, fitLogo } from "@/lib/loadLogoForPdf";
 import { formatPhone } from "@/lib/phoneFormat";
+import { formatDurationMinutes } from "@/lib/jobDurationEstimator";
 
 export interface InvoicePdfData {
   invoice: DbInvoice;
@@ -145,7 +146,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
   if (job) {
     const cutLabel = job.cut_type === "levelling" ? "Nivelage" : "Taille";
     const dateStr = job.scheduled_date || "—";
-    const duration = job.total_duration_minutes ? `${job.total_duration_minutes} min` : "—";
+    const duration = job.total_duration_minutes ? formatDurationMinutes(job.total_duration_minutes) : "—";
     const descText = description || `Service de ${cutLabel.toLowerCase()} de haies`;
 
     tableBody.push([descText, dateStr, cutLabel, duration, `$${Number(invoice.amount).toFixed(2)}`]);

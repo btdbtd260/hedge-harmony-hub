@@ -14,6 +14,7 @@ import {
   ResponsiveContainer,
 } from "recharts";
 import { TrendingDown, TrendingUp, Target, Activity } from "lucide-react";
+import { formatDurationMinutes } from "@/lib/jobDurationEstimator";
 
 type CutFilter = "all" | "trim" | "levelling" | "restoration";
 
@@ -120,12 +121,6 @@ export default function Analytics() {
     return { avgVariance, avgAccuracy, trend, trendDirection };
   }, [chartData]);
 
-  const formatMinutes = (m: number) => {
-    const h = Math.floor(m / 60);
-    const min = m % 60;
-    return h > 0 ? `${h}h${String(min).padStart(2, "0")}` : `${min} min`;
-  };
-
   return (
     <div className="space-y-6">
       <div className="flex flex-wrap items-end justify-between gap-4">
@@ -182,7 +177,7 @@ export default function Analytics() {
           </CardHeader>
           <CardContent>
             <p className="text-xs text-muted-foreground">
-              Écart moyen : {formatMinutes(Math.round(stats.avgVariance))}
+              Écart moyen : {formatDurationMinutes(Math.round(stats.avgVariance))}
             </p>
           </CardContent>
         </Card>
@@ -211,7 +206,7 @@ export default function Analytics() {
             <p className="text-xs text-muted-foreground">
               {chartData.length < 4
                 ? "Besoin d'au moins 4 jobs pour calculer la tendance"
-                : `Variation : ${stats.trend > 0 ? "−" : "+"}${formatMinutes(Math.abs(Math.round(stats.trend)))} entre 1ʳᵉ et 2ᵉ moitié`}
+                : `Variation : ${stats.trend > 0 ? "−" : "+"}${formatDurationMinutes(Math.abs(Math.round(stats.trend)))} entre 1ʳᵉ et 2ᵉ moitié`}
             </p>
           </CardContent>
         </Card>
@@ -256,7 +251,7 @@ export default function Analytics() {
                     }}
                     formatter={(value: number, name: string) => {
                       const label = name === "estimated" ? "Estimé" : name === "real" ? "Réel" : name;
-                      return [formatMinutes(value), label];
+                      return [formatDurationMinutes(value), label];
                     }}
                     labelFormatter={(label, payload) => {
                       const c = payload?.[0]?.payload?.client;
@@ -320,12 +315,12 @@ export default function Analytics() {
                       <td className="px-4 py-2">
                         <Badge variant="outline" className="text-xs">{cutLabel(d.cutType)}</Badge>
                       </td>
-                      <td className="px-4 py-2 text-right tabular-nums">{formatMinutes(d.estimated)}</td>
-                      <td className="px-4 py-2 text-right tabular-nums font-medium">{formatMinutes(d.real)}</td>
+                      <td className="px-4 py-2 text-right tabular-nums">{formatDurationMinutes(d.estimated)}</td>
+                      <td className="px-4 py-2 text-right tabular-nums font-medium">{formatDurationMinutes(d.real)}</td>
                       <td className={cnVariance(d.variance)}>
                         {d.variance === 0
-                          ? "0 min"
-                          : (d.variance > 0 ? "+" : "−") + formatMinutes(Math.abs(d.variance))}
+                          ? "0m"
+                          : (d.variance > 0 ? "+" : "−") + formatDurationMinutes(Math.abs(d.variance))}
                       </td>
                     </tr>
                   ))}

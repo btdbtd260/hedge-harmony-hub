@@ -18,6 +18,7 @@ import {
 import { Search, Mail, FileDown, CheckCircle, Receipt, History, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadInvoicePdf, getInvoiceNumber, type InvoicePdfData } from "@/lib/generateInvoicePdf";
+import { formatDurationMinutes } from "@/lib/jobDurationEstimator";
 
 const statusColor: Record<string, string> = {
   unpaid: "bg-amber-100 text-amber-700",
@@ -389,7 +390,7 @@ const Invoices = () => {
                     <div><span className="text-muted-foreground">Date émission</span><p>{formatDateQC(selectedInvoice.issued_at)}</p></div>
                     {selectedInvoice.paid_at && <div><span className="text-muted-foreground">Date paiement</span><p>{formatDateQC(selectedInvoice.paid_at)}</p></div>}
                     <div><span className="text-muted-foreground">Job lié</span><p>{job ? `${job.cut_type === "levelling" ? "Nivelage" : "Taille"} · ${formatDateOnly(job.scheduled_date)}` : "—"}</p></div>
-                    {job?.total_duration_minutes && <div><span className="text-muted-foreground">Durée</span><p>{job.total_duration_minutes} min</p></div>}
+                    {job?.total_duration_minutes && <div><span className="text-muted-foreground">Durée</span><p>{formatDurationMinutes(job.total_duration_minutes)}</p></div>}
                   </div>
                 </div>
 
