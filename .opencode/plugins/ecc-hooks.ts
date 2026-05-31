@@ -20,8 +20,8 @@ import {
   initStore,
   recordChange,
   clearChanges,
-} from "./lib/changed-files-store.js"
-import changedFilesTool from "../tools/changed-files.js"
+} from "./lib/changed-files-store.ts"
+import changedFilesTool from "../tools/changed-files.ts"
 
 type ECCHooksPluginFn = (input: PluginInput) => Promise<Record<string, unknown>>
 
