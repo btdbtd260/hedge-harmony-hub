@@ -270,10 +270,11 @@ describe("Safe Supabase Migration Files", () => {
           ["customers", ["billing_info"]],
           ["employees", ["is_admin"]],
           ["employee_jobs", ["is_present"]],
-          ["jobs", ["tip", "pauses", "total_pause_minutes"]],
+          ["jobs", ["tip", "pauses", "total_pause_minutes", "estimated_duration_minutes", "duration_variance_minutes"]],
           ["parameters", ["two_sides_multiplier", "company_website", "company_logo_url", "price_per_foot_restoration", "rounding_enabled", "rounding_multiple"]],
           ["estimations", ["back_left_length", "back_right_length", "height_back_left", "height_back_right"]],
           ["estimation_requests", ["photos", "seen_at"]],
+          ["email_send_state", ["batch_size", "send_delay_ms", "auth_email_ttl_minutes", "transactional_email_ttl_minutes"]],
         ];
 
         for (const [table, columns] of TABLE_COLUMN_CHECKS) {
@@ -291,6 +292,17 @@ describe("Safe Supabase Migration Files", () => {
           const file = MIGRATIONS.find((m) => m.name.includes("missing_columns"))!;
           expect(file.content).not.toMatch(/ALTER\s+TABLE.*SET\s/i);
           expect(file.content).not.toMatch(/ALTER\s+COLUMN.*DROP/i);
+        });
+
+        it("uses ALTER TABLE IF EXISTS for email_send_state (optional table)", () => {
+          const file = MIGRATIONS.find((m) => m.name.includes("missing_columns"))!;
+          const emailStateLines = file.content
+            .split("\n")
+            .filter((l) => l.includes("email_send_state") && !l.trim().startsWith("--"));
+          expect(emailStateLines.length).toBeGreaterThan(0);
+          for (const line of emailStateLines) {
+            expect(line).toMatch(/ALTER\s+TABLE\s+IF\s+EXISTS/i);
+          }
         });
       });
     });
