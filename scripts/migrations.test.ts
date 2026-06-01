@@ -167,11 +167,23 @@ describe("Safe Supabase Migration Files", () => {
           expect(lines.join("\n")).not.toMatch(bareCreateRegex);
         });
 
+        it("does NOT enable pg_cron (Free tier compatibility)", () => {
+          const file = MIGRATIONS.find((m) => m.name.includes("extensions"))!;
+          // pg_cron is not available on Supabase Free tier.
+          // Scheduled email processing will be handled differently later.
+          const codeLines = file.content
+            .split("\n")
+            .filter((l) => !l.trim().startsWith("--"))
+            .join("\n");
+          expect(codeLines).not.toMatch(/pg_cron/i);
+        });
+
         it("does not add extensions that don't exist", () => {
           const file = MIGRATIONS.find((m) => m.name.includes("extensions"))!;
           // Only well-known Supabase extensions should be used
+          // NOTE: pg_cron intentionally removed — not available on Free tier
           const allowedExtensions = [
-            "pgcrypto", "pg_net", "pg_cron", "supabase_vault", "pgmq",
+            "pgcrypto", "pg_net", "supabase_vault", "pgmq",
             "pg_graphql", "pg_stat_statements", "uuid-ossp", "pgjwt",
             "pg_sodium", "pgsodium",
           ];
@@ -699,6 +711,12 @@ describe("SUPABASE_EXISTING_PROJECT_MIGRATION_PLAN.md", () => {
     it("specifies that this is step 1 only", () => {
       expect(content).toMatch(/étape 1|step 1|première étape|first step/i);
     });
+
+    it("mentions that pg_cron is postponed or deferred for Free tier", () => {
+      // pg_cron is intentionally not included; should be noted somewhere in the doc
+      // Accepts French explanations (pas activée, pas disponible, exclu, reporté)
+      expect(content).toMatch(/pg_cron.*(?:pas\s+activ|pas\s+disponib|exclu|report|diff.r|defer)/i);
+    });
   }
 });
 
@@ -728,6 +746,13 @@ describe("SUPABASE_ENV_CHECKLIST.md", () => {
 
     it("contains verification steps", () => {
       expect(content).toMatch(/verify|vérification|check|test|vérifier/i);
+    });
+
+    it("does NOT list pg_cron as an expected extension (Free tier)", () => {
+      // pg_cron is not available on Free tier; the checklist should reflect that
+      // Allow comments/explanations about pg_cron being deferred, but not as expected extension
+      const tableSection = content.split(/## 4\./)[0]; // Only check the extensions table section
+      expect(tableSection).not.toMatch(/\|.*pg_cron.*\|/);
     });
   }
 });

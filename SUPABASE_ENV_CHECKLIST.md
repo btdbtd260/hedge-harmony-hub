@@ -67,9 +67,12 @@ Extensions attendues :
 |-----------|---------|
 | `pgcrypto` | `gen_random_uuid()` pour les clés primaires |
 | `pg_net` | Requêtes HTTP depuis les Edge Functions |
-| `pg_cron` | Planification de tâches récurrentes |
 | `supabase_vault` | Stockage chiffré de secrets |
 | `pgmq` | File d'attente de messages email |
+
+> **Note :** `pg_cron` n'est pas inclus car il n'est pas disponible sur le plan Free tier.
+> Le traitement automatique des emails sera géré ultérieurement via Edge Function ou
+> planificateur externe.
 
 ---
 

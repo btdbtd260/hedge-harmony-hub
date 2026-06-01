@@ -4,6 +4,12 @@
 >
 > Ce plan décrit l'ordre exact d'application des migrations pour un projet Supabase
 > existant. Aucune commande destructive (DROP, DELETE, TRUNCATE) n'est incluse.
+>
+> **Note — pg_cron :** L'extension `pg_cron` n'est pas activée car elle n'est pas
+> disponible sur le plan Free tier de Supabase. Le traitement automatique de la file
+> d'attente email (process-email-queue) qui dépendait de `pg_cron` sera implémenté
+> ultérieurement via Edge Function ou planificateur externe.
+> Voir `20260531000001_safe_extensions.sql` pour les extensions réellement activées.
 
 ---
 
@@ -14,7 +20,7 @@ d'objets créés par les précédentes.
 
 | # | Fichier | Dépendances | Description |
 |---|---------|-------------|-------------|
-| 1 | `20260531000001_safe_extensions.sql` | Aucune | Active les extensions PostgreSQL requises |
+| 1 | `20260531000001_safe_extensions.sql` | Aucune | Active les extensions PostgreSQL requises (pg_cron exclu — non disponible sur Free tier) |
 | 2 | `20260531000002_safe_app_role_enum.sql` | #1 (pgcrypto) | Crée le type ENUM `app_role` |
 | 3 | `20260531000003_safe_utility_functions.sql` | #2 (app_role) | Crée les fonctions utilitaires |
 | 4 | `20260531000004_safe_missing_columns.sql` | Aucune | Ajoute les colonnes manquantes |
