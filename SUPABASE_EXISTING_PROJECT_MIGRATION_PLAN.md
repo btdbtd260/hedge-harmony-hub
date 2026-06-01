@@ -1,6 +1,6 @@
 # Plan de Migration Supabase — Projet Existant
 
-> **Étape 1/4 — Migrations NON destructives uniquement**
+> **Étape 2/4 — Migrations NON destructives uniquement**
 >
 > Ce plan décrit l'ordre exact d'application des migrations pour un projet Supabase
 > existant. Aucune commande destructive (DROP, DELETE, TRUNCATE) n'est incluse.
@@ -18,6 +18,10 @@ d'objets créés par les précédentes.
 | 2 | `20260531000002_safe_app_role_enum.sql` | #1 (pgcrypto) | Crée le type ENUM `app_role` |
 | 3 | `20260531000003_safe_utility_functions.sql` | #2 (app_role) | Crée les fonctions utilitaires |
 | 4 | `20260531000004_safe_missing_columns.sql` | Aucune | Ajoute les colonnes manquantes |
+| 5 | `20260531000005_safe_storage_buckets.sql` | Aucune | Crée les buckets de stockage (estimation-pdfs, message-media, estimation-request-photos, company-assets, job-photos) |
+| 6 | `20260531000006_safe_storage_policies.sql` | #5 (buckets) | Crée les politiques RLS pour storage.objects |
+| 7 | `20260531000007_safe_rls_enablement.sql` | Aucune | Active RLS sur toutes les tables |
+| 8 | `20260531000008_safe_rls_policies.sql` | #7 (RLS), #3 (fonctions) | Crée les politiques RLS sur toutes les tables |
 
 ---
 
@@ -77,6 +81,33 @@ SELECT table_name, column_name, is_nullable, data_type
 FROM information_schema.columns
 WHERE table_schema = 'public'
 ORDER BY table_name, ordinal_position;
+
+-- Vérifier les buckets de stockage (migration 5)
+SELECT id, name, public
+FROM storage.buckets
+WHERE id IN ('estimation-pdfs', 'message-media',
+             'estimation-request-photos', 'company-assets',
+             'job-photos')
+ORDER BY name;
+
+-- Vérifier les politiques storage (migration 6)
+SELECT schemaname, tablename, policyname, permissive
+FROM pg_policies
+WHERE schemaname = 'storage' AND tablename = 'objects'
+ORDER BY policyname;
+
+-- Vérifier RLS activé (migration 7)
+SELECT relname, relrowsecurity
+FROM pg_class
+WHERE relrowsecurity = true
+  AND relnamespace = 'public'::regnamespace
+ORDER BY relname;
+
+-- Vérifier les politiques RLS (migration 8)
+SELECT schemaname, tablename, policyname, permissive, roles
+FROM pg_policies
+WHERE schemaname = 'public'
+ORDER BY tablename, policyname;
 ```
 
 ---
@@ -86,6 +117,25 @@ ORDER BY table_name, ordinal_position;
 Si une migration cause des problèmes :
 
 ```sql
+-- Migration 8: retirer les politiques RLS
+-- ATTENTION: ne retirer que les politiques qui posent problème.
+-- Les politiques de base sont requises pour le fonctionnement.
+--
+-- DROP POLICY IF EXISTS "Approved users full access" ON public.customers;
+-- (adaptez pour chaque table concernée)
+
+-- Migration 7: désactiver RLS (déconseillé — requiert re-création des politiques)
+-- ALTER TABLE public.customers DISABLE ROW LEVEL SECURITY;
+-- (à faire pour chaque table si nécessaire)
+
+-- Migration 6: retirer les politiques storage
+-- DROP POLICY IF EXISTS "Allow read estimation-pdfs" ON storage.objects;
+-- (adaptez pour chaque politique concernée)
+
+-- Migration 5: supprimer les buckets (les données seront perdues)
+-- ATTENTION: cela supprime TOUS les objets dans le bucket.
+-- SELECT storage.delete_bucket('job-photos'); -- Exemple
+
 -- Migration 4: retirer les colonnes ajoutées
 -- ATTENTION: cela peut causer une perte de données si des colonnes
 -- contiennent des données. À ne faire que si la migration 4 n'a pas
@@ -107,14 +157,14 @@ Si une migration cause des problèmes :
 
 ---
 
-## Prochaines étapes (hors scope de cette étape 1)
+## Prochaines étapes (hors scope de cette étape 2)
 
-Une fois cette étape 1 complétée et validée, les étapes suivantes pourront être envisagées :
+Une fois cette étape 2 complétée et validée, les étapes suivantes pourront être envisagées :
 
-- [ ] Étape 2: Appliquer les politiques RLS sécurisées
+- [x] Étape 1: Migrations de base (extensions, enum, fonctions, colonnes)
+- [x] Étape 2: Storage buckets + RLS policies (cette étape)
 - [ ] Étape 3: Appliquer les triggers et les contraintes
-- [ ] Étape 4: Configurer les buckets de stockage et leurs politiques
-- [ ] Étape 5: Déployer et configurer les Edge Functions
+- [ ] Étape 4: Déployer et configurer les Edge Functions
 - [ ] Final: Mettre à jour le frontend pour utiliser les nouvelles fonctionnalités
 
 ---

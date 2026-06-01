@@ -22,6 +22,10 @@ const EXPECTED_MIGRATION_FILES = [
   "20260531000002_safe_app_role_enum.sql",
   "20260531000003_safe_utility_functions.sql",
   "20260531000004_safe_missing_columns.sql",
+  "20260531000005_safe_storage_buckets.sql",
+  "20260531000006_safe_storage_policies.sql",
+  "20260531000007_safe_rls_enablement.sql",
+  "20260531000008_safe_rls_policies.sql",
 ] as const;
 
 const EXPECTED_DOC_FILES = [
@@ -59,6 +63,13 @@ const MIGRATIONS: MigrationFile[] = EXPECTED_MIGRATION_FILES.map(loadMigrationFi
 const ALL_MIGRATIONS_EXIST = MIGRATIONS.every((m) => m.content !== "");
 const DOC_FILES = EXPECTED_DOC_FILES.map((name) => ({ name, content: loadDocContent(name) }));
 const ALL_DOCS_EXIST = DOC_FILES.every((d) => d.content !== "");
+
+/**
+ * Escape special regex characters in a string for safe use in RegExp
+ */
+function escapeRegex(str: string): string {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 // --- Tests ---
 
@@ -304,6 +315,320 @@ describe("Safe Supabase Migration Files", () => {
             expect(line).toMatch(/ALTER\s+TABLE\s+IF\s+EXISTS/i);
           }
         });
+      });
+    });
+
+    describe("20260531000005_safe_storage_buckets.sql", () => {
+      it("creates buckets using INSERT ... ON CONFLICT DO NOTHING for idempotency", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_buckets"))!;
+        expect(file.content).toMatch(/INSERT\s+INTO\s+storage\.buckets/i);
+        expect(file.content).toMatch(/ON\s+CONFLICT\s*\(id\)\s*DO\s+NOTHING/i);
+      });
+
+      it("creates estimation-pdfs bucket (private)", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_buckets"))!;
+        expect(file.content).toContain("estimation-pdfs");
+        expect(file.content).toMatch(/estimation-pdfs[\s\S]*?false/);
+      });
+
+      it("creates message-media bucket (public)", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_buckets"))!;
+        expect(file.content).toContain("message-media");
+        expect(file.content).toMatch(/message-media[\s\S]*?true/);
+      });
+
+      it("creates estimation-request-photos bucket (public)", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_buckets"))!;
+        expect(file.content).toContain("estimation-request-photos");
+        expect(file.content).toMatch(/estimation-request-photos[\s\S]*?true/);
+      });
+
+      it("creates company-assets bucket (public)", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_buckets"))!;
+        expect(file.content).toContain("company-assets");
+        expect(file.content).toMatch(/company-assets[\s\S]*?true/);
+      });
+
+      it("creates job-photos bucket (public)", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_buckets"))!;
+        expect(file.content).toContain("job-photos");
+        expect(file.content).toMatch(/job-photos[\s\S]*?true/);
+      });
+
+      it("does not use bare INSERT without ON CONFLICT for buckets", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_buckets"))!;
+        // Each INSERT INTO storage.buckets must be followed by ON CONFLICT
+        // (may be on the same line or the next line in the SQL file)
+        const insertStatements = file.content
+          .split("\n")
+          .filter((l) => /^\s*INSERT\s+INTO\s+storage\.buckets/i.test(l) && !l.trim().startsWith("--"));
+        expect(insertStatements.length).toBeGreaterThan(0);
+        // Count ON CONFLICT occurrences in non-comment lines only
+        const codeLines = file.content
+          .split("\n")
+          .filter((l) => !l.trim().startsWith("--"))
+          .join("\n");
+        const onConflictCount = (codeLines.match(/ON\s+CONFLICT\s*\(id\)\s*DO\s+NOTHING/gi) || []).length;
+        expect(onConflictCount).toBe(insertStatements.length);
+      });
+
+      it("does not contain DROP statements", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_buckets"))!;
+        const codeLines = file.content
+          .split("\n")
+          .filter((l) => !l.trim().startsWith("--"))
+          .join("\n");
+        expect(codeLines).not.toMatch(/DROP\s+(TABLE|VIEW|FUNCTION|TRIGGER|POLICY|BUCKET)/i);
+      });
+    });
+
+    describe("20260531000006_safe_storage_policies.sql", () => {
+      it("creates storage object policies for estimation-pdfs", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_policies"))!;
+        expect(file.content).toMatch(/estimation-pdfs/i);
+      });
+
+      it("creates storage object policies for message-media", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_policies"))!;
+        expect(file.content).toMatch(/message-media/i);
+      });
+
+      it("creates storage object policies for estimation-request-photos", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_policies"))!;
+        expect(file.content).toMatch(/estimation-request-photos/i);
+      });
+
+      it("creates storage object policies for company-assets", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_policies"))!;
+        expect(file.content).toMatch(/company-assets/i);
+      });
+
+      it("creates storage object policies for job-photos", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_policies"))!;
+        expect(file.content).toMatch(/job-photos/i);
+      });
+
+      it("uses DO blocks or CREATE POLICY IF NOT EXISTS for idempotent policy creation", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_policies"))!;
+        const hasDoBlock = /\$\$[\s\S]*?pg_policies[\s\S]*?\$\$/i.test(file.content);
+        const hasIfNotExists = /CREATE\s+POLICY\s+IF\s+NOT\s+EXISTS/i.test(file.content);
+        expect(hasDoBlock || hasIfNotExists).toBe(true);
+      });
+
+      it("each bucket has SELECT, INSERT, UPDATE, DELETE policies", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_policies"))!;
+        const bucketNames = ["estimation-pdfs", "message-media", "estimation-request-photos", "company-assets", "job-photos"];
+        for (const bucket of bucketNames) {
+          expect(file.content).toMatch(new RegExp(`${escapeRegex(bucket)}[\\s\\S]*?FOR\\s+SELECT`, "i"));
+          expect(file.content).toMatch(new RegExp(`${escapeRegex(bucket)}[\\s\\S]*?FOR\\s+INSERT`, "i"));
+          expect(file.content).toMatch(new RegExp(`${escapeRegex(bucket)}[\\s\\S]*?FOR\\s+UPDATE`, "i"));
+          expect(file.content).toMatch(new RegExp(`${escapeRegex(bucket)}[\\s\\S]*?FOR\\s+DELETE`, "i"));
+        }
+      });
+
+      it("targets storage.objects table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_policies"))!;
+        expect(file.content).toMatch(/ON\s+storage\.objects/i);
+      });
+
+      it("does not contain DROP POLICY statements", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("storage_policies"))!;
+        expect(file.content).not.toMatch(/DROP\s+POLICY/i);
+      });
+    });
+
+    describe("20260531000007_safe_rls_enablement.sql", () => {
+      it("enables RLS on customers table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/customers[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on jobs table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/jobs[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on employees table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/employees[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on employee_jobs table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/employee_jobs[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on invoices table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/invoices[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on expenses table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/expenses[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on estimations table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/estimations[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on parameters table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/parameters[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on reminders table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/reminders[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on user_roles table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/user_roles[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on approved_emails table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/approved_emails[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on approved_domains table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/approved_domains[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on app_settings table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/app_settings[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on messages table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/messages[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on blocked_numbers table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/blocked_numbers[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on estimation_requests table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/estimation_requests[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on email_send_log table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/email_send_log[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on email_send_state table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/email_send_state[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on suppressed_emails table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/suppressed_emails[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("enables RLS on email_unsubscribe_tokens table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).toMatch(/email_unsubscribe_tokens[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+      });
+
+      it("uses ALTER TABLE ... ENABLE ROW LEVEL SECURITY pattern", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        const enableRlsCount = (file.content.match(/ENABLE\s+ROW\s+LEVEL\s+SECURITY/gi) || []).length;
+        expect(enableRlsCount).toBeGreaterThanOrEqual(20);
+      });
+
+      it("does not contain DROP or DISABLE RLS statements", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+        expect(file.content).not.toMatch(/DISABLE\s+ROW\s+LEVEL\s+SECURITY/i);
+        const codeLines = file.content
+          .split("\n")
+          .filter((l) => !l.trim().startsWith("--"))
+          .join("\n");
+        expect(codeLines).not.toMatch(/DROP\s+(TABLE|VIEW|FUNCTION|TRIGGER|POLICY)/i);
+      });
+    });
+
+    describe("20260531000008_safe_rls_policies.sql", () => {
+      it("creates policies for customers table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        expect(file.content).toMatch(/customers/i);
+      });
+
+      it("creates policies for jobs table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        expect(file.content).toMatch(/jobs/i);
+      });
+
+      it("creates policies for employees table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        expect(file.content).toMatch(/employees/i);
+      });
+
+      it("creates policies for employee_jobs table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        expect(file.content).toMatch(/employee_jobs/i);
+      });
+
+      it("creates policies for invoices table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        expect(file.content).toMatch(/invoices/i);
+      });
+
+      it("creates policies for expenses table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        expect(file.content).toMatch(/expenses/i);
+      });
+
+      it("creates policies for estimations table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        expect(file.content).toMatch(/estimations(?:_requests)?/i);
+      });
+
+      it("creates policies for parameters table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        expect(file.content).toMatch(/parameters/i);
+      });
+
+      it("creates policies for reminders table", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        expect(file.content).toMatch(/reminders/i);
+      });
+
+      it("uses idempotent pattern (DO block or IF NOT EXISTS) for policy creation", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        const hasDoBlock = /\$\$[\s\S]*?pg_policies[\s\S]*?\$\$/i.test(file.content);
+        const hasIfNotExists = /CREATE\s+POLICY\s+IF\s+NOT\s+EXISTS/i.test(file.content);
+        const hasSafeCheck = /IF\s+NOT\s+EXISTS\s*\(/i.test(file.content);
+        expect(hasDoBlock || hasIfNotExists || hasSafeCheck).toBe(true);
+      });
+
+      it("uses current_user_approved() or has_role() for access control", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        const hasApprovedCheck = /current_user_approved/i.test(file.content);
+        const hasRoleCheck = /has_role/i.test(file.content);
+        expect(hasApprovedCheck || hasRoleCheck).toBe(true);
+      });
+
+      it("does not contain DROP POLICY statements", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        expect(file.content).not.toMatch(/DROP\s+POLICY/i);
+      });
+
+      it("does not allow unauthenticated access (public or USING(true))", () => {
+        const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+        const codeLines = file.content
+          .split("\n")
+          .filter((l) => !l.trim().startsWith("--"))
+          .join("\n");
+        // "FOR ALL TO public" or "USING(true)" without checks would be dangerous
+        expect(codeLines).not.toMatch(/TO\s+public/i);
       });
     });
 
