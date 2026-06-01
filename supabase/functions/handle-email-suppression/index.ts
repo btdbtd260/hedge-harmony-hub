@@ -1,28 +1,6 @@
 import { createClient } from 'npm:@supabase/supabase-js@2'
-import { WebhookError, verifyWebhookRequest } from 'npm:@lovable.dev/webhooks-js'
-
-// Suppression event payload sent by the Go API when Mailgun reports
-// a bounce, complaint, or unsubscribe.
-interface SuppressionPayload {
-  email: string
-  reason: 'bounce' | 'complaint' | 'unsubscribe'
-  message_id?: string
-  metadata?: Record<string, unknown>
-  is_retry: boolean
-  retry_count: number
-}
-
-function parseSuppressionPayload(body: string): SuppressionPayload {
-  const parsed = JSON.parse(body)
-  if (!parsed.data) {
-    throw new Error('Missing data field in payload')
-  }
-  const data = parsed.data as SuppressionPayload
-  if (!data.email || !data.reason) {
-    throw new Error('Missing required fields: email, reason')
-  }
-  return data
-}
+import { verifySuppressionWebhook, parseSuppressionPayload, mapReasonToStatus, mapReasonToMessage, WebhookVerificationError } from './verify.ts'
+import type { SuppressionPayload } from './verify.ts'
 
 function jsonResponse(data: Record<string, unknown>, status = 200): Response {
   return new Response(JSON.stringify(data), {
@@ -36,26 +14,29 @@ Deno.serve(async (req) => {
     return jsonResponse({ error: 'Method not allowed' }, 405)
   }
 
-  const apiKey = Deno.env.get('LOVABLE_API_KEY')
+  const webhookSecret = Deno.env.get('SUPPRESSION_WEBHOOK_SECRET')
   const supabaseUrl = Deno.env.get('SUPABASE_URL')
   const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')
 
-  if (!apiKey || !supabaseUrl || !supabaseServiceKey) {
+  if (!webhookSecret || !supabaseUrl || !supabaseServiceKey) {
     console.error('Missing required environment variables')
     return jsonResponse({ error: 'Server configuration error' }, 500)
   }
 
-  // Verify HMAC signature using the Lovable API Key (same as auth-email-hook)
+  // Verify HMAC-SHA256 signature manually (replaces @lovable.dev/webhooks-js)
+  // Expected headers:
+  //   x-webhook-signature: HMAC-SHA256 hex of `${timestamp}.${body}`
+  //   x-webhook-timestamp: Unix timestamp (seconds since epoch)
   let payload: SuppressionPayload
   try {
-    const verified = await verifyWebhookRequest({
-      req,
-      secret: apiKey,
-      parser: parseSuppressionPayload,
-    })
-    payload = verified.payload
+    const body = await req.text()
+    const signature = req.headers.get('x-webhook-signature') ?? ''
+    const timestamp = req.headers.get('x-webhook-timestamp') ?? ''
+
+    await verifySuppressionWebhook(body, signature, timestamp, webhookSecret)
+    payload = parseSuppressionPayload(body)
   } catch (error) {
-    if (error instanceof WebhookError) {
+    if (error instanceof WebhookVerificationError) {
       switch (error.code) {
         case 'invalid_signature':
           console.error('Invalid webhook signature')
@@ -134,29 +115,3 @@ Deno.serve(async (req) => {
 
   return jsonResponse({ success: true })
 })
-
-function mapReasonToStatus(
-  reason: string,
-): 'bounced' | 'complained' | 'suppressed' {
-  switch (reason) {
-    case 'bounce':
-      return 'bounced'
-    case 'complaint':
-      return 'complained'
-    default:
-      return 'suppressed'
-  }
-}
-
-function mapReasonToMessage(reason: string): string {
-  switch (reason) {
-    case 'bounce':
-      return 'Permanent bounce — email address is invalid or rejected'
-    case 'complaint':
-      return 'Spam complaint — recipient marked email as spam'
-    case 'unsubscribe':
-      return 'Recipient unsubscribed'
-    default:
-      return 'Email suppressed'
-  }
-}
