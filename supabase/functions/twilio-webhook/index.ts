@@ -1,6 +1,8 @@
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.58.0";
+import { downloadTwilioMedia } from "../_shared/download-twilio-media.ts";
+import type { TwilioMediaConfig } from "../_shared/download-twilio-media.ts";
 
-// Webhook PUBLIC appelé par Twilio. Pas de JWT user mais on valide via gateway.
+// Webhook PUBLIC appelé par Twilio. Pas de JWT user. Accès direct Twilio avec Basic Auth.
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers": "*",
@@ -16,8 +18,8 @@ Deno.serve(async (req) => {
   try {
     const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
     const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
-    const TWILIO_API_KEY = Deno.env.get("TWILIO_API_KEY");
+    const TWILIO_ACCOUNT_SID = Deno.env.get("TWILIO_ACCOUNT_SID");
+    const TWILIO_AUTH_TOKEN = Deno.env.get("TWILIO_AUTH_TOKEN");
 
     const formData = await req.formData();
     const from = (formData.get("From") as string) ?? "";
@@ -60,40 +62,26 @@ Deno.serve(async (req) => {
       if (match) clientId = match.id;
     }
 
-    // Télécharger les médias et les pousser dans le bucket
+    // Télécharger les médias directement via Twilio API (Basic Auth) et les pousser dans le bucket
     const mediaUrls: string[] = [];
-    if (numMedia > 0 && LOVABLE_API_KEY && TWILIO_API_KEY) {
+    if (numMedia > 0 && TWILIO_ACCOUNT_SID && TWILIO_AUTH_TOKEN) {
+      const twilioConfig: TwilioMediaConfig = {
+        accountSid: TWILIO_ACCOUNT_SID,
+        authToken: TWILIO_AUTH_TOKEN,
+      };
+
       for (let i = 0; i < numMedia; i++) {
         const mediaUrl = formData.get(`MediaUrl${i}`) as string;
         const contentType = (formData.get(`MediaContentType${i}`) as string) ?? "image/jpeg";
         if (!mediaUrl) continue;
 
         try {
-          // Twilio media URL nécessite auth basic (Account SID:Auth Token).
-          // Via gateway: on remplace api.twilio.com par gateway prefix.
-          // mediaUrl est de la forme https://api.twilio.com/2010-04-01/Accounts/{SID}/Messages/{MSID}/Media/{MID}
-          const path = mediaUrl.replace(
-            /^https?:\/\/api\.twilio\.com\/2010-04-01\/Accounts\/[^/]+/,
-            "",
-          );
-          const gatewayUrl = `https://connector-gateway.lovable.dev/twilio${path}`;
-          const mediaResp = await fetch(gatewayUrl, {
-            headers: {
-              Authorization: `Bearer ${LOVABLE_API_KEY}`,
-              "X-Connection-Api-Key": TWILIO_API_KEY,
-            },
-            redirect: "follow",
-          });
-          if (!mediaResp.ok) {
-            console.error(`Échec download media ${i}: ${mediaResp.status}`);
-            continue;
-          }
-          const buffer = await mediaResp.arrayBuffer();
+          const mediaResult = await downloadTwilioMedia(mediaUrl, twilioConfig);
           const ext = contentType.split("/")[1]?.split(";")[0] ?? "bin";
           const filename = `${messageSid}_${i}.${ext}`;
           const { error: upErr } = await admin.storage
             .from("message-media")
-            .upload(filename, buffer, { contentType, upsert: true });
+            .upload(filename, mediaResult.data, { contentType: mediaResult.contentType, upsert: true });
           if (upErr) {
             console.error("Upload media erreur:", upErr);
             continue;
