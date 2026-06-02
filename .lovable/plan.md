@@ -1,73 +1,93 @@
-# Plan : Export read-only de l'ancien Lovable Cloud (`ntyuyupbvsilnedjwgmv`)
+# Plan : Générer `import-data-ntyuyupbvsilnedjwgmv.sql`
 
 ## Objectif
-Extraire les 18 tables `public.*` listées via `supabase--read_query` (SELECT uniquement) et produire des fichiers téléchargeables. Aucune écriture, aucun fichier de code modifié, le nouveau projet `atipsraxpxbjbecjobuv` n'est pas touché.
+Produire un seul fichier SQL téléchargeable contenant tous les `INSERT ... ON CONFLICT (id) DO UPDATE` pour réimporter les 16 tables non-vides déjà exportées dans `/mnt/documents/export-ntyuyupbvsilnedjwgmv/tables/*.json`.
+
+Aucune modification : base de données, repo, ou nouveau Supabase intacts.
 
 ## Approche
 
-1. **Compte de lignes préalable** — une seule requête `UNION ALL` qui retourne `table_name, row_count` pour les 18 tables. Permet d'afficher tout de suite le résumé et de détecter les tables vides ou inaccessibles.
+1. **Source** : lire les 18 JSON existants dans `/mnt/documents/export-ntyuyupbvsilnedjwgmv/tables/`. Ignorer `messages` et `reminders` (0 lignes).
 
-2. **Export table par table** — pour chaque table, `SELECT * FROM public.<table> ORDER BY created_at NULLS LAST, id` (ou `ORDER BY id` si `created_at` absent — `employee_jobs`, `employees`, `user_roles` n'ont pas de `created_at` significatif, `email_send_state` a une seule ligne). Pagination par 1000 lignes via `LIMIT/OFFSET` si nécessaire (la limite par défaut de l'outil est 1000). Les types JSONB, `text[]` et `timestamptz` sont préservés tels quels dans le JSON.
+2. **Script Python local** (`/tmp`, jamais commité) qui :
+   - Pour chaque table dans l'ordre, lit le JSON.
+   - Génère `INSERT INTO public.<table> (col1, ...) VALUES (...), (...) ON CONFLICT (id) DO UPDATE SET col1 = EXCLUDED.col1, ... ;`
+   - Sérialisation par type :
+     - `null` → `NULL`
+     - `text`/`uuid`/`date`/`timestamptz` → littéral quoté avec `''` échappés
+     - `boolean` → `TRUE`/`FALSE`
+     - `numeric`/`integer` → littéral numérique
+     - `jsonb` → `'<json>'::jsonb`
+     - `text[]` → `ARRAY['a','b']::text[]` (ou `'{}'::text[]` si vide)
+   - Batch ~500 lignes par `INSERT` pour lisibilité.
+   - En-tête par section : `-- ===== TABLE: <name> (<n> rows) =====`.
 
-3. **Écriture des fichiers** — deux formats par table, écrits dans `/mnt/documents/export-ntyuyupbvsilnedjwgmv/` :
-   - `tables/<table>.json` — tableau JSON complet avec toutes les colonnes (format idéal pour réimport via Supabase JS ou script Node).
-   - `tables/<table>.csv` — même contenu, colonnes sérialisées (JSONB/array stringifiés). Utile pour inspection / `COPY FROM` Postgres si besoin.
-   - `_manifest.json` — résumé : table, row_count, fichiers générés, ordre d'import recommandé, erreurs éventuelles.
-   - `_row_counts.txt` — résumé lisible.
-
-4. **Ordre d'import recommandé** (ajouté au manifest, basé sur les FK logiques même s'il n'y a pas de contraintes FK déclarées) :
+3. **Ordre des INSERT** (FK logiques) :
    ```
-   1. parameters, app_settings, approved_domains, approved_emails, blocked_numbers,
-      email_send_state, suppressed_emails (indépendants)
-   2. customers, employees, user_roles, estimation_requests
-   3. estimations           (→ customers)
-   4. jobs                  (→ customers, estimations)
-   5. invoices              (→ jobs, customers)
-   6. employee_jobs         (→ employees, jobs)
-   7. reminders             (→ customers via reference_id)
-   8. messages              (→ customers)
-   9. email_send_log, email_unsubscribe_tokens (journaux)
+   1.  parameters
+   2.  app_settings
+   3.  approved_domains
+   4.  approved_emails
+   5.  blocked_numbers
+   6.  email_send_state
+   7.  customers
+   8.  employees
+   9.  user_roles
+   10. estimation_requests
+   11. estimations            (→ customers)
+   12. jobs                   (→ customers, estimations)
+   13. invoices               (→ jobs, customers)
+   14. employee_jobs          (→ employees, jobs)
+   15. expenses
+   16. email_send_log
+   ```
+   Exclus (0 lignes) : `messages`, `reminders`.
+
+4. **En-tête du fichier SQL** (pas de désactivation de triggers) :
+   ```sql
+   -- Export from ntyuyupbvsilnedjwgmv — 188 rows across 16 tables
+   -- Generated <UTC timestamp>
+   --
+   -- Cible : nouveau projet Supabase, APRÈS application des migrations
+   -- existantes (tables, types, fonctions, RLS, buckets).
+   --
+   -- Idempotent : INSERT ... ON CONFLICT (id) DO UPDATE sur chaque table.
+   -- Safe à réexécuter.
+   --
+   -- ATTENTION : les triggers ne sont PAS désactivés pendant l'import.
+   -- Certains triggers (trg_recalc_on_jobs, trg_recalc_on_employee_jobs,
+   -- trg_recalc_on_invoices, trg_publish_invoice_on_completion, set_updated_at)
+   -- peuvent recalculer ou écraser certaines colonnes :
+   --   • employee_jobs.calculated_pay (recalculé via recalc_job_pays)
+   --   • invoices.status ('draft' → 'unpaid' si job devient 'completed')
+   --   • colonnes updated_at (mises à now())
+   -- Vérifier après import :
+   --   1. SELECT COUNT(*) par table vs row counts attendus (voir _row_counts.txt).
+   --   2. Spot-check sur jobs/invoices/employee_jobs pour cohérence financière.
+   --   3. Si écart, relancer recalc_job_pays(job_id) manuellement sur les jobs concernés.
+
+   BEGIN;
+   -- INSERTs ici (16 tables, ordre ci-dessus)
+   COMMIT;
    ```
 
-5. **Présentation finale** — chat affiche :
-   - Tableau `table | lignes | statut` pour les 18 tables.
-   - Liste des fichiers générés avec balises `<presentation-artifact>` pour téléchargement direct (manifest, row counts, plus chaque `.json` et `.csv`).
-   - Note pour les tables où la RLS bloque l'`anon` (voir Limites).
+5. **Cas `email_send_state`** : PK = `id integer` (toujours `1`). `ON CONFLICT (id) DO UPDATE` OK.
 
-## Limites à connaître (à confirmer avant de lancer)
+6. **Sortie** : un seul fichier
+   ```
+   /mnt/documents/import-data-ntyuyupbvsilnedjwgmv.sql
+   ```
+   livré via `<presentation-artifact path="import-data-ntyuyupbvsilnedjwgmv.sql" mime_type="application/sql">`.
 
-L'outil `supabase--read_query` exécute les requêtes via l'API Data sous le rôle qui m'est attribué. Plusieurs tables sont protégées par RLS et seulement accessibles avec un rôle particulier :
+## Limites assumées
 
-- **Accessibles aux utilisateurs `authenticated` approuvés** (via `current_user_approved()` ou `has_role('admin')`) : `app_settings`, `approved_domains`, `approved_emails`, `blocked_numbers`, `customers`, `employee_jobs`, `employees`, `estimation_requests`, `estimations`, `expenses`, `invoices`, `jobs`, `messages`, `parameters`, `reminders`, `user_roles`.
-- **Réservées au `service_role`** : `email_send_log`, `email_send_state`, `suppressed_emails`, `email_unsubscribe_tokens`.
+- **Schéma non inclus** — appliquer les migrations existantes (`supabase/migrations/`) sur le nouveau projet d'abord.
+- **`auth.users` non inclus** — `user_roles.user_id` référence des UUID Auth qui n'existent pas tant que les utilisateurs ne se sont pas (re)connectés.
+- **Fichiers Storage** (logo, photos avant/après) non inclus — à copier séparément depuis `company-assets`.
 
-Si `supabase--read_query` tourne en `service_role` (ce qui est généralement le cas pour cet outil de debug), **toutes** les tables seront lisibles. Si jamais une table renvoie 0 ligne alors qu'elle ne devrait pas, ce sera noté comme « inaccessible (RLS) » dans le manifest plutôt que silencieusement vide.
+## Livraison
 
-## Ce qui n'est PAS inclus dans l'export
-
-Pour rester strictement dans le périmètre demandé (read_query only) :
-
-- **Schéma / DDL** (CREATE TABLE, RLS, triggers, fonctions) — non extrait. Pour réimporter, réutiliser les migrations existantes dans `supabase/migrations/`.
-- **Auth users** (`auth.users`) — pas dans `public`, non listé dans la demande, et non accessible via l'API Data.
-- **Storage** (buckets `company-assets`, `estimation-request-photos`, `message-media`, `estimation-pdfs`, `address-autocomplete`) — non accessible via SQL ; à exporter séparément depuis le backend dashboard si besoin.
-- **Tables `email_unsubscribe_tokens` et `suppressed_emails`** — pas dans la liste demandée, donc ignorées.
-
-## Détails techniques
-
-```text
-/mnt/documents/export-ntyuyupbvsilnedjwgmv/
-├── _manifest.json
-├── _row_counts.txt
-└── tables/
-    ├── app_settings.json + .csv
-    ├── approved_domains.json + .csv
-    ├── ...
-    └── user_roles.json + .csv
-```
-
-Script Python local (dans `/tmp`, jamais commité) :
-- Lit le JSON renvoyé par `supabase--read_query`.
-- Sérialise CSV avec `csv.DictWriter` ; JSONB et `text[]` → `json.dumps(value)` pour rester reversible.
-- Pagine si `count > 1000` (peu probable vu la taille du projet, mais robuste).
-
-Après ton approbation, je passe en mode build et j'exécute. Aucune écriture sur la DB, aucune modification de fichier du repo.
+Après approbation, en mode build :
+1. Exécution du script Python sur les JSON existants.
+2. Vérification taille fichier + nombre de lignes par table.
+3. Chemin exact + balise `presentation-artifact` pour téléchargement.
