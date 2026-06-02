@@ -425,80 +425,90 @@ BEGIN
   END IF;
 END $$;
 
--- suppressed_emails
+-- suppressed_emails (optional table — guarded by to_regclass)
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public' AND tablename = 'suppressed_emails'
-      AND policyname = 'Service role can read suppressed emails'
-  ) THEN
-    CREATE POLICY "Service role can read suppressed emails"
-    ON "public"."suppressed_emails"
-    FOR SELECT
-    TO service_role
-    USING (true);
+  IF to_regclass('public.suppressed_emails') IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = 'suppressed_emails'
+        AND policyname = 'Service role can read suppressed emails'
+    ) THEN
+      CREATE POLICY "Service role can read suppressed emails"
+      ON "public"."suppressed_emails"
+      FOR SELECT
+      TO service_role
+      USING (true);
+    END IF;
   END IF;
 END $$;
 
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public' AND tablename = 'suppressed_emails'
-      AND policyname = 'Service role can insert suppressed emails'
-  ) THEN
-    CREATE POLICY "Service role can insert suppressed emails"
-    ON "public"."suppressed_emails"
-    FOR INSERT
-    TO service_role
-    WITH CHECK (true);
+  IF to_regclass('public.suppressed_emails') IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = 'suppressed_emails'
+        AND policyname = 'Service role can insert suppressed emails'
+    ) THEN
+      CREATE POLICY "Service role can insert suppressed emails"
+      ON "public"."suppressed_emails"
+      FOR INSERT
+      TO service_role
+      WITH CHECK (true);
+    END IF;
   END IF;
 END $$;
 
--- email_unsubscribe_tokens
+-- email_unsubscribe_tokens (optional table — guarded by to_regclass)
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public' AND tablename = 'email_unsubscribe_tokens'
-      AND policyname = 'Service role can read tokens'
-  ) THEN
-    CREATE POLICY "Service role can read tokens"
-    ON "public"."email_unsubscribe_tokens"
-    FOR SELECT
-    TO service_role
-    USING (true);
-  END IF;
-END $$;
-
-DO $$
-BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public' AND tablename = 'email_unsubscribe_tokens'
-      AND policyname = 'Service role can insert tokens'
-  ) THEN
-    CREATE POLICY "Service role can insert tokens"
-    ON "public"."email_unsubscribe_tokens"
-    FOR INSERT
-    TO service_role
-    WITH CHECK (true);
+  IF to_regclass('public.email_unsubscribe_tokens') IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = 'email_unsubscribe_tokens'
+        AND policyname = 'Service role can read tokens'
+    ) THEN
+      CREATE POLICY "Service role can read tokens"
+      ON "public"."email_unsubscribe_tokens"
+      FOR SELECT
+      TO service_role
+      USING (true);
+    END IF;
   END IF;
 END $$;
 
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_policies
-    WHERE schemaname = 'public' AND tablename = 'email_unsubscribe_tokens'
-      AND policyname = 'Service role can mark tokens as used'
-  ) THEN
-    CREATE POLICY "Service role can mark tokens as used"
-    ON "public"."email_unsubscribe_tokens"
-    FOR UPDATE
-    TO service_role
-    USING (true);
+  IF to_regclass('public.email_unsubscribe_tokens') IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = 'email_unsubscribe_tokens'
+        AND policyname = 'Service role can insert tokens'
+    ) THEN
+      CREATE POLICY "Service role can insert tokens"
+      ON "public"."email_unsubscribe_tokens"
+      FOR INSERT
+      TO service_role
+      WITH CHECK (true);
+    END IF;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF to_regclass('public.email_unsubscribe_tokens') IS NOT NULL THEN
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_policies
+      WHERE schemaname = 'public' AND tablename = 'email_unsubscribe_tokens'
+        AND policyname = 'Service role can mark tokens as used'
+    ) THEN
+      CREATE POLICY "Service role can mark tokens as used"
+      ON "public"."email_unsubscribe_tokens"
+      FOR UPDATE
+      TO service_role
+      USING (true);
+    END IF;
   END IF;
 END $$;
 

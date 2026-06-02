@@ -565,6 +565,41 @@ describe("Safe Supabase Migration Files", () => {
           .join("\n");
         expect(codeLines).not.toMatch(/DROP\s+(TABLE|VIEW|FUNCTION|TRIGGER|POLICY)/i);
       });
+
+      describe("Optional table safety guards", () => {
+        it("suppressed_emails ALTER TABLE is wrapped in DO block with to_regclass guard", () => {
+          const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+          // Match from the "Optional email infrastructure tables" comment through suppressed_emails + ENABLE RLS
+          const suppressedSection = file.content.match(/Optional email infrastructure tables[\s\S]*?suppressed_emails[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/);
+          expect(suppressedSection).not.toBeNull();
+          // Must be inside a DO block with to_regclass check
+          expect(suppressedSection![0]).toMatch(/DO\s*\$\$/i);
+          expect(suppressedSection![0]).toMatch(/to_regclass/i);
+          expect(suppressedSection![0]).toMatch(/suppressed_emails/);
+        });
+
+        it("email_unsubscribe_tokens ALTER TABLE is wrapped in DO block with to_regclass guard", () => {
+          const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+          // Match from the "Optional email infrastructure tables" comment through email_unsubscribe_tokens + ENABLE RLS
+          const tokensSection = file.content.match(/Optional email infrastructure tables[\s\S]*?email_unsubscribe_tokens[\s\S]*?ENABLE\s+ROW\s+LEVEL\s+SECURITY/);
+          expect(tokensSection).not.toBeNull();
+          // Must be inside a DO block with to_regclass check
+          expect(tokensSection![0]).toMatch(/DO\s*\$\$/i);
+          expect(tokensSection![0]).toMatch(/to_regclass/i);
+          expect(tokensSection![0]).toMatch(/email_unsubscribe_tokens/);
+        });
+
+        it("core tables use direct ALTER TABLE without DO block (not optional)", () => {
+          const file = MIGRATIONS.find((m) => m.name.includes("rls_enablement"))!;
+          // customers is a required table - must use direct ALTER TABLE
+          const customerLines = file.content
+            .split("\n")
+            .filter((l) => l.includes("customers") && l.includes("ENABLE ROW LEVEL SECURITY"))
+            .join("\n");
+          expect(customerLines).toMatch(/ALTER\s+TABLE/i);
+          expect(customerLines).not.toMatch(/DO\s*\$/);
+        });
+      });
     });
 
     describe("20260531000008_safe_rls_policies.sql", () => {
@@ -641,6 +676,35 @@ describe("Safe Supabase Migration Files", () => {
           .join("\n");
         // "FOR ALL TO public" or "USING(true)" without checks would be dangerous
         expect(codeLines).not.toMatch(/TO\s+public/i);
+      });
+
+      describe("Optional table safety guards", () => {
+        it("suppressed_emails policies are guarded by to_regclass check", () => {
+          const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+          const suppressedSection = file.content.match(/suppressed_emails[\s\S]{0,800}(?:CREATE POLICY|END IF)/);
+          expect(suppressedSection).not.toBeNull();
+          // The DO block for suppressed_emails must have to_regclass guard
+          expect(suppressedSection![0]).toMatch(/to_regclass/i);
+          expect(suppressedSection![0]).toMatch(/DO\s*\$\$/i);
+        });
+
+        it("email_unsubscribe_tokens policies are guarded by to_regclass check", () => {
+          const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+          const tokensSection = file.content.match(/email_unsubscribe_tokens[\s\S]{0,800}(?:CREATE POLICY|END IF)/);
+          expect(tokensSection).not.toBeNull();
+          // The DO block for email_unsubscribe_tokens must have to_regclass guard
+          expect(tokensSection![0]).toMatch(/to_regclass/i);
+          expect(tokensSection![0]).toMatch(/DO\s*\$\$/i);
+        });
+
+        it("core tables policies are not guarded by to_regclass (they are required)", () => {
+          const file = MIGRATIONS.find((m) => m.name.includes("rls_policies"))!;
+          // Find a DO block for customers (a required table)
+          const customerSection = file.content.match(/tablename\s*=\s*'customers'[\s\S]{0,800}END\s+\$\$/);
+          expect(customerSection).not.toBeNull();
+          // The DO block for customers should NOT have to_regclass guard
+          expect(customerSection![0]).not.toMatch(/to_regclass/i);
+        });
       });
     });
 

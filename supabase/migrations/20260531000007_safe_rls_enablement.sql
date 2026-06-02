@@ -41,8 +41,21 @@ ALTER TABLE "public"."blocked_numbers" ENABLE ROW LEVEL SECURITY;
 -- Email infrastructure tables
 ALTER TABLE "public"."email_send_log" ENABLE ROW LEVEL SECURITY;
 ALTER TABLE "public"."email_send_state" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."suppressed_emails" ENABLE ROW LEVEL SECURITY;
-ALTER TABLE "public"."email_unsubscribe_tokens" ENABLE ROW LEVEL SECURITY;
+
+-- Optional email infrastructure tables (guarded: may not exist)
+DO $$
+BEGIN
+  IF to_regclass('public.suppressed_emails') IS NOT NULL THEN
+    ALTER TABLE "public"."suppressed_emails" ENABLE ROW LEVEL SECURITY;
+  END IF;
+END $$;
+
+DO $$
+BEGIN
+  IF to_regclass('public.email_unsubscribe_tokens') IS NOT NULL THEN
+    ALTER TABLE "public"."email_unsubscribe_tokens" ENABLE ROW LEVEL SECURITY;
+  END IF;
+END $$;
 
 -- ============================================================
 -- Verification query (run after migration):
