@@ -528,14 +528,12 @@ export type Database = {
           estimation_id: string | null
           id: string
           measurement_snapshot: Json
-          pauses: Json
           real_profit: number | null
           scheduled_date: string | null
           start_time: string | null
           status: string
           tip: number
           total_duration_minutes: number | null
-          total_pause_minutes: number
         }
         Insert: {
           after_photos?: string[]
@@ -550,14 +548,12 @@ export type Database = {
           estimation_id?: string | null
           id?: string
           measurement_snapshot?: Json
-          pauses?: Json
           real_profit?: number | null
           scheduled_date?: string | null
           start_time?: string | null
           status?: string
           tip?: number
           total_duration_minutes?: number | null
-          total_pause_minutes?: number
         }
         Update: {
           after_photos?: string[]
@@ -572,14 +568,12 @@ export type Database = {
           estimation_id?: string | null
           id?: string
           measurement_snapshot?: Json
-          pauses?: Json
           real_profit?: number | null
           scheduled_date?: string | null
           start_time?: string | null
           status?: string
           tip?: number
           total_duration_minutes?: number | null
-          total_pause_minutes?: number
         }
         Relationships: [
           {
