@@ -3,6 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
+import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useParameters, useUpdateParameters } from "@/hooks/useSupabaseData";
 import { Calculator, FileText, Bell, Save, Upload, Lock } from "lucide-react";
@@ -189,6 +190,24 @@ const Settings = () => {
                     </label>
                   )}
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Facturation</CardTitle></CardHeader>
+            <CardContent className="space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label htmlFor="show_taxes">Afficher les taxes sur les factures</Label>
+                  <p className="text-xs text-muted-foreground">
+                    Si activé, la TPS/TVQ sera calculée et affichée sur les PDFs.
+                  </p>
+                </div>
+                <Switch
+                  id="show_taxes"
+                  checked={form.show_taxes ?? false}
+                  onCheckedChange={(v) => updateField("show_taxes", v)}
+                />
               </div>
             </CardContent>
           </Card>
