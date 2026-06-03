@@ -48,6 +48,7 @@ const Clients = () => {
   const [formAddress, setFormAddress] = useState("");
   const [formCity, setFormCity] = useState("");
   const [formBillingName, setFormBillingName] = useState("");
+  const [formBillingCommercialName, setFormBillingCommercialName] = useState("");
   const [formBillingAddress, setFormBillingAddress] = useState("");
   const [formBillingPhone, setFormBillingPhone] = useState("");
   const [formBillingEmail, setFormBillingEmail] = useState("");
@@ -62,6 +63,7 @@ const Clients = () => {
   const [editAddress, setEditAddress] = useState("");
   const [editCity, setEditCity] = useState("");
   const [editBillingName, setEditBillingName] = useState("");
+  const [editBillingCommercialName, setEditBillingCommercialName] = useState("");
   const [editBillingAddress, setEditBillingAddress] = useState("");
   const [editBillingPhone, setEditBillingPhone] = useState("");
   const [editBillingEmail, setEditBillingEmail] = useState("");
@@ -90,8 +92,9 @@ const Clients = () => {
   const estimationOnly = filtered.filter((c) => c.status !== "next_year" && isEstimationOnly(c));
   const nextYear = filtered.filter((c) => c.status === "next_year");
 
-  const buildBillingInfo = (name: string, address: string, phone: string, email: string, tax_id: string): BillingInfo => ({
+  const buildBillingInfo = (name: string, commercial_name: string, address: string, phone: string, email: string, tax_id: string): BillingInfo => ({
     name,
+    commercial_name,
     address,
     phone,
     email,
@@ -101,11 +104,11 @@ const Clients = () => {
   const handleAdd = async () => {
     if (!formName.trim()) return;
     try {
-      const billingInfo = buildBillingInfo(formBillingName.trim(), formBillingAddress.trim(), formBillingPhone.trim(), formBillingEmail.trim(), formBillingTaxId.trim());
+      const billingInfo = buildBillingInfo(formBillingName.trim(), formBillingCommercialName.trim(), formBillingAddress.trim(), formBillingPhone.trim(), formBillingEmail.trim(), formBillingTaxId.trim());
       await insertCustomer.mutateAsync({ name: formName.trim(), phone: formPhone.trim(), email: formEmail.trim(), address: formAddress.trim(), billing_info: billingInfo });
       setShowAddDialog(false);
       setFormName(""); setFormPhone(""); setFormEmail(""); setFormAddress(""); setFormCity("");
-      setFormBillingName(""); setFormBillingAddress(""); setFormBillingPhone(""); setFormBillingEmail(""); setFormBillingTaxId("");
+      setFormBillingName(""); setFormBillingCommercialName(""); setFormBillingAddress(""); setFormBillingPhone(""); setFormBillingEmail(""); setFormBillingTaxId("");
       toast.success("Client créé");
     } catch (e: any) {
       toast.error(e.message);
@@ -162,6 +165,7 @@ const Clients = () => {
       billing_info: client.billing_info as BillingInfo | null | undefined,
     });
     setEditBillingName(resolved.name);
+    setEditBillingCommercialName(resolved.commercial_name ?? "");
     setEditBillingAddress(resolved.address);
     setEditBillingPhone(resolved.phone);
     setEditBillingEmail(resolved.email);
@@ -173,7 +177,7 @@ const Clients = () => {
   const handleSaveEdit = async () => {
     if (!clientToEdit || !editName.trim()) return;
     try {
-      const billingInfo = buildBillingInfo(editBillingName.trim(), editBillingAddress.trim(), editBillingPhone.trim(), editBillingEmail.trim(), editBillingTaxId.trim());
+      const billingInfo = buildBillingInfo(editBillingName.trim(), editBillingCommercialName.trim(), editBillingAddress.trim(), editBillingPhone.trim(), editBillingEmail.trim(), editBillingTaxId.trim());
       await updateCustomer.mutateAsync({
         id: clientToEdit.id,
         name: editName.trim(),
@@ -330,6 +334,12 @@ const Clients = () => {
                         <span className="text-muted-foreground">Nom</span>
                         <span>{(liveSelectedClient.billing_info as BillingInfo).name}</span>
                       </div>
+                      {(liveSelectedClient.billing_info as BillingInfo).commercial_name && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Nom commercial</span>
+                          <span>{(liveSelectedClient.billing_info as BillingInfo).commercial_name}</span>
+                        </div>
+                      )}
                       {(liveSelectedClient.billing_info as BillingInfo).address && (
                         <div className="flex justify-between">
                           <span className="text-muted-foreground">Adresse</span>
@@ -397,6 +407,7 @@ const Clients = () => {
               <p className="text-sm font-medium mb-2">Informations de facturation</p>
               <div className="space-y-2">
                 <div className="space-y-1"><Label>Nom de facturation</Label><Input value={formBillingName} onChange={(e) => setFormBillingName(e.target.value)} placeholder="Nom de l'entreprise" /></div>
+                <div className="space-y-1"><Label>Nom commercial</Label><Input value={formBillingCommercialName} onChange={(e) => setFormBillingCommercialName(e.target.value)} placeholder="Nom commercial" /></div>
                 <div className="space-y-1"><Label>Adresse de facturation</Label><Input value={formBillingAddress} onChange={(e) => setFormBillingAddress(e.target.value)} placeholder="Adresse de facturation" /></div>
                 <div className="space-y-1"><Label>Téléphone de facturation</Label><Input value={formBillingPhone} onChange={(e) => setFormBillingPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
                 <div className="space-y-1"><Label>Courriel de facturation</Label><Input value={formBillingEmail} onChange={(e) => setFormBillingEmail(e.target.value)} placeholder="factures@exemple.com" /></div>
@@ -424,6 +435,7 @@ const Clients = () => {
               <p className="text-sm font-medium mb-2">Informations de facturation</p>
               <div className="space-y-2">
                 <div className="space-y-1"><Label>Nom de facturation</Label><Input value={editBillingName} onChange={(e) => setEditBillingName(e.target.value)} placeholder="Nom de l'entreprise" /></div>
+                <div className="space-y-1"><Label>Nom commercial</Label><Input value={editBillingCommercialName} onChange={(e) => setEditBillingCommercialName(e.target.value)} placeholder="Nom commercial" /></div>
                 <div className="space-y-1"><Label>Adresse de facturation</Label><Input value={editBillingAddress} onChange={(e) => setEditBillingAddress(e.target.value)} placeholder="Adresse de facturation" /></div>
                 <div className="space-y-1"><Label>Téléphone de facturation</Label><Input value={editBillingPhone} onChange={(e) => setEditBillingPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
                 <div className="space-y-1"><Label>Courriel de facturation</Label><Input value={editBillingEmail} onChange={(e) => setEditBillingEmail(e.target.value)} placeholder="factures@exemple.com" /></div>

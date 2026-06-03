@@ -44,6 +44,7 @@ const mockCustomers: any[] = [
       phone: "514-555-0999",
       email: "factures@exemple.com",
       tax_id: "FR12345678901",
+      commercial_name: "Exemple Enseigne",
     },
   },
 ];
@@ -211,6 +212,16 @@ describe("Clients — Billing Info UI", () => {
       expect(screen.getByPlaceholderText("Nom de l'entreprise")).toBeInTheDocument();
     });
 
+    it("renders commercial name field in add dialog", async () => {
+      const user = userEvent.setup();
+      render(<Clients />);
+
+      await user.click(screen.getByText("Nouveau client"));
+
+      expect(screen.getByText("Nom commercial")).toBeInTheDocument();
+      expect(screen.getByPlaceholderText("Nom commercial")).toBeInTheDocument();
+    });
+
     it("renders billing address field in add dialog", async () => {
       const user = userEvent.setup();
       render(<Clients />);
@@ -270,6 +281,8 @@ describe("Clients — Billing Info UI", () => {
       // Fill billing info fields
       const billingNameInput = screen.getByPlaceholderText("Nom de l'entreprise");
       await user.type(billingNameInput, "SARL Test");
+      const billingCommercialNameInput = screen.getByPlaceholderText("Nom commercial");
+      await user.type(billingCommercialNameInput, "Enseigne Test");
       const billingAddressInput = screen.getByPlaceholderText("Adresse de facturation");
       await user.type(billingAddressInput, "456 Boulevard Test");
       const billingPhoneInput = screen.getAllByPlaceholderText("514-555-0000")[1];
@@ -287,6 +300,7 @@ describe("Clients — Billing Info UI", () => {
           name: "Test Client",
           billing_info: expect.objectContaining({
             name: "SARL Test",
+            commercial_name: "Enseigne Test",
             address: "456 Boulevard Test",
             phone: "514-555-9999",
             email: "factures@test.com",
@@ -316,6 +330,7 @@ describe("Clients — Billing Info UI", () => {
           name: "Test Client",
           billing_info: expect.objectContaining({
             name: "",
+            commercial_name: "",
             address: "",
             phone: "",
             email: "",
@@ -362,6 +377,23 @@ describe("Clients — Billing Info UI", () => {
       expect(screen.getByDisplayValue("FR12345678901")).toBeInTheDocument();
     });
 
+    it("pre-fills commercial_name from existing billing_info", async () => {
+      const user = userEvent.setup();
+      render(<Clients />);
+
+      // Open client with billing_info
+      const clientCard = screen.getByText("SARL Exemple");
+      await user.click(clientCard);
+
+      // Click "Modifier" button
+      const editButton = screen.getByText("Modifier");
+      await user.click(editButton);
+
+      // Check commercial_name is pre-filled
+      const commercialNameInput = screen.getByPlaceholderText("Nom commercial") as HTMLInputElement;
+      expect(commercialNameInput.value).toBe("Exemple Enseigne");
+    });
+
     it("pre-fills billing fields from customer fields when billing_info is null", async () => {
       const user = userEvent.setup();
       render(<Clients />);
@@ -382,6 +414,10 @@ describe("Clients — Billing Info UI", () => {
       // billing phone has two inputs with same placeholder, use index 1
       const phoneInputs = screen.getAllByPlaceholderText("514-555-0000");
       expect((phoneInputs[1] as HTMLInputElement).value).toBe("514-555-0100");
+
+      // commercial_name should be empty when billing_info is null
+      const commercialNameInput = screen.getByPlaceholderText("Nom commercial") as HTMLInputElement;
+      expect(commercialNameInput.value).toBe("");
     });
 
     it("passes billing_info to updateCustomer when saving edit", async () => {
@@ -400,6 +436,8 @@ describe("Clients — Billing Info UI", () => {
       const billingNameInput = screen.getByPlaceholderText("Nom de l'entreprise");
       await user.clear(billingNameInput);
       await user.type(billingNameInput, "Updated Billing Name");
+      const commercialNameInput = screen.getByPlaceholderText("Nom commercial");
+      await user.type(commercialNameInput, "Updated Enseigne");
       const taxIdInput = screen.getByPlaceholderText("FR12345678901");
       await user.type(taxIdInput, "CA-12345");
 
@@ -411,6 +449,7 @@ describe("Clients — Billing Info UI", () => {
           id: "client-1",
           billing_info: expect.objectContaining({
             name: "Updated Billing Name",
+            commercial_name: "Updated Enseigne",
             tax_id: "CA-12345",
           }),
         })
@@ -439,6 +478,29 @@ describe("Clients — Billing Info UI", () => {
       await user.click(clientCard);
 
       expect(screen.getByText("SARL Exemple Facturation")).toBeInTheDocument();
+    });
+
+    it("displays commercial_name in client detail when present", async () => {
+      const user = userEvent.setup();
+      render(<Clients />);
+
+      // Open client with billing_info that has commercial_name
+      const clientCard = screen.getByText("SARL Exemple");
+      await user.click(clientCard);
+
+      expect(screen.getByText("Exemple Enseigne")).toBeInTheDocument();
+    });
+
+    it("does not display commercial_name label when commercial_name is empty", async () => {
+      const user = userEvent.setup();
+      render(<Clients />);
+
+      // Open client without billing_info
+      const clientCard = screen.getByText("Jean Dupont");
+      await user.click(clientCard);
+
+      // Billing section should not be shown at all when billing_info is null
+      expect(screen.queryByText("Facturation")).not.toBeInTheDocument();
     });
 
     it("displays billing tax_id in client detail", async () => {
