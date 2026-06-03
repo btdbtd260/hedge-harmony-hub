@@ -659,6 +659,7 @@ export type Database = {
           reminder_notification_time: string
           rounding_enabled: boolean
           rounding_multiple: number
+          show_taxes: boolean
           social_links: Json
           split_rule_profit_expense: number
           two_sides_multiplier: number
@@ -684,6 +685,7 @@ export type Database = {
           reminder_notification_time?: string
           rounding_enabled?: boolean
           rounding_multiple?: number
+          show_taxes?: boolean
           social_links?: Json
           split_rule_profit_expense?: number
           two_sides_multiplier?: number
@@ -709,6 +711,7 @@ export type Database = {
           reminder_notification_time?: string
           rounding_enabled?: boolean
           rounding_multiple?: number
+          show_taxes?: boolean
           social_links?: Json
           split_rule_profit_expense?: number
           two_sides_multiplier?: number

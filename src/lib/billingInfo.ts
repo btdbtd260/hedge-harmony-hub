@@ -24,6 +24,7 @@ export function resolveBillingInfo(customer: {
       phone: customer.phone,
       email: customer.email,
       tax_id: "",
+      commercial_name: undefined,
     };
   }
 
@@ -33,5 +34,6 @@ export function resolveBillingInfo(customer: {
     phone: bi.phone || customer.phone,
     email: bi.email || customer.email,
     tax_id: bi.tax_id || "",
+    commercial_name: bi.commercial_name || undefined,
   };
 }

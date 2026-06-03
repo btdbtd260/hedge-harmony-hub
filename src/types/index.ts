@@ -7,6 +7,7 @@ export interface BillingInfo {
   phone: string;
   email: string;
   tax_id: string;
+  commercial_name?: string;
 }
 
 export interface Customer {
@@ -192,4 +193,7 @@ export interface Parameters {
 
   // Finance
   splitRuleProfitExpense: number; // percentage
+
+  // Invoice
+  show_taxes: boolean;
 }

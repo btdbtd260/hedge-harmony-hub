@@ -131,4 +131,59 @@ describe("resolveBillingInfo", () => {
 
     expect(result.name).toBe("Jean Dupont");
   });
+
+  // === commercial_name tests ===
+
+  it("returns commercial_name from billing_info when present", () => {
+    const billingInfo: BillingInfo = {
+      name: "SARL Dupont",
+      address: "456 Avenue des Affaires",
+      phone: "+1-555-0999",
+      email: "contact@dupont-sarl.com",
+      tax_id: "FR12345678901",
+      commercial_name: "Dupont Élagage Pro",
+    };
+    const result = resolveBillingInfo({ ...BASE_CUSTOMER, billing_info: billingInfo });
+
+    expect(result.commercial_name).toBe("Dupont Élagage Pro");
+  });
+
+  it("returns undefined commercial_name when billing_info has no commercial_name field", () => {
+    const billingInfo: BillingInfo = {
+      name: "SARL Dupont",
+      address: "456 Avenue des Affaires",
+      phone: "+1-555-0999",
+      email: "contact@dupont-sarl.com",
+      tax_id: "FR12345678901",
+    };
+    const result = resolveBillingInfo({ ...BASE_CUSTOMER, billing_info: billingInfo });
+
+    expect(result.commercial_name).toBeUndefined();
+  });
+
+  it("returns undefined commercial_name when billing_info is null", () => {
+    const result = resolveBillingInfo({ ...BASE_CUSTOMER, billing_info: null });
+
+    expect(result.commercial_name).toBeUndefined();
+  });
+
+  it("returns undefined commercial_name when billing_info is undefined", () => {
+    const result = resolveBillingInfo({ ...BASE_CUSTOMER, billing_info: undefined });
+
+    expect(result.commercial_name).toBeUndefined();
+  });
+
+  it("returns undefined when commercial_name is empty string", () => {
+    const billingInfo = {
+      name: "SARL Dupont",
+      address: "456 Avenue des Affaires",
+      phone: "+1-555-0999",
+      email: "contact@dupont-sarl.com",
+      tax_id: "FR12345678901",
+      commercial_name: "",
+    };
+    const result = resolveBillingInfo({ ...BASE_CUSTOMER, billing_info: billingInfo });
+
+    expect(result.commercial_name).toBeUndefined();
+  });
 });
