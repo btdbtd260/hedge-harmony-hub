@@ -5,6 +5,8 @@ import { formatDateQC } from "@/lib/utils";
 import { loadLogoForPdf, fitLogo } from "@/lib/loadLogoForPdf";
 import { formatPhone } from "@/lib/phoneFormat";
 import { formatDurationMinutes } from "@/lib/jobDurationEstimator";
+import { resolveBillingInfo } from "@/lib/billingInfo";
+import type { BillingInfo } from "@/types";
 
 export interface InvoicePdfData {
   invoice: DbInvoice;
@@ -13,6 +15,19 @@ export interface InvoicePdfData {
   params: DbParameters | null;
   invoiceNumber: string;
   description?: string;
+}
+
+/**
+ * Builds the display lines for the "Facturer à:" client section of the PDF.
+ * Fields are included only when non-empty.
+ */
+export function getBillingDisplayLines(info: BillingInfo): string[] {
+  const lines: string[] = [info.name];
+  if (info.address) lines.push(info.address);
+  if (info.phone) lines.push(`Tél: ${info.phone}`);
+  if (info.email) lines.push(info.email);
+  if (info.tax_id) lines.push(`N° de taxes: ${info.tax_id}`);
+  return lines;
 }
 
 export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
@@ -122,6 +137,9 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
   doc.line(14, y, pageW - 14, y);
   y += 10;
 
+  // ── Resolve billing info (Phase 3) ──
+  const billingInfo = resolveBillingInfo(customer);
+
   // ── Client section ──
   doc.setFontSize(11);
   doc.setFont("helvetica", "bold");
@@ -132,11 +150,11 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(60);
-  doc.text(customer.name, 14, y);
-  y += 5;
-  if (customer.address) { doc.text(customer.address, 14, y); y += 5; }
-  if (customer.phone) { doc.text(`Tél: ${formatPhone(customer.phone)}`, 14, y); y += 5; }
-  if (customer.email) { doc.text(customer.email, 14, y); y += 5; }
+  const clientLines = getBillingDisplayLines(billingInfo);
+  for (const line of clientLines) {
+    doc.text(line, 14, y);
+    y += 5;
+  }
 
   y += 5;
 
@@ -208,7 +226,9 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
 
 export async function downloadInvoicePdf(data: InvoicePdfData) {
   const doc = await generateInvoicePdf(data);
-  const fileName = `facture-${data.invoiceNumber}-${data.customer.name.replace(/\s+/g, "_")}.pdf`;
+  const billingInfo = resolveBillingInfo(data.customer);
+  const displayName = billingInfo.name.replace(/\s+/g, "_");
+  const fileName = `facture-${data.invoiceNumber}-${displayName}.pdf`;
   doc.save(fileName);
 }
 
