@@ -20,13 +20,17 @@ export interface InvoicePdfData {
 /**
  * Builds the display lines for the "Facturer à:" client section of the PDF.
  * Fields are included only when non-empty.
+ * @param showTaxes - When true, tax_id is shown if present. When false or absent, tax_id is never shown.
  */
-export function getBillingDisplayLines(info: BillingInfo): string[] {
+export function getBillingDisplayLines(info: BillingInfo, showTaxes?: boolean): string[] {
   const lines: string[] = [info.name];
+  if (info.commercial_name) {
+    lines.push(`Nom commercial: ${info.commercial_name}`);
+  }
   if (info.address) lines.push(info.address);
   if (info.phone) lines.push(`Tél: ${info.phone}`);
   if (info.email) lines.push(info.email);
-  if (info.tax_id) lines.push(`N° de taxes: ${info.tax_id}`);
+  if (showTaxes && info.tax_id) lines.push(`N° de taxes: ${info.tax_id}`);
   return lines;
 }
 
@@ -150,7 +154,7 @@ export async function generateInvoicePdf(data: InvoicePdfData): Promise<jsPDF> {
   doc.setFontSize(10);
   doc.setFont("helvetica", "normal");
   doc.setTextColor(60);
-  const clientLines = getBillingDisplayLines(billingInfo);
+  const clientLines = getBillingDisplayLines(billingInfo, params?.show_taxes);
   for (const line of clientLines) {
     doc.text(line, 14, y);
     y += 5;

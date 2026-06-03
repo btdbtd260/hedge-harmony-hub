@@ -102,7 +102,7 @@ describe("getBillingDisplayLines", () => {
     ]);
   });
 
-  it("includes N° de taxes / tax_id line when tax_id is present", () => {
+  it("includes N° de taxes / tax_id line when tax_id is present and showTaxes is true", () => {
     const info: BillingInfo = {
       name: "SARL Dupont",
       address: "456 Avenue des Affaires",
@@ -110,7 +110,7 @@ describe("getBillingDisplayLines", () => {
       email: "contact@dupont-sarl.com",
       tax_id: "FR12345678901",
     };
-    const lines = getBillingDisplayLines(info);
+    const lines = getBillingDisplayLines(info, true);
     expect(lines).toContain("N° de taxes: FR12345678901");
     expect(lines).toHaveLength(5);
   });
@@ -198,6 +198,113 @@ describe("getBillingDisplayLines", () => {
     const lines = getBillingDisplayLines(info);
     expect(lines[1]).toMatch(/^Tél:/);
   });
+
+  // ── commercial_name ──
+
+  it("includes Nom commercial: line when commercial_name is present", () => {
+    const info: BillingInfo = {
+      name: "SARL Dupont",
+      address: "456 Avenue des Affaires",
+      phone: "+1-555-0999",
+      email: "contact@dupont-sarl.com",
+      tax_id: "",
+      commercial_name: "Dupont Élagage Pro",
+    };
+    const lines = getBillingDisplayLines(info);
+    expect(lines).toContain("Nom commercial: Dupont Élagage Pro");
+  });
+
+  it("places Nom commercial: right after the name line", () => {
+    const info: BillingInfo = {
+      name: "SARL Dupont",
+      address: "",
+      phone: "",
+      email: "",
+      tax_id: "",
+      commercial_name: "Dupont Élagage Pro",
+    };
+    const lines = getBillingDisplayLines(info);
+    expect(lines[0]).toBe("SARL Dupont");
+    expect(lines[1]).toBe("Nom commercial: Dupont Élagage Pro");
+  });
+
+  it("omits Nom commercial: when commercial_name is undefined", () => {
+    const info: BillingInfo = {
+      name: "SARL Dupont",
+      address: "",
+      phone: "",
+      email: "",
+      tax_id: "",
+      commercial_name: undefined,
+    };
+    const lines = getBillingDisplayLines(info);
+    expect(lines).not.toContain("Nom commercial:");
+    expect(lines).toEqual(["SARL Dupont"]);
+  });
+
+  it("omits Nom commercial: when commercial_name is empty", () => {
+    const info: BillingInfo = {
+      name: "SARL Dupont",
+      address: "",
+      phone: "",
+      email: "",
+      tax_id: "",
+      commercial_name: "",
+    };
+    const lines = getBillingDisplayLines(info);
+    expect(lines).not.toContain("Nom commercial:");
+    expect(lines).toEqual(["SARL Dupont"]);
+  });
+
+  // ── show_taxes ──
+
+  it("includes N° de taxes when showTaxes is true and tax_id is present", () => {
+    const info: BillingInfo = {
+      name: "SARL Dupont",
+      address: "",
+      phone: "",
+      email: "",
+      tax_id: "FR12345678901",
+    };
+    const lines = getBillingDisplayLines(info, true);
+    expect(lines).toContain("N° de taxes: FR12345678901");
+  });
+
+  it("omits N° de taxes when showTaxes is false even if tax_id present", () => {
+    const info: BillingInfo = {
+      name: "SARL Dupont",
+      address: "",
+      phone: "",
+      email: "",
+      tax_id: "FR12345678901",
+    };
+    const lines = getBillingDisplayLines(info, false);
+    expect(lines).not.toContain("N° de taxes");
+  });
+
+  it("omits N° de taxes when showTaxes is undefined even if tax_id present", () => {
+    const info: BillingInfo = {
+      name: "SARL Dupont",
+      address: "",
+      phone: "",
+      email: "",
+      tax_id: "FR12345678901",
+    };
+    const lines = getBillingDisplayLines(info);
+    expect(lines).not.toContain("N° de taxes");
+  });
+
+  it("omits N° de taxes when showTaxes is true but tax_id is empty", () => {
+    const info: BillingInfo = {
+      name: "SARL Dupont",
+      address: "",
+      phone: "",
+      email: "",
+      tax_id: "",
+    };
+    const lines = getBillingDisplayLines(info, true);
+    expect(lines).not.toContain("N° de taxes");
+  });
 });
 
 // ============================================================
@@ -244,7 +351,7 @@ describe("generateInvoicePdf — billing info", () => {
     expect(pdfStr).toContain("456 Avenue des Affaires");
   });
 
-  it("renders N° de taxes line when tax_id is present", async () => {
+  it("renders N° de taxes line when tax_id is present and show_taxes=true", async () => {
     const mockResolved: BillingInfo = {
       name: "SARL Dupont",
       address: "456 Avenue des Affaires",
@@ -254,7 +361,7 @@ describe("generateInvoicePdf — billing info", () => {
     };
     vi.mocked(resolveBillingInfo).mockReturnValue(mockResolved);
 
-    const data = makeData();
+    const data = makeData({ params: { ...BASE_PARAMS, show_taxes: true } });
     const doc = await generateInvoicePdf(data);
     const pdfStr = extractPdfText(doc);
 
@@ -335,6 +442,114 @@ describe("generateInvoicePdf — billing info", () => {
     expect(pdfStr).toContain("FACTURE");
     expect(pdfStr).toContain("Jean Dupont");
     expect(pdfStr).toContain("$150.00");
+  });
+
+  // ── commercial_name in PDF ──
+
+  it("renders Nom commercial: line in PDF when commercial_name is present", async () => {
+    const mockResolved: BillingInfo = {
+      name: "SARL Dupont",
+      address: "456 Avenue des Affaires",
+      phone: "+1-555-0999",
+      email: "contact@dupont-sarl.com",
+      tax_id: "",
+      commercial_name: "Dupont Élagage Pro",
+    };
+    vi.mocked(resolveBillingInfo).mockReturnValue(mockResolved);
+
+    const data = makeData();
+    const doc = await generateInvoicePdf(data);
+    const pdfStr = extractPdfText(doc);
+
+    expect(pdfStr).toContain("Nom commercial: Dupont Élagage Pro");
+    expect(pdfStr).toContain("SARL Dupont");
+  });
+
+  it("does NOT render Nom commercial: line when commercial_name is absent", async () => {
+    const mockResolved: BillingInfo = {
+      name: "SARL Dupont",
+      address: "456 Avenue des Affaires",
+      phone: "+1-555-0999",
+      email: "contact@dupont-sarl.com",
+      tax_id: "",
+    };
+    vi.mocked(resolveBillingInfo).mockReturnValue(mockResolved);
+
+    const data = makeData();
+    const doc = await generateInvoicePdf(data);
+    const pdfStr = extractPdfText(doc);
+
+    expect(pdfStr).not.toContain("Nom commercial:");
+  });
+
+  // ── show_taxes in PDF ──
+
+  it("renders N° de taxes when show_taxes=true and tax_id present", async () => {
+    const mockResolved: BillingInfo = {
+      name: "SARL Dupont",
+      address: "456 Avenue des Affaires",
+      phone: "+1-555-0999",
+      email: "contact@dupont-sarl.com",
+      tax_id: "FR12345678901",
+    };
+    vi.mocked(resolveBillingInfo).mockReturnValue(mockResolved);
+
+    const data = makeData({ params: { ...BASE_PARAMS, show_taxes: true } });
+    const doc = await generateInvoicePdf(data);
+    const pdfStr = extractPdfText(doc);
+
+    expect(pdfStr).toContain("N° de taxes: FR12345678901");
+  });
+
+  it("does NOT render N° de taxes when show_taxes=false even if tax_id present", async () => {
+    const mockResolved: BillingInfo = {
+      name: "SARL Dupont",
+      address: "456 Avenue des Affaires",
+      phone: "+1-555-0999",
+      email: "contact@dupont-sarl.com",
+      tax_id: "FR12345678901",
+    };
+    vi.mocked(resolveBillingInfo).mockReturnValue(mockResolved);
+
+    const data = makeData({ params: { ...BASE_PARAMS, show_taxes: false } });
+    const doc = await generateInvoicePdf(data);
+    const pdfStr = extractPdfText(doc);
+
+    expect(pdfStr).not.toContain("N° de taxes");
+  });
+
+  it("does NOT render N° de taxes when show_taxes is absent from params", async () => {
+    const mockResolved: BillingInfo = {
+      name: "SARL Dupont",
+      address: "456 Avenue des Affaires",
+      phone: "+1-555-0999",
+      email: "contact@dupont-sarl.com",
+      tax_id: "FR12345678901",
+    };
+    vi.mocked(resolveBillingInfo).mockReturnValue(mockResolved);
+
+    const data = makeData({ params: { ...BASE_PARAMS } }); // show_taxes not set
+    const doc = await generateInvoicePdf(data);
+    const pdfStr = extractPdfText(doc);
+
+    expect(pdfStr).not.toContain("N° de taxes");
+  });
+
+  it("does NOT render N° de taxes when show_taxes=true but tax_id is empty", async () => {
+    const mockResolved: BillingInfo = {
+      name: "Jean Dupont",
+      address: "123 Rue Principale",
+      phone: "+1-555-0100",
+      email: "jean@example.com",
+      tax_id: "",
+    };
+    vi.mocked(resolveBillingInfo).mockReturnValue(mockResolved);
+
+    const data = makeData({ params: { ...BASE_PARAMS, show_taxes: true } });
+    const doc = await generateInvoicePdf(data);
+    const pdfStr = extractPdfText(doc);
+
+    expect(pdfStr).not.toContain("N° de taxes");
   });
 });
 
