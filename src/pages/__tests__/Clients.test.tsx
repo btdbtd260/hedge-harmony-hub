@@ -188,6 +188,86 @@ describe("Clients — French encoding integrity", () => {
 
 // ─── Billing Info Tests (TDD Phase 2) ───
 
+// ─── AddressAutocomplete & Scrollable Dialogs Tests (TDD Phase 3) ───
+
+describe("Clients — AddressAutocomplete & Scrollable Dialogs", () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+  });
+
+  describe("Add client dialog — billing address uses AddressAutocomplete", () => {
+    it("renders 2 AddressAutocomplete instances (address + billing address) in add dialog", async () => {
+      const user = userEvent.setup();
+      render(<Clients />);
+
+      await user.click(screen.getByText("Nouveau client"));
+
+      // The address field already uses AddressAutocomplete (1 instance)
+      // After change, billing address should also use AddressAutocomplete (2 total)
+      const autocompletes = screen.getAllByTestId("address-autocomplete");
+      expect(autocompletes.length).toBe(2);
+    });
+
+    it("renders billing address placeholder in add dialog via AddressAutocomplete", async () => {
+      const user = userEvent.setup();
+      render(<Clients />);
+
+      await user.click(screen.getByText("Nouveau client"));
+
+      // The mocked AddressAutocomplete renders an input with the placeholder
+      const billingAddressInput = screen.getByPlaceholderText("Adresse de facturation");
+      expect(billingAddressInput).toBeInTheDocument();
+      expect(billingAddressInput).toHaveAttribute("data-testid", "address-autocomplete");
+    });
+
+    it("typing in billing address updates form state in add dialog", async () => {
+      const user = userEvent.setup();
+      render(<Clients />);
+
+      await user.click(screen.getByText("Nouveau client"));
+
+      const billingAddressInput = screen.getByPlaceholderText("Adresse de facturation");
+      await user.type(billingAddressInput, "456 Boulevard Test");
+
+      expect(billingAddressInput).toHaveValue("456 Boulevard Test");
+    });
+  });
+
+  describe("Edit client dialog — billing address uses AddressAutocomplete", () => {
+    it("renders billing address placeholder in edit dialog via AddressAutocomplete", async () => {
+      const user = userEvent.setup();
+      render(<Clients />);
+
+      const clientCard = screen.getByText("Jean Dupont");
+      await user.click(clientCard);
+
+      const editButton = screen.getByText("Modifier");
+      await user.click(editButton);
+
+      const billingAddressInput = screen.getByPlaceholderText("Adresse de facturation");
+      expect(billingAddressInput).toBeInTheDocument();
+      expect(billingAddressInput).toHaveAttribute("data-testid", "address-autocomplete");
+    });
+
+    it("pre-fills billing address from existing billing_info via AddressAutocomplete", async () => {
+      const user = userEvent.setup();
+      render(<Clients />);
+
+      const clientCard = screen.getByText("SARL Exemple");
+      await user.click(clientCard);
+
+      const editButton = screen.getByText("Modifier");
+      await user.click(editButton);
+
+      const billingAddressInput = screen.getByPlaceholderText("Adresse de facturation");
+      expect(billingAddressInput).toHaveValue("789 Boulevard du Commerce");
+      expect(billingAddressInput).toHaveAttribute("data-testid", "address-autocomplete");
+    });
+  });
+});
+
+// ─── Billing Info Tests (TDD Phase 2) ───
+
 describe("Clients — Billing Info UI", () => {
   beforeEach(() => {
     vi.clearAllMocks();
@@ -275,8 +355,8 @@ describe("Clients — Billing Info UI", () => {
       await user.type(phoneInput, "5145551234");
       const emailInput = screen.getByPlaceholderText("email@exemple.com");
       await user.type(emailInput, "test@example.com");
-      const addressInput = screen.getByTestId("address-autocomplete");
-      await user.type(addressInput, "123 Rue Test");
+      const addressInputs = screen.getAllByTestId("address-autocomplete");
+      await user.type(addressInputs[0], "123 Rue Test");
 
       // Fill billing info fields
       const billingNameInput = screen.getByPlaceholderText("Nom de l'entreprise");
@@ -319,8 +399,8 @@ describe("Clients — Billing Info UI", () => {
       // Fill only basic required fields
       const nameInput = screen.getByPlaceholderText("Nom complet");
       await user.type(nameInput, "Test Client");
-      const addressInput = screen.getByTestId("address-autocomplete");
-      await user.type(addressInput, "123 Rue Test");
+      const addressInputs = screen.getAllByTestId("address-autocomplete");
+      await user.type(addressInputs[0], "123 Rue Test");
 
       // Submit without filling billing info
       await user.click(screen.getByText("Créer"));

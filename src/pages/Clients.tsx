@@ -297,7 +297,7 @@ const Clients = () => {
       )}
 
       <Dialog open={!!selectedClient} onOpenChange={(open) => !open && setSelectedClient(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
           {liveSelectedClient && (
             <>
               <DialogHeader>
@@ -395,7 +395,7 @@ const Clients = () => {
       </Dialog>
 
       <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
-        <DialogContent>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
           <DialogHeader><DialogTitle>Nouveau client</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1"><Label>Nom *</Label><Input value={formName} onChange={(e) => setFormName(e.target.value)} placeholder="Nom complet" /></div>
@@ -408,7 +408,7 @@ const Clients = () => {
               <div className="space-y-2">
                 <div className="space-y-1"><Label>Nom de facturation</Label><Input value={formBillingName} onChange={(e) => setFormBillingName(e.target.value)} placeholder="Nom de l'entreprise" /></div>
                 <div className="space-y-1"><Label>Nom commercial</Label><Input value={formBillingCommercialName} onChange={(e) => setFormBillingCommercialName(e.target.value)} placeholder="Nom commercial" /></div>
-                <div className="space-y-1"><Label>Adresse de facturation</Label><Input value={formBillingAddress} onChange={(e) => setFormBillingAddress(e.target.value)} placeholder="Adresse de facturation" /></div>
+                <div className="space-y-1"><Label>Adresse de facturation</Label><AddressAutocomplete value={formBillingAddress} onChange={setFormBillingAddress} placeholder="Adresse de facturation" /></div>
                 <div className="space-y-1"><Label>Téléphone de facturation</Label><Input value={formBillingPhone} onChange={(e) => setFormBillingPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
                 <div className="space-y-1"><Label>Courriel de facturation</Label><Input value={formBillingEmail} onChange={(e) => setFormBillingEmail(e.target.value)} placeholder="factures@exemple.com" /></div>
                 <div className="space-y-1"><Label>N° de taxes (TPS/TVQ)</Label><Input value={formBillingTaxId} onChange={(e) => setFormBillingTaxId(e.target.value)} placeholder="FR12345678901" /></div>
@@ -423,7 +423,7 @@ const Clients = () => {
       </Dialog>
 
       <Dialog open={!!clientToEdit} onOpenChange={(open) => !open && setClientToEdit(null)}>
-        <DialogContent>
+        <DialogContent className="max-h-[85dvh] overflow-y-auto">
           <DialogHeader><DialogTitle>Modifier le client</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1"><Label>Nom *</Label><Input value={editName} onChange={(e) => setEditName(e.target.value)} placeholder="Nom complet" /></div>
@@ -436,7 +436,7 @@ const Clients = () => {
               <div className="space-y-2">
                 <div className="space-y-1"><Label>Nom de facturation</Label><Input value={editBillingName} onChange={(e) => setEditBillingName(e.target.value)} placeholder="Nom de l'entreprise" /></div>
                 <div className="space-y-1"><Label>Nom commercial</Label><Input value={editBillingCommercialName} onChange={(e) => setEditBillingCommercialName(e.target.value)} placeholder="Nom commercial" /></div>
-                <div className="space-y-1"><Label>Adresse de facturation</Label><Input value={editBillingAddress} onChange={(e) => setEditBillingAddress(e.target.value)} placeholder="Adresse de facturation" /></div>
+                <div className="space-y-1"><Label>Adresse de facturation</Label><AddressAutocomplete value={editBillingAddress} onChange={setEditBillingAddress} placeholder="Adresse de facturation" /></div>
                 <div className="space-y-1"><Label>Téléphone de facturation</Label><Input value={editBillingPhone} onChange={(e) => setEditBillingPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
                 <div className="space-y-1"><Label>Courriel de facturation</Label><Input value={editBillingEmail} onChange={(e) => setEditBillingEmail(e.target.value)} placeholder="factures@exemple.com" /></div>
                 <div className="space-y-1"><Label>N° de taxes (TPS/TVQ)</Label><Input value={editBillingTaxId} onChange={(e) => setEditBillingTaxId(e.target.value)} placeholder="FR12345678901" /></div>
