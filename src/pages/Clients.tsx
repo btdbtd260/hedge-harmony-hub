@@ -13,6 +13,8 @@ import { AddressAutocomplete } from "@/components/clients/AddressAutocomplete";
 import { Search, Eye, EyeOff, Plus, Trash2, RotateCcw, AlertTriangle, Pencil, Calculator, Users } from "lucide-react";
 import { toast } from "sonner";
 import { formatPhone, formatPhoneLive } from "@/lib/phoneFormat";
+import { resolveBillingInfo } from "@/lib/billingInfo";
+import type { BillingInfo } from "@/types";
 
 // Technical archive customer used to preserve Finance history.
 // Hidden from every list — never editable from the UI.
@@ -45,6 +47,11 @@ const Clients = () => {
   const [formEmail, setFormEmail] = useState("");
   const [formAddress, setFormAddress] = useState("");
   const [formCity, setFormCity] = useState("");
+  const [formBillingName, setFormBillingName] = useState("");
+  const [formBillingAddress, setFormBillingAddress] = useState("");
+  const [formBillingPhone, setFormBillingPhone] = useState("");
+  const [formBillingEmail, setFormBillingEmail] = useState("");
+  const [formBillingTaxId, setFormBillingTaxId] = useState("");
   const [clientToDelete, setClientToDelete] = useState<DbCustomer | null>(null);
   const [clientToPurge, setClientToPurge] = useState<DbCustomer | null>(null);
   const [purgeConfirmText, setPurgeConfirmText] = useState("");
@@ -54,6 +61,11 @@ const Clients = () => {
   const [editEmail, setEditEmail] = useState("");
   const [editAddress, setEditAddress] = useState("");
   const [editCity, setEditCity] = useState("");
+  const [editBillingName, setEditBillingName] = useState("");
+  const [editBillingAddress, setEditBillingAddress] = useState("");
+  const [editBillingPhone, setEditBillingPhone] = useState("");
+  const [editBillingEmail, setEditBillingEmail] = useState("");
+  const [editBillingTaxId, setEditBillingTaxId] = useState("");
 
   const filtered = customers
     // Always hide the technical archive customer used to preserve Finance history
@@ -78,12 +90,22 @@ const Clients = () => {
   const estimationOnly = filtered.filter((c) => c.status !== "next_year" && isEstimationOnly(c));
   const nextYear = filtered.filter((c) => c.status === "next_year");
 
+  const buildBillingInfo = (name: string, address: string, phone: string, email: string, tax_id: string): BillingInfo => ({
+    name,
+    address,
+    phone,
+    email,
+    tax_id,
+  });
+
   const handleAdd = async () => {
     if (!formName.trim()) return;
     try {
-      await insertCustomer.mutateAsync({ name: formName.trim(), phone: formPhone.trim(), email: formEmail.trim(), address: formAddress.trim() });
+      const billingInfo = buildBillingInfo(formBillingName.trim(), formBillingAddress.trim(), formBillingPhone.trim(), formBillingEmail.trim(), formBillingTaxId.trim());
+      await insertCustomer.mutateAsync({ name: formName.trim(), phone: formPhone.trim(), email: formEmail.trim(), address: formAddress.trim(), billing_info: billingInfo });
       setShowAddDialog(false);
       setFormName(""); setFormPhone(""); setFormEmail(""); setFormAddress(""); setFormCity("");
+      setFormBillingName(""); setFormBillingAddress(""); setFormBillingPhone(""); setFormBillingEmail(""); setFormBillingTaxId("");
       toast.success("Client créé");
     } catch (e: any) {
       toast.error(e.message);
@@ -130,23 +152,40 @@ const Clients = () => {
     setEditEmail(client.email ?? "");
     setEditAddress(client.address ?? "");
     setEditCity(client.ville ?? "");
+
+    // Pre-fill billing info from existing billing_info or fall back to customer fields
+    const resolved = resolveBillingInfo({
+      name: client.name ?? "",
+      address: client.address ?? "",
+      phone: client.phone ?? "",
+      email: client.email ?? "",
+      billing_info: client.billing_info as BillingInfo | null | undefined,
+    });
+    setEditBillingName(resolved.name);
+    setEditBillingAddress(resolved.address);
+    setEditBillingPhone(resolved.phone);
+    setEditBillingEmail(resolved.email);
+    setEditBillingTaxId(resolved.tax_id);
+
     setClientToEdit(client);
   };
 
   const handleSaveEdit = async () => {
     if (!clientToEdit || !editName.trim()) return;
     try {
+      const billingInfo = buildBillingInfo(editBillingName.trim(), editBillingAddress.trim(), editBillingPhone.trim(), editBillingEmail.trim(), editBillingTaxId.trim());
       await updateCustomer.mutateAsync({
         id: clientToEdit.id,
         name: editName.trim(),
         phone: editPhone.trim(),
         email: editEmail.trim(),
         address: editAddress.trim(),
+        billing_info: billingInfo,
       });
       setClientToEdit(null);
-toast.success("Client mis à jour");
+      toast.success("Client mis à jour");
     } catch (e: any) {
-toast.error(e.message ?? "Échec de la mise à jour");
+      toast.error(e.message ?? "Échec de la mise à jour");
     }
   };
 
@@ -283,6 +322,41 @@ toast.error(e.message ?? "Échec de la mise à jour");
                     </div>
                   ))}
                 </div>
+                {liveSelectedClient.billing_info && (
+                  <div className="border-t pt-3">
+                    <p className="text-sm font-medium mb-2">Facturation</p>
+                    <div className="space-y-1 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Nom</span>
+                        <span>{(liveSelectedClient.billing_info as BillingInfo).name}</span>
+                      </div>
+                      {(liveSelectedClient.billing_info as BillingInfo).address && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Adresse</span>
+                          <span>{(liveSelectedClient.billing_info as BillingInfo).address}</span>
+                        </div>
+                      )}
+                      {(liveSelectedClient.billing_info as BillingInfo).phone && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Téléphone</span>
+                          <span>{(liveSelectedClient.billing_info as BillingInfo).phone}</span>
+                        </div>
+                      )}
+                      {(liveSelectedClient.billing_info as BillingInfo).email && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Courriel</span>
+                          <span>{(liveSelectedClient.billing_info as BillingInfo).email}</span>
+                        </div>
+                      )}
+                      {(liveSelectedClient.billing_info as BillingInfo).tax_id && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">N° de taxes</span>
+                          <span>{(liveSelectedClient.billing_info as BillingInfo).tax_id}</span>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                )}
                 <div className="border-t pt-3 flex flex-wrap gap-2">
                   <Button variant="outline" size="sm" onClick={() => openEditDialog(liveSelectedClient)}>
                     <Pencil className="h-4 w-4 mr-1" /> Modifier
@@ -319,6 +393,16 @@ toast.error(e.message ?? "Échec de la mise à jour");
             <div className="space-y-1"><Label>Email</Label><Input value={formEmail} onChange={(e) => setFormEmail(e.target.value)} placeholder="email@exemple.com" /></div>
             <div className="space-y-1"><Label>Adresse</Label><AddressAutocomplete value={formAddress} onChange={setFormAddress} onSelect={(addr) => setFormCity(addr.ville)} placeholder="123 Rue Exemple" /></div>
             <div className="space-y-1"><Label>Ville</Label><Input value={formCity} onChange={(e) => setFormCity(e.target.value)} placeholder="Ville" /></div>
+            <div className="border-t pt-3">
+              <p className="text-sm font-medium mb-2">Informations de facturation</p>
+              <div className="space-y-2">
+                <div className="space-y-1"><Label>Nom de facturation</Label><Input value={formBillingName} onChange={(e) => setFormBillingName(e.target.value)} placeholder="Nom de l'entreprise" /></div>
+                <div className="space-y-1"><Label>Adresse de facturation</Label><Input value={formBillingAddress} onChange={(e) => setFormBillingAddress(e.target.value)} placeholder="Adresse de facturation" /></div>
+                <div className="space-y-1"><Label>Téléphone de facturation</Label><Input value={formBillingPhone} onChange={(e) => setFormBillingPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
+                <div className="space-y-1"><Label>Courriel de facturation</Label><Input value={formBillingEmail} onChange={(e) => setFormBillingEmail(e.target.value)} placeholder="factures@exemple.com" /></div>
+                <div className="space-y-1"><Label>N° de taxes (TPS/TVQ)</Label><Input value={formBillingTaxId} onChange={(e) => setFormBillingTaxId(e.target.value)} placeholder="FR12345678901" /></div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowAddDialog(false)}>Annuler</Button>
@@ -336,6 +420,16 @@ toast.error(e.message ?? "Échec de la mise à jour");
             <div className="space-y-1"><Label>Email</Label><Input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} placeholder="email@exemple.com" /></div>
             <div className="space-y-1"><Label>Adresse</Label><AddressAutocomplete value={editAddress} onChange={setEditAddress} onSelect={(addr) => setEditCity(addr.ville)} placeholder="123 Rue Exemple" /></div>
             <div className="space-y-1"><Label>Ville</Label><Input value={editCity} onChange={(e) => setEditCity(e.target.value)} placeholder="Ville" /></div>
+            <div className="border-t pt-3">
+              <p className="text-sm font-medium mb-2">Informations de facturation</p>
+              <div className="space-y-2">
+                <div className="space-y-1"><Label>Nom de facturation</Label><Input value={editBillingName} onChange={(e) => setEditBillingName(e.target.value)} placeholder="Nom de l'entreprise" /></div>
+                <div className="space-y-1"><Label>Adresse de facturation</Label><Input value={editBillingAddress} onChange={(e) => setEditBillingAddress(e.target.value)} placeholder="Adresse de facturation" /></div>
+                <div className="space-y-1"><Label>Téléphone de facturation</Label><Input value={editBillingPhone} onChange={(e) => setEditBillingPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
+                <div className="space-y-1"><Label>Courriel de facturation</Label><Input value={editBillingEmail} onChange={(e) => setEditBillingEmail(e.target.value)} placeholder="factures@exemple.com" /></div>
+                <div className="space-y-1"><Label>N° de taxes (TPS/TVQ)</Label><Input value={editBillingTaxId} onChange={(e) => setEditBillingTaxId(e.target.value)} placeholder="FR12345678901" /></div>
+              </div>
+            </div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setClientToEdit(null)}>Annuler</Button>
