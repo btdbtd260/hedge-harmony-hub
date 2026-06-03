@@ -40,3 +40,5 @@ supabase/functions/address-autocomplete/data/*.ndjson
 coverage/
 
 supabase-current-schema.sql
+
+import-data-ntyuyupbvsilnedjwgmv.sql
