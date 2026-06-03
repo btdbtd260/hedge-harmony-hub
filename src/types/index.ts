@@ -1,6 +1,14 @@
 ﻿// === CLIENT ===
 export type CustomerStatus = "pending" | "scheduled" | "completed" | "next_year";
 
+export interface BillingInfo {
+  name: string;
+  address: string;
+  phone: string;
+  email: string;
+  tax_id: string;
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -12,6 +20,7 @@ export interface Customer {
   hidden: boolean;
   createdAt: string;
   activeYear: number;
+  billing_info?: BillingInfo | null;
 }
 
 // === ESTIMATION ===

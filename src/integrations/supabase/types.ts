@@ -105,6 +105,7 @@ export type Database = {
         Row: {
           active_year: number
           address: string
+          billing_info: Json | null
           created_at: string
           email: string
           hidden: boolean
@@ -116,6 +117,7 @@ export type Database = {
         Insert: {
           active_year?: number
           address?: string
+          billing_info?: Json | null
           created_at?: string
           email?: string
           hidden?: boolean
@@ -127,6 +129,7 @@ export type Database = {
         Update: {
           active_year?: number
           address?: string
+          billing_info?: Json | null
           created_at?: string
           email?: string
           hidden?: boolean
