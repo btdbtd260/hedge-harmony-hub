@@ -1,0 +1,84 @@
+<testsuites id="" name="" tests="38" failures="0" skipped="0" errors="0" time="92.327599">
+<testsuite name="auth.spec.ts" timestamp="2026-06-08T00:27:25.187Z" hostname="chromium" tests="14" failures="0" skipped="0" time="27.687" errors="0">
+<testcase name="Authentication Flow › Unauthenticated Access › should redirect to /auth when accessing protected routes" classname="auth.spec.ts" time="4.206">
+</testcase>
+<testcase name="Authentication Flow › Auth Page Rendering › should display the auth page with correct title and description" classname="auth.spec.ts" time="1.399">
+</testcase>
+<testcase name="Authentication Flow › Auth Page Rendering › should show Google sign-in button" classname="auth.spec.ts" time="1.392">
+</testcase>
+<testcase name="Authentication Flow › Auth Page Rendering › should have both sign-in and sign-up tabs" classname="auth.spec.ts" time="1.412">
+</testcase>
+<testcase name="Authentication Flow › Auth Page Rendering › should switch to sign-up tab and show different form" classname="auth.spec.ts" time="1.458">
+</testcase>
+<testcase name="Authentication Flow › Auth Page Rendering › should show email/password form by default" classname="auth.spec.ts" time="1.419">
+</testcase>
+<testcase name="Authentication Flow › Form Validation › should show validation error for empty form submission" classname="auth.spec.ts" time="1.865">
+</testcase>
+<testcase name="Authentication Flow › Form Validation › should show validation error for invalid email" classname="auth.spec.ts" time="1.511">
+</testcase>
+<testcase name="Authentication Flow › Form Validation › should show validation error for short password" classname="auth.spec.ts" time="1.488">
+</testcase>
+<testcase name="Authentication Flow › Form Validation › should show signup validation for short password on signup tab" classname="auth.spec.ts" time="2.167">
+</testcase>
+<testcase name="Authentication Flow › Form Validation › should show error for wrong credentials" classname="auth.spec.ts" time="1.818">
+</testcase>
+<testcase name="Authentication Flow › Login Flow › should successfully log in with valid credentials" classname="auth.spec.ts" time="2.36">
+</testcase>
+<testcase name="Authentication Flow › Login Flow › should show user email in header after login" classname="auth.spec.ts" time="2.389">
+</testcase>
+<testcase name="Authentication Flow › Logout Flow › should log out successfully" classname="auth.spec.ts" time="2.803">
+</testcase>
+</testsuite>
+<testsuite name="clients.spec.ts" timestamp="2026-06-08T00:27:25.187Z" hostname="chromium" tests="9" failures="0" skipped="0" time="29.647" errors="0">
+<testcase name="Clients Page › Unauthenticated Access › should redirect to auth when not logged in" classname="clients.spec.ts" time="1.401">
+</testcase>
+<testcase name="Clients Page › Authenticated Access › should display the clients page heading" classname="clients.spec.ts" time="3.542">
+</testcase>
+<testcase name="Clients Page › Authenticated Access › should have search input for filtering clients" classname="clients.spec.ts" time="3.528">
+</testcase>
+<testcase name="Clients Page › Authenticated Access › should show clients tab and estimation tab" classname="clients.spec.ts" time="3.471">
+</testcase>
+<testcase name="Clients Page › Authenticated Access › should have new client button" classname="clients.spec.ts" time="3.473">
+</testcase>
+<testcase name="Clients Page › Authenticated Access › should filter clients when searching" classname="clients.spec.ts" time="3.488">
+</testcase>
+<testcase name="Clients Page › Authenticated Access › should open new client dialog when clicking Nouveau client" classname="clients.spec.ts" time="3.152">
+</testcase>
+<testcase name="Clients Page › Authenticated Access › should have toggle hidden clients button" classname="clients.spec.ts" time="3.525">
+</testcase>
+<testcase name="Clients Page › Authenticated Access › should navigate to estimation tab" classname="clients.spec.ts" time="4.067">
+</testcase>
+</testsuite>
+<testsuite name="navigation.spec.ts" timestamp="2026-06-08T00:27:25.187Z" hostname="chromium" tests="15" failures="0" skipped="0" time="33.35" errors="0">
+<testcase name="Navigation &amp; Routing › Public Routes › auth page should load without redirect" classname="navigation.spec.ts" time="1.416">
+</testcase>
+<testcase name="Navigation &amp; Routing › Public Routes › unauthorized page should load" classname="navigation.spec.ts" time="1.366">
+</testcase>
+<testcase name="Navigation &amp; Routing › Public Routes › unsubscribe page should load" classname="navigation.spec.ts" time="1.39">
+</testcase>
+<testcase name="Navigation &amp; Routing › Protected Routes Redirect › should redirect /dashboard (root) to auth" classname="navigation.spec.ts" time="1.424">
+</testcase>
+<testcase name="Navigation &amp; Routing › Protected Routes Redirect › should redirect /clients to auth" classname="navigation.spec.ts" time="1.407">
+</testcase>
+<testcase name="Navigation &amp; Routing › Protected Routes Redirect › should redirect /jobs to auth" classname="navigation.spec.ts" time="1.42">
+</testcase>
+<testcase name="Navigation &amp; Routing › Protected Routes Redirect › should redirect /calendar to auth" classname="navigation.spec.ts" time="1.389">
+</testcase>
+<testcase name="Navigation &amp; Routing › Protected Routes Redirect › should redirect /invoices to auth" classname="navigation.spec.ts" time="1.393">
+</testcase>
+<testcase name="Navigation &amp; Routing › Protected Routes Redirect › should redirect /finance to auth" classname="navigation.spec.ts" time="1.406">
+</testcase>
+<testcase name="Navigation &amp; Routing › Protected Routes Redirect › should redirect /employees to auth" classname="navigation.spec.ts" time="1.441">
+</testcase>
+<testcase name="Navigation &amp; Routing › Protected Routes Redirect › should redirect /reminders to auth" classname="navigation.spec.ts" time="1.413">
+</testcase>
+<testcase name="Navigation &amp; Routing › Protected Routes Redirect › should redirect /settings to auth" classname="navigation.spec.ts" time="1.36">
+</testcase>
+<testcase name="Navigation &amp; Routing › Protected Routes Redirect › should redirect /analytics to auth" classname="navigation.spec.ts" time="1.388">
+</testcase>
+<testcase name="Navigation &amp; Routing › Protected Routes Redirect › should redirect /messagerie to auth" classname="navigation.spec.ts" time="1.461">
+</testcase>
+<testcase name="Navigation &amp; Routing › Authenticated Navigation › should navigate to all protected pages successfully" classname="navigation.spec.ts" time="13.676">
+</testcase>
+</testsuite>
+</testsuites>
