@@ -65,26 +65,29 @@ const ChartStyle = ({ id, config }: { id: string; config: ChartConfig }) => {
     return null;
   }
 
-  return (
-    <style
-      dangerouslySetInnerHTML={{
-        __html: Object.entries(THEMES)
-          .map(
-            ([theme, prefix]) => `
-${prefix} [data-chart=${id}] {
-${colorConfig
-  .map(([key, itemConfig]) => {
-    const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
-    return color ? `  --color-${key}: ${color};` : null;
-  })
-  .join("\n")}
-}
-`,
-          )
-          .join("\n"),
-      }}
-    />
-  );
+  // Build CSS custom properties for each theme and return them as a style string.
+  // We use a <style> tag here instead of inline styles on the parent because
+  // CSS scoping via attribute selectors must work across descendant elements
+  // rendered by Recharts (tooltips, legends, etc.). The values are entirely
+  // developer-defined chart configuration, not user input, so this is safe.
+  const css = Object.entries(THEMES)
+    .map(([theme, prefix]) => {
+      const rules = colorConfig
+        .map(([key, itemConfig]) => {
+          const color = itemConfig.theme?.[theme as keyof typeof itemConfig.theme] || itemConfig.color;
+          return color ? `  --color-${key}: ${color};` : null;
+        })
+        .filter(Boolean)
+        .join("\n");
+      if (!rules) return "";
+      return `${prefix} [data-chart=${CSS.escape(id)}] {\n${rules}\n}`;
+    })
+    .filter(Boolean)
+    .join("\n");
+
+  if (!css) return null;
+
+  return <style>{css}</style>;
 };
 
 const ChartTooltip = RechartsPrimitive.Tooltip;

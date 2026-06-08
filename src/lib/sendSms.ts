@@ -1,11 +1,20 @@
 /**
  * sendSms — Twilio API direct integration
  *
- * Envoie un SMS/MMS via l'API REST Twilio.
- * Les credentials Twilio doivent être configurés via les variables d'environnement
- * décrites ci-dessous.
+ * ⚠️  SECURITY WARNING  ⚠️
+ * This module performs Twilio API calls from the BROWSER using Basic Auth.
+ * DO NOT import or call `sendSms()` in any production UI code — doing so
+ * would EXPOSE your Twilio Account SID and Auth Token to every browser client.
  *
- * ─── Secrets requis ───────────────────────────────────────────────────────────
+ * This module exists ONLY for unit-testing the Twilio API client logic
+ * (validation, auth header construction, etc.) in a Vitest/jsdom environment.
+ *
+ * Production SMS sending must go through the server-side Edge Function at:
+ *   supabase/functions/send-sms/index.ts
+ * which reads credentials from Deno.env and is called via:
+ *   supabase.functions.invoke("send-sms", { body: { ... } })
+ *
+ * ─── Secrets requis (for tests only) ─────────────────────────────────────────
  *   TWILIO_ACCOUNT_SID    – Twilio Account SID (commence par "AC")
  *   TWILIO_AUTH_TOKEN     – Twilio Auth Token
  *   TWILIO_FROM_NUMBER    – Numéro de téléphone Twilio expéditeur (format E.164)
@@ -228,10 +237,23 @@ export function buildTwilioFormBody(
  * @returns         - Réponse de l'API Twilio
  * @throws {Error}  - Si la validation échoue ou si l'API renvoie une erreur
  */
+/**
+ * @deprecated DANGER: This function sends Twilio credentials client-side.
+ * Only use in test files. For production, call the server-side Edge Function:
+ *   supabase.functions.invoke("send-sms", { body: { ... } })
+ */
 export async function sendSms(
   params: SendSmsParams,
   config: TwilioConfig
 ): Promise<SendSmsResponse> {
+  // Safety guard: prevent accidental use in production browser bundle
+  if (typeof window !== "undefined" && import.meta.env.PROD) {
+    throw new Error(
+      "sendSms() is a TEST-ONLY function. Do not call it from production code. " +
+      "Use supabase.functions.invoke('send-sms', ...) instead."
+    );
+  }
+
   const validation = validateSmsInput(params);
   if (!validation.valid) {
     throw new Error(validation.errors.join(" | "));
