@@ -30,6 +30,13 @@ vi.mock("@/components/ui/sidebar", () => ({
   }),
 }));
 
+// ─── Mock supabase client (SidebarNavLink does not call supabase directly,
+// but AppSidebar module imports hooks that reference supabase) ───
+
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {},
+}));
+
 // ─── Import after mocks ───
 
 import { SidebarNavLink } from "@/components/AppSidebar";

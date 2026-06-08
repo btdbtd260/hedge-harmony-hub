@@ -8,10 +8,38 @@ const SUPABASE_PUBLISHABLE_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY;
 // Import the supabase client like this:
 // import { supabase } from "@/integrations/supabase/client";
 
-export const supabase = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-  auth: {
-    storage: localStorage,
-    persistSession: true,
-    autoRefreshToken: true,
+let _client: ReturnType<typeof createClient<Database>> | null = null;
+
+function getSupabaseClient() {
+  if (!SUPABASE_URL) {
+    throw new Error(
+      "VITE_SUPABASE_URL is missing. Vérifiez votre configuration .env."
+    );
   }
+  if (!SUPABASE_PUBLISHABLE_KEY) {
+    throw new Error(
+      "VITE_SUPABASE_PUBLISHABLE_KEY is missing. Vérifiez votre configuration .env."
+    );
+  }
+  if (!_client) {
+    _client = createClient<Database>(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+      auth: {
+        storage: localStorage,
+        persistSession: true,
+        autoRefreshToken: true,
+      }
+    });
+  }
+  return _client;
+}
+
+export const supabase = new Proxy({} as ReturnType<typeof createClient<Database>>, {
+  get(_, prop) {
+    const realClient = getSupabaseClient();
+    const val = (realClient as any)[prop];
+    if (typeof val === "function") {
+      return (...args: any[]) => (realClient as any)[prop](...args);
+    }
+    return val;
+  },
 });

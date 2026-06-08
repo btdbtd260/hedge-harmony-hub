@@ -56,6 +56,19 @@ vi.mock("sonner", () => ({
   toast: { success: vi.fn(), error: vi.fn() },
 }));
 
+// ─── Mock supabase client (Settings imports supabase directly for logo upload) ───
+
+vi.mock("@/integrations/supabase/client", () => ({
+  supabase: {
+    storage: {
+      from: vi.fn(() => ({
+        upload: vi.fn(() => Promise.resolve({ error: null, data: {} })),
+        getPublicUrl: vi.fn(() => ({ data: { publicUrl: "https://example.com/logo.png" } })),
+      })),
+    },
+  },
+}));
+
 // ─── Helper to navigate to Template tab ───
 
 async function goToTemplateTab(user: ReturnType<typeof userEvent.setup>) {
