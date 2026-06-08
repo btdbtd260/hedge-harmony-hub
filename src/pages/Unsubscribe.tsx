@@ -1,11 +1,9 @@
 import { useEffect, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
+import { SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY } from "@/lib/env";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-
-const SUPABASE_URL = import.meta.env.VITE_SUPABASE_URL as string;
-const SUPABASE_ANON_KEY = import.meta.env.VITE_SUPABASE_PUBLISHABLE_KEY as string;
 
 type State = "loading" | "valid" | "already" | "invalid" | "success" | "error";
 
@@ -19,7 +17,7 @@ export default function Unsubscribe() {
     document.title = "Désabonnement - Taille de haie ACF";
     if (!token) { setState("invalid"); return; }
     fetch(`${SUPABASE_URL}/functions/v1/handle-email-unsubscribe?token=${encodeURIComponent(token)}`, {
-      headers: { apikey: SUPABASE_ANON_KEY },
+      headers: { apikey: SUPABASE_PUBLISHABLE_KEY },
     })
       .then(async (r) => {
         const data = await r.json().catch(() => ({}));
