@@ -29,6 +29,7 @@ vi.mock("@/hooks/useSupabaseData", () => ({
     data: [{ id: "c1", name: "Test Client", address: "123 Rue Test" }],
   }),
   useJobs: () => ({ data: [] }),
+  useEmployeeJobs: () => ({ data: [] }),
   useUpdateJob: () => ({ mutateAsync: vi.fn().mockResolvedValue(undefined) }),
   useDeleteJob: () => ({
     mutateAsync: vi.fn().mockResolvedValue(undefined),

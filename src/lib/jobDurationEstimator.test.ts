@@ -111,6 +111,299 @@ describe("measurementsFromJob", () => {
   });
 });
 
+// ── measurementsFromJob with new fields ──
+
+describe("measurementsFromJob new fields extraction", () => {
+
+  it("extracts twoSides=true when any two_sides side is true", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        two_sides: { facade: true, left: false, right: false, back: false, back_left: false, back_right: false },
+        height_mode: "global",
+        height_global: 4,
+        width: 2,
+      },
+    });
+    const m = measurementsFromJob(job);
+    expect(m.twoSides).toBe(true);
+  });
+
+  it("extracts twoSides as undefined when no two_sides data", () => {
+    const job = makeJob();
+    const m = measurementsFromJob(job);
+    expect(m.twoSides).toBeUndefined();
+  });
+
+  it("extracts twoSides as undefined when two_sides has no true sides", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        two_sides: { facade: false, left: false, right: false },
+        height_mode: "global",
+        height_global: 4,
+        width: 2,
+      },
+    });
+    const m = measurementsFromJob(job);
+    expect(m.twoSides).toBeUndefined();
+  });
+
+  it("extracts maxHeightFeet from height_global", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        height_mode: "global",
+        height_global: 8,
+        width: 2,
+      },
+    });
+    const m = measurementsFromJob(job);
+    expect(m.maxHeightFeet).toBe(8);
+  });
+
+  it("extracts maxHeightFeet as max of per_side heights", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        height_mode: "per_side",
+        height_global: 0,
+        height_facade: 5,
+        height_left: 3,
+        height_right: 7,
+        height_back: 4,
+        width: 2,
+      },
+    });
+    const m = measurementsFromJob(job);
+    expect(m.maxHeightFeet).toBe(7);
+  });
+
+  it("sets maxHeightFeet undefined when no heights available", () => {
+    const job = makeJob({ measurement_snapshot: null });
+    const m = measurementsFromJob(job);
+    expect(m.maxHeightFeet).toBeUndefined();
+  });
+
+  it("extracts bushesCount from bushItems total count", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        height_mode: "global",
+        height_global: 4,
+        width: 2,
+        bushItems: [
+          { id: "b1", description: "Thuja", count: 3, price: 40 },
+          { id: "b2", description: "Épinette", count: 2, price: 35 },
+        ],
+      },
+    });
+    const m = measurementsFromJob(job);
+    expect(m.bushesCount).toBe(5); // 3 + 2
+  });
+
+  it("sets bushesCount undefined when no bushItems", () => {
+    const job = makeJob();
+    const m = measurementsFromJob(job);
+    expect(m.bushesCount).toBeUndefined();
+  });
+
+  it("handles empty bushItems array gracefully", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        height_mode: "global",
+        height_global: 4,
+        width: 2,
+        bushItems: [],
+      },
+    });
+    const m = measurementsFromJob(job);
+    expect(m.bushesCount).toBeUndefined();
+  });
+
+  it("extracts extrasText from extras descriptions", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        height_mode: "global",
+        height_global: 4,
+        width: 2,
+        extras: [
+          { id: "e1", description: "piscine", price: 30 },
+          { id: "e2", description: "fil", price: 20 },
+        ],
+      },
+    });
+    const m = measurementsFromJob(job);
+    expect(m.extrasText).toBe("piscine, fil");
+  });
+
+  it("sets extrasText undefined when no extras", () => {
+    const job = makeJob();
+    const m = measurementsFromJob(job);
+    expect(m.extrasText).toBeUndefined();
+  });
+
+  it("handles empty extras array", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        height_mode: "global",
+        height_global: 4,
+        width: 2,
+        extras: [],
+      },
+    });
+    const m = measurementsFromJob(job);
+    expect(m.extrasText).toBeUndefined();
+  });
+
+  it("skips extras with empty descriptions", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        height_mode: "global",
+        height_global: 4,
+        width: 2,
+        extras: [
+          { id: "e1", description: "piscine", price: 30 },
+          { id: "e2", description: "", price: 10 },
+          { id: "e3", description: "cabanon", price: 25 },
+        ],
+      },
+    });
+    const m = measurementsFromJob(job);
+    expect(m.extrasText).toBe("piscine, cabanon");
+  });
+
+  it("preserves existing behavior for old jobs without new snapshot fields", () => {
+    // makeJob() has height_global: 4 — maxHeightFeet is derived from heights
+    const job = makeJob();
+    const m = measurementsFromJob(job);
+    expect(m.twoSides).toBeUndefined();
+    expect(m.maxHeightFeet).toBe(4); // Derived from existing height_global
+    expect(m.bushesCount).toBeUndefined(); // No bushItems
+    expect(m.extrasText).toBeUndefined();  // No extras
+    // Old fields still work
+    expect(m.facade).toBe(40);
+    expect(m.bushes_count).toBe(0);
+    expect(m.extras_count).toBe(0);
+  });
+
+  it("does not set maxHeightFeet when all heights are zero", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        height_mode: "global",
+        height_global: 0,
+        width: 2,
+      },
+    });
+    const m = measurementsFromJob(job);
+    expect(m.maxHeightFeet).toBeUndefined();
+  });
+});
+
+// ── measurementsFromJob + estimateJobDuration integration ──
+
+describe("end-to-end flow from job to estimation with new fields", () => {
+  it("passes twoSides, maxHeightFeet, bushesCount, extrasText through to estimation", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        left_length: 25,
+        right_length: 25,
+        back_length: 30,
+        height_mode: "global",
+        height_global: 7,
+        width: 2,
+        two_sides: { facade: true, left: false, right: false, back: false, back_left: false, back_right: false },
+        bushItems: [
+          { id: "b1", description: "Thuja", count: 3, price: 40 },
+        ],
+        extras: [
+          { id: "e1", description: "piscine", price: 30 },
+        ],
+      },
+    });
+    const m = measurementsFromJob(job);
+    expect(m.twoSides).toBe(true);
+    expect(m.maxHeightFeet).toBe(7);
+    expect(m.bushesCount).toBe(3);
+    expect(m.extrasText).toBe("piscine");
+
+    // Now feed into estimator
+    const result = estimateJobDuration(m, []);
+    expect(result.minutes).toBeGreaterThan(0);
+    expect(result.basis).toBe("base");
+  });
+
+  it("accepts employeeCount passed from employee_jobs data", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        height_global: 4,
+        height_mode: "global",
+        width: 2,
+      },
+    });
+    const m = measurementsFromJob(job);
+
+    // Without employeeCount
+    const resultWithout = estimateJobDuration(m, []);
+    // With employeeCount (2 present employees)
+    const resultWith = estimateJobDuration({ ...m, employeeCount: 2 }, []);
+    // Fewer employees → longer duration
+    expect(resultWith.minutes).toBeGreaterThan(resultWithout.minutes);
+  });
+
+  it("estimates correctly when employeeCount is undefined (backward compat)", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        height_global: 4,
+        height_mode: "global",
+        width: 2,
+      },
+    });
+    const m = measurementsFromJob(job);
+    const resultWithout = estimateJobDuration(m, []);
+    const resultWithUndefined = estimateJobDuration({ ...m, employeeCount: undefined }, []);
+    expect(resultWithUndefined.minutes).toBe(resultWithout.minutes);
+  });
+
+  it("full data flow with all new fields including employeeCount", () => {
+    const job = makeJob({
+      measurement_snapshot: {
+        facade_length: 40,
+        height_mode: "global",
+        height_global: 7,
+        width: 2,
+        two_sides: { facade: true },
+        bushItems: [
+          { id: "b1", description: "Haie", count: 2, price: 40 },
+        ],
+        extras: [
+          { id: "e1", description: "cabanon", price: 25 },
+          { id: "e2", description: "fil", price: 20 },
+        ],
+      },
+    });
+    const m = measurementsFromJob(job);
+    // Add employeeCount as the dialog would (from employee_jobs)
+    const input = { ...m, employeeCount: 2 };
+    const result = estimateJobDuration(input, []);
+    expect(result.minutes).toBeGreaterThan(0);
+    // Verify all fields are present
+    expect(input.twoSides).toBe(true);
+    expect(input.maxHeightFeet).toBe(7);
+    expect(input.bushesCount).toBe(2);
+    expect(input.extrasText).toBe("cabanon, fil");
+    expect(input.employeeCount).toBe(2);
+  });
+});
+
 // ── estimateJobDuration ──
 
 describe("estimateJobDuration", () => {

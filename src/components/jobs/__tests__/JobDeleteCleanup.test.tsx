@@ -25,6 +25,7 @@ vi.mock("sonner", () => ({
 vi.mock("@/hooks/useSupabaseData", () => ({
   useCustomers: () => ({ data: [{ id: "c1", name: "Test Client", address: "123 Rue Test" }] }),
   useJobs: () => ({ data: [] }),
+  useEmployeeJobs: () => ({ data: [] }),
   useUpdateJob: () => ({ mutateAsync: updateMutate }),
   useDeleteJob: () => ({ mutateAsync: deleteMutate, isPending: false }),
   getClientNameFromList: (_: any, id: string) => (id === "c1" ? "Test Client" : "Unknown"),

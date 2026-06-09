@@ -113,6 +113,36 @@ export function getPausesFromJob(job: DbJob | null | undefined): PauseInterval[]
 
 export function measurementsFromJob(job: DbJob): MeasurementInput {
   const s = (job.measurement_snapshot ?? {}) as any;
+  // --- Compute derived new fields from snapshot ---
+  // twoSides: true when any side in the two_sides object is true
+  const twoSidesObj = s.two_sides;
+  const hasTwoSides =
+    twoSidesObj && typeof twoSidesObj === "object"
+      ? Object.values(twoSidesObj).some((v) => v === true)
+      : false;
+  // maxHeightFeet: maximum of all available height values (> 0)
+  const heights = [
+    num(s.heightGlobal ?? s.height_global),
+    num(s.heightFacade ?? s.height_facade),
+    num(s.heightLeft ?? s.height_left),
+    num(s.heightRight ?? s.height_right),
+    num(s.heightBack ?? s.height_back),
+    num(s.heightBackLeft ?? s.height_back_left),
+    num(s.heightBackRight ?? s.height_back_right),
+  ].filter((h) => h > 0);
+  const maxHeight = heights.length > 0 ? Math.max(...heights) : undefined;
+  // bushesCount: total count from bushItems array
+  const bushItemsArr = Array.isArray(s.bushItems) ? s.bushItems : [];
+  const bushItemsTotal = bushItemsArr.reduce(
+    (sum: number, item: any) => sum + (Number(item.count) || 0),
+    0,
+  );
+  // extrasText: comma-joined descriptions from extras array
+  const extrasArr = Array.isArray(s.extras) ? s.extras : [];
+  const extrasDesc = extrasArr
+    .map((e: any) => e.description?.trim())
+    .filter((d: string | undefined) => d && d.length > 0)
+    .join(", ");
   return {
     cut_type: job.cut_type,
     facade: num(s.facadeLength ?? s.facade_length),
@@ -132,6 +162,11 @@ export function measurementsFromJob(job: DbJob): MeasurementInput {
     width: num(s.width, 2),
     bushes_count: num(s.bushesCount ?? s.bushes_count),
     extras_count: Array.isArray(s.extras) ? s.extras.length : 0,
+    // --- NEW fields extracted from snapshot ---
+    twoSides: hasTwoSides || undefined,
+    maxHeightFeet: maxHeight,
+    bushesCount: bushItemsTotal > 0 ? bushItemsTotal : undefined,
+    extrasText: extrasDesc || undefined,
   };
 }
 

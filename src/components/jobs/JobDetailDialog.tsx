@@ -20,7 +20,7 @@ import { Calendar } from "@/components/ui/calendar";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { TimeWheelPicker } from "@/components/ui/time-wheel-picker";
 import { cn, formatDateOnly } from "@/lib/utils";
-import { useCustomers, useUpdateJob, useJobs, useDeleteJob, getClientNameFromList, getClientAddressFromList, type DbJob } from "@/hooks/useSupabaseData";
+import { useCustomers, useUpdateJob, useJobs, useDeleteJob, useEmployeeJobs, getClientNameFromList, getClientAddressFromList, type DbJob } from "@/hooks/useSupabaseData";
 import { JobPhotosManager } from "@/components/jobs/JobPhotosManager";
 import { JobEmployeesSection } from "@/components/jobs/JobEmployeesSection";
 import {
@@ -85,6 +85,7 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   const navigate = useNavigate();
   const { data: customers = [] } = useCustomers();
   const { data: allJobs = [] } = useJobs();
+  const { data: employeeJobs = [] } = useEmployeeJobs();
   const updateJob = useUpdateJob();
   const deleteJob = useDeleteJob();
   const [datePickerOpen, setDatePickerOpen] = useState(false);
@@ -153,8 +154,18 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
   // Compute (or read) the estimated duration for the current job
   const estimation = useMemo(() => {
     if (!job) return null;
-    return estimateJobDuration(measurementsFromJob(job), allJobs);
-  }, [job, allJobs]);
+    // Count present employees for this job (from employee_jobs)
+    const presentEmployees = employeeJobs.filter(
+      (ej) => ej.job_id === job.id && ej.is_present !== false,
+    ).length;
+    return estimateJobDuration(
+      {
+        ...measurementsFromJob(job),
+        employeeCount: presentEmployees > 0 ? presentEmployees : undefined,
+      },
+      allJobs,
+    );
+  }, [job, allJobs, employeeJobs]);
 
   // When dialog opens for a scheduled job without a stored estimate, save it once
   useEffect(() => {
