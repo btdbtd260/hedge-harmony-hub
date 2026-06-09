@@ -36,6 +36,8 @@ import {
   getCurrentDateTimeStr,
   isDateTimeFormat,
   parseDateTime,
+  getDurationFactorBreakdown,
+  type DurationFactor,
 } from "@/lib/jobDurationEstimator";
 import type { PauseInterval } from "@/types";
 import { toast } from "sonner";
@@ -166,6 +168,18 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
       allJobs,
     );
   }, [job, allJobs, employeeJobs]);
+
+  // Active duration factors for explanation display
+  const durationFactors = useMemo(() => {
+    if (!job) return [];
+    const presentEmployees = employeeJobs.filter(
+      (ej) => ej.job_id === job.id && ej.is_present !== false,
+    ).length;
+    return getDurationFactorBreakdown({
+      ...measurementsFromJob(job),
+      employeeCount: presentEmployees > 0 ? presentEmployees : undefined,
+    });
+  }, [job, employeeJobs]);
 
   // When dialog opens for a scheduled job without a stored estimate, save it once
   useEffect(() => {
@@ -554,6 +568,11 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                     </div>
                   </div>
                 </>
+              )}
+
+              {/* ── Duration factors (discrete explanation) ── */}
+              {durationFactors.length > 0 && (
+                <DurationFactorsList factors={durationFactors} />
               )}
 
               <div className="flex justify-between text-sm"><span className="text-muted-foreground">Profit estimé</span><span className="font-semibold">${job.estimated_profit}</span></div>
@@ -977,6 +996,28 @@ function AdminPauseEditor({
           </Button>
         </div>
       )}
+    </div>
+  );
+}
+
+// ── Duration Factors list (explains why the estimate changed) ──
+function DurationFactorsList({ factors }: { factors: DurationFactor[] }) {
+  if (factors.length === 0) return null;
+  return (
+    <div className="border-t pt-3 space-y-1">
+      <p className="text-xs font-semibold text-muted-foreground uppercase mb-1">Facteurs de durée</p>
+      {factors.map((f, i) => (
+        <div key={i} className="flex items-start gap-2 text-sm">
+          <span className="text-muted-foreground mt-0.5">•</span>
+          <div className="flex-1">
+            <span className="text-muted-foreground">{f.label}: </span>
+            <span>{f.detail}</span>
+            {f.impactLabel && (
+              <span className="ml-1 text-xs font-medium text-amber-600">{f.impactLabel}</span>
+            )}
+          </div>
+        </div>
+      ))}
     </div>
   );
 }

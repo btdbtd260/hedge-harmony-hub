@@ -13,6 +13,7 @@ import {
   isDateTimeFormat,
   parseDateTime,
   getCurrentDateTimeStr,
+  getDurationFactorBreakdown,
   type MeasurementInput,
 } from "@/lib/jobDurationEstimator";
 import type { PauseInterval } from "@/types";
@@ -1583,6 +1584,244 @@ describe("extrasText field", () => {
     // extras_count=1: 36+10+20=66, tidy=65
     expect(resultEmpty.minutes).toBe(resultExpected.minutes);
     expect(resultEmpty.minutes).toBe(65);
+  });
+});
+
+// ── getDurationFactorBreakdown ──
+
+describe("getDurationFactorBreakdown", () => {
+
+  const baseInput: MeasurementInput = {
+    cut_type: "trim",
+    facade: 40,
+    left: 25,
+    right: 25,
+    back: 30,
+    height_global: 4,
+    height_mode: "global",
+    width: 2,
+  };
+
+  it("returns empty array when no factors are active", () => {
+    const factors = getDurationFactorBreakdown(baseInput);
+    expect(factors).toEqual([]);
+  });
+
+  it("returns empty array when all new fields are undefined", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      employeeCount: undefined,
+      twoSides: undefined,
+      maxHeightFeet: undefined,
+      bushesCount: undefined,
+      extrasText: undefined,
+    });
+    expect(factors).toEqual([]);
+  });
+
+  it("returns empty array for legacy-style job without new fields", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+    const factors = getDurationFactorBreakdown(input);
+    expect(factors).toEqual([]);
+  });
+
+  it("includes employeeCount factor when present and different from reference", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      employeeCount: 2, // reference is 3
+    });
+    expect(factors.length).toBeGreaterThanOrEqual(1);
+    const empFactor = factors.find((f) => f.label === "employés");
+    expect(empFactor).toBeDefined();
+    expect(empFactor!.detail).toContain("2");
+    expect(empFactor!.detail).toContain("3");
+  });
+
+  it("excludes employeeCount factor when present but equal to reference (3)", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      employeeCount: 3,
+    });
+    const empFactor = factors.find((f) => f.label === "employés");
+    expect(empFactor).toBeUndefined();
+  });
+
+  it("includes twoSides factor when true", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      twoSides: true,
+    });
+    const tsFactor = factors.find((f) => f.label === "deux côtés");
+    expect(tsFactor).toBeDefined();
+  });
+
+  it("excludes twoSides factor when undefined or false", () => {
+    const factorsUndefined = getDurationFactorBreakdown({
+      ...baseInput,
+      twoSides: undefined,
+    });
+    expect(factorsUndefined.find((f) => f.label === "deux côtés")).toBeUndefined();
+
+    const factorsFalse = getDurationFactorBreakdown({
+      ...baseInput,
+      twoSides: false,
+    });
+    expect(factorsFalse.find((f) => f.label === "deux côtés")).toBeUndefined();
+  });
+
+  it("includes tall two-sides setup factor when twoSides=true and maxHeightFeet>6", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      twoSides: true,
+      maxHeightFeet: 7,
+    });
+    const tallFactor = factors.find((f) => f.label === "hauteur + deux côtés");
+    expect(tallFactor).toBeDefined();
+    expect(tallFactor!.detail).toContain("7");
+  });
+
+  it("excludes tall two-sides setup factor when maxHeightFeet <= 6", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      twoSides: true,
+      maxHeightFeet: 5,
+    });
+    const tallFactor = factors.find((f) => f.label === "hauteur + deux côtés");
+    expect(tallFactor).toBeUndefined();
+  });
+
+  it("excludes tall two-sides setup factor when twoSides is false", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      twoSides: false,
+      maxHeightFeet: 8,
+    });
+    const tallFactor = factors.find((f) => f.label === "hauteur + deux côtés");
+    expect(tallFactor).toBeUndefined();
+  });
+
+  it("includes bushes factor when bushesCount > 0", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      bushesCount: 3,
+    });
+    const bushFactor = factors.find((f) => f.label === "arbustes");
+    expect(bushFactor).toBeDefined();
+    expect(bushFactor!.detail).toContain("3");
+  });
+
+  it("excludes bushes factor when bushesCount is undefined", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      bushesCount: undefined,
+    });
+    expect(factors.find((f) => f.label === "arbustes")).toBeUndefined();
+  });
+
+  it("excludes bushes factor when bushesCount is 0", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      bushesCount: 0,
+    });
+    expect(factors.find((f) => f.label === "arbustes")).toBeUndefined();
+  });
+
+  it("includes extras factor when extrasText contains piscine", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      extrasText: "piscine",
+    });
+    const extraFactor = factors.find((f) => f.label === "extras");
+    expect(extraFactor).toBeDefined();
+    expect(extraFactor!.detail).toContain("piscine");
+  });
+
+  it("includes extras factor when extrasText contains fil", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      extrasText: "fil",
+    });
+    const extraFactor = factors.find((f) => f.label === "extras");
+    expect(extraFactor).toBeDefined();
+    expect(extraFactor!.detail).toContain("fil");
+  });
+
+  it("includes extras factor when extrasText contains cabanon", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      extrasText: "cabanon",
+    });
+    const extraFactor = factors.find((f) => f.label === "extras");
+    expect(extraFactor).toBeDefined();
+    expect(extraFactor!.detail).toContain("cabanon");
+  });
+
+  it("includes extras factor with multiple detected keywords", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      extrasText: "piscine, cabanon, fil",
+    });
+    const extraFactor = factors.find((f) => f.label === "extras");
+    expect(extraFactor).toBeDefined();
+    expect(extraFactor!.detail).toContain("piscine");
+    expect(extraFactor!.detail).toContain("cabanon");
+    expect(extraFactor!.detail).toContain("fil");
+  });
+
+  it("includes extras factor for unrecognized extrasText", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      extrasText: "autre chose",
+    });
+    const extraFactor = factors.find((f) => f.label === "extras");
+    expect(extraFactor).toBeDefined();
+    expect(extraFactor!.detail).toContain("autre chose");
+  });
+
+  it("excludes extras factor when extrasText is undefined", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      extrasText: undefined,
+    });
+    expect(factors.find((f) => f.label === "extras")).toBeUndefined();
+  });
+
+  it("excludes extras factor when extrasText is empty", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      extrasText: "",
+    });
+    expect(factors.find((f) => f.label === "extras")).toBeUndefined();
+  });
+
+  it("returns all active factors when all fields are set", () => {
+    const factors = getDurationFactorBreakdown({
+      ...baseInput,
+      employeeCount: 2,
+      twoSides: true,
+      maxHeightFeet: 8,
+      bushesCount: 5,
+      extrasText: "piscine, fil, cabanon",
+    });
+    expect(factors.length).toBe(5);
+    expect(factors.find((f) => f.label === "employés")).toBeDefined();
+    expect(factors.find((f) => f.label === "deux côtés")).toBeDefined();
+    expect(factors.find((f) => f.label === "hauteur + deux côtés")).toBeDefined();
+    expect(factors.find((f) => f.label === "arbustes")).toBeDefined();
+    expect(factors.find((f) => f.label === "extras")).toBeDefined();
+  });
+
+  it("handles null/undefined input gracefully", () => {
+    // @ts-expect-error testing invalid input
+    expect(getDurationFactorBreakdown(null)).toEqual([]);
+    // @ts-expect-error testing invalid input
+    expect(getDurationFactorBreakdown(undefined)).toEqual([]);
   });
 });
 

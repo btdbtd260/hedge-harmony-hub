@@ -304,6 +304,82 @@ export interface EstimationResult {
   explanation: string;
 }
 
+export interface DurationFactor {
+  /** i18n key or short label for the factor type */
+  label: string;
+  /** Human-readable detail shown to the user */
+  detail: string;
+  /** Describes how this factor affects the estimate (qualitative) */
+  impactLabel?: string;
+}
+
+/**
+ * Analyze a MeasurementInput and return only the active duration factors.
+ * Factors that are undefined, zero, or in their default/reference state
+ * are excluded.
+ */
+export function getDurationFactorBreakdown(input: MeasurementInput | null | undefined): DurationFactor[] {
+  if (!input) return [];
+
+  const factors: DurationFactor[] = [];
+
+  // 1. Employee count factor
+  if (input.employeeCount !== undefined && input.employeeCount > 0 && input.employeeCount !== referenceEmployeeCount) {
+    const ratio = (referenceEmployeeCount / input.employeeCount);
+    const pct = Math.round((ratio - 1) * 100);
+    const sign = pct > 0 ? "+" : "";
+    factors.push({
+      label: "employés",
+      detail: `${input.employeeCount} présent(s) (réf: ${referenceEmployeeCount})`,
+      impactLabel: `${sign}${pct}% durée`,
+    });
+  }
+
+  // 2. Two sides factor
+  if (input.twoSides === true) {
+    const pct = Math.round((twoSidesMultiplier - 1) * 100);
+    factors.push({
+      label: "deux côtés",
+      detail: "Coupe des deux côtés active",
+      impactLabel: `+${pct}% durée`,
+    });
+
+    // 3. Tall two-sides setup (nested under twoSides)
+    const effectiveSetupHeight =
+      input.maxHeightFeet !== undefined ? input.maxHeightFeet : effectiveHeight(input);
+    if (effectiveSetupHeight > 6) {
+      factors.push({
+        label: "hauteur + deux côtés",
+        detail: `Hauteur: ${effectiveSetupHeight} pi — équipement supplémentaire`,
+        impactLabel: `+${tallTwoSidesSetupMinutes} min`,
+      });
+    }
+  }
+
+  // 4. Bushes factor
+  const effectiveBushes = getEffectiveBushesCount(input);
+  if (effectiveBushes > 0) {
+    const bushMinutes = effectiveBushes * MIN_PER_BUSH;
+    factors.push({
+      label: "arbustes",
+      detail: `${effectiveBushes} arbuste(s)`,
+      impactLabel: `+${bushMinutes} min`,
+    });
+  }
+
+  // 5. Extras factor
+  if (input.extrasText != null && input.extrasText.trim() !== "") {
+    const extraMinutes = parseExtrasText(input.extrasText);
+    factors.push({
+      label: "extras",
+      detail: `Détectés: ${input.extrasText}`,
+      impactLabel: `+${extraMinutes} min`,
+    });
+  }
+
+  return factors;
+}
+
 /**
  * Estimate the expected duration (minutes) for a job.
  * Blends a transparent base formula with the average pace of similar past jobs.
