@@ -53,6 +53,22 @@ const WIDTH_BOOST = 1.2;
 
 const MIN_HISTORY = 3;          // need at least this many similar jobs to blend
 
+// --- NEW adjustable constants (Phases 1-3) ---
+/** The "normal" crew size that the base formula assumes. */
+const referenceEmployeeCount = 3;
+/** Multiplier applied when the hedge is worked on both sides. */
+const twoSidesMultiplier = 1.35;
+/** Extra setup minutes when twoSides=true AND height > 6 ft. */
+const tallTwoSidesSetupMinutes = 15;
+/** Fallback minutes for extrasText when no known keyword is found. */
+const defaultExtraMinutes = 10;
+/** Known keywords in extrasText and their corresponding extra minutes. */
+const KEYWORD_EXTRA_MINUTES: Record<string, number> = {
+  piscine: 30,
+  fil: 20,
+  cabanon: 25,
+};
+
 // --- helpers ---
 function num(v: any, d = 0): number {
   const n = Number(v);
@@ -78,6 +94,12 @@ export interface MeasurementInput {
   width?: number;
   bushes_count?: number;
   extras_count?: number;
+  // --- NEW optional fields (Phases 1-3) ---
+  employeeCount?: number;
+  twoSides?: boolean;
+  maxHeightFeet?: number;
+  bushesCount?: number;
+  extrasText?: string;
 }
 
 /** Extract pauses from a DbJob's measurement_snapshot.
@@ -131,6 +153,39 @@ function effectiveHeight(m: MeasurementInput): number {
   return Math.max(num(m.height_global, 4), 1);
 }
 
+/** Parse extrasText keywords and return the total extra minutes. */
+function parseExtrasText(text: string): number {
+  const lower = text.toLowerCase();
+  let total = 0;
+  let foundKeyword = false;
+
+  for (const [keyword, minutes] of Object.entries(KEYWORD_EXTRA_MINUTES)) {
+    if (lower.includes(keyword)) {
+      total += minutes;
+      foundKeyword = true;
+    }
+  }
+
+  if (!foundKeyword && lower.trim() !== "") {
+    total += defaultExtraMinutes;
+  }
+
+  return total;
+}
+
+/** Return the effective bushes count: new bushesCount takes priority over old bushes_count. */
+function getEffectiveBushesCount(m: MeasurementInput): number {
+  return m.bushesCount !== undefined ? num(m.bushesCount) : num(m.bushes_count);
+}
+
+/** Return the effective extra minutes: extrasText overrides extras_count when present. */
+function getEffectiveExtrasMinutes(m: MeasurementInput): number {
+  if (m.extrasText != null && m.extrasText.trim() !== "") {
+    return parseExtrasText(m.extrasText);
+  }
+  return num(m.extras_count) * MIN_PER_EXTRA;
+}
+
 function basePrediction(m: MeasurementInput): number {
   const lf = linearFeet(m);
   if (lf <= 0) return 0;
@@ -144,10 +199,30 @@ function basePrediction(m: MeasurementInput): number {
   const widthFactor = w > WIDTH_THRESHOLD ? WIDTH_BOOST : 1;
 
   const cutting = lf * minPerFoot * heightFactor * widthFactor;
-  const bushes = num(m.bushes_count) * MIN_PER_BUSH;
-  const extras = num(m.extras_count) * MIN_PER_EXTRA;
+  const bushes = getEffectiveBushesCount(m) * MIN_PER_BUSH;
+  const extras = getEffectiveExtrasMinutes(m);
 
-  return cutting + bushes + extras + SETUP_MINUTES;
+  let total = cutting + bushes + extras + SETUP_MINUTES;
+
+  // --- NEW factors (applied in order) ---
+  // 1. twoSides multiplier
+  if (m.twoSides) {
+    total = total * twoSidesMultiplier;
+  }
+
+  // 2. tall two-sides setup: extra minutes when twoSides AND height > 6 ft
+  const effectiveSetupHeight =
+    m.maxHeightFeet !== undefined ? num(m.maxHeightFeet) : h;
+  if (m.twoSides && effectiveSetupHeight > 6) {
+    total += tallTwoSidesSetupMinutes;
+  }
+
+  // 3. employeeCount factor (inverse: fewer employees = more minutes)
+  if (m.employeeCount !== undefined && m.employeeCount > 0) {
+    total = total * (referenceEmployeeCount / num(m.employeeCount));
+  }
+
+  return total;
 }
 
 /** Pick completed jobs whose measurements are close enough to be informative. */
@@ -228,8 +303,8 @@ export function estimateJobDuration(
   const histCutting = avgMinPerFoot * lf * (heightFactor / 1) * (widthFactor / 1);
   const histTotal =
     histCutting +
-    num(input.bushes_count) * MIN_PER_BUSH +
-    num(input.extras_count) * MIN_PER_EXTRA +
+    getEffectiveBushesCount(input) * MIN_PER_BUSH +
+    getEffectiveExtrasMinutes(input) +
     SETUP_MINUTES;
 
   const weight = Math.min(similar.length / 10, 0.7); // cap at 70 %

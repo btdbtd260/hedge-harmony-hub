@@ -910,3 +910,455 @@ describe("getCurrentDateTimeStr usage in pause workflows", () => {
     expect(completionTime).toMatch(/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}$/);
   });
 });
+
+// ================================================================
+// NEW FIELDS (Phases 1-3): employeeCount, twoSides, maxHeightFeet,
+//                          bushesCount, extrasText
+// ================================================================
+
+describe("basePrediction with new fields (retrocompatibility)", () => {
+
+  it("returns same result when all new fields are undefined", () => {
+    // Old-style input (no new fields)
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      left: 25,
+      right: 25,
+      back: 30,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+    const oldResult = estimateJobDuration(input, []);
+
+    // Same input with new fields explicitly undefined
+    const inputWithNew: MeasurementInput = {
+      ...input,
+      employeeCount: undefined,
+      twoSides: undefined,
+      maxHeightFeet: undefined,
+      bushesCount: undefined,
+      extrasText: undefined,
+    };
+    const newResult = estimateJobDuration(inputWithNew, []);
+
+    expect(newResult.minutes).toBe(oldResult.minutes);
+    expect(newResult.basis).toBe(oldResult.basis);
+    expect(newResult.explanation).toBe(oldResult.explanation);
+  });
+
+  it("returns same result when new fields are omitted entirely", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 60,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+    const result = estimateJobDuration(input, []);
+    // Base: linearFeet=60, minPerFoot=0.9, height=4(no boost), width=2(no boost)
+    // cutting = 60*0.9 = 54, bushes=0, extras=0, setup=20 -> total=74
+    // tidy: round(74/5)*5 = 15*5 = 75
+    expect(result.minutes).toBe(75);
+    expect(result.basis).toBe("base");
+  });
+});
+
+describe("employeeCount factor", () => {
+
+  it("fewer employees than reference increases duration", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultRef = estimateJobDuration({ ...input, employeeCount: 3 }, []);
+    const resultFewer = estimateJobDuration({ ...input, employeeCount: 2 }, []);
+    const resultFewest = estimateJobDuration({ ...input, employeeCount: 1 }, []);
+
+    expect(resultFewer.minutes).toBeGreaterThan(resultRef.minutes);
+    expect(resultFewest.minutes).toBeGreaterThan(resultFewer.minutes);
+  });
+
+  it("more employees than reference decreases duration", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultRef = estimateJobDuration({ ...input, employeeCount: 3 }, []);
+    const resultMore = estimateJobDuration({ ...input, employeeCount: 6 }, []);
+
+    expect(resultMore.minutes).toBeLessThan(resultRef.minutes);
+  });
+
+  it("ignores employeeCount when undefined", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+    const result = estimateJobDuration(input, []);
+    const resultWithUndefined = estimateJobDuration({ ...input, employeeCount: undefined }, []);
+    expect(resultWithUndefined.minutes).toBe(result.minutes);
+  });
+});
+
+describe("twoSides factor", () => {
+
+  it("twoSides increases duration compared to no twoSides", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultNormal = estimateJobDuration({ ...input, twoSides: false }, []);
+    const resultTwoSides = estimateJobDuration({ ...input, twoSides: true }, []);
+
+    expect(resultTwoSides.minutes).toBeGreaterThan(resultNormal.minutes);
+  });
+
+  it("ignores twoSides when undefined", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+    const result = estimateJobDuration(input, []);
+    const resultWithUndefined = estimateJobDuration({ ...input, twoSides: undefined }, []);
+    expect(resultWithUndefined.minutes).toBe(result.minutes);
+  });
+});
+
+describe("tall two-sides setup", () => {
+
+  it("twoSides with maxHeightFeet > 6 adds extra setup minutes", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultNoHeight = estimateJobDuration({ ...input, twoSides: true, maxHeightFeet: undefined }, []);
+    const resultTall = estimateJobDuration({ ...input, twoSides: true, maxHeightFeet: 7 }, []);
+
+    // The difference should be at least 15 (the tall setup minutes), but could be rounded
+    const diff = resultTall.minutes - resultNoHeight.minutes;
+    expect(diff).toBeGreaterThanOrEqual(10);
+    expect(diff).toBeLessThanOrEqual(20);
+  });
+
+  it("twoSides with maxHeightFeet <= 6 does NOT add extra setup", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultNoHeight = estimateJobDuration({ ...input, twoSides: true, maxHeightFeet: undefined }, []);
+    const resultNotTall = estimateJobDuration({ ...input, twoSides: true, maxHeightFeet: 5 }, []);
+
+    expect(resultNotTall.minutes).toBe(resultNoHeight.minutes);
+  });
+
+  it("twoSides false with maxHeightFeet > 6 does NOT add extra setup", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const result = estimateJobDuration({ ...input, twoSides: false, maxHeightFeet: 7 }, []);
+    const resultNoHeight = estimateJobDuration({ ...input, twoSides: false, maxHeightFeet: undefined }, []);
+
+    expect(result.minutes).toBe(resultNoHeight.minutes);
+  });
+});
+
+describe("bushesCount field", () => {
+
+  it("bushesCount produces same result as bushes_count for same value", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultOld = estimateJobDuration({ ...input, bushes_count: 3 }, []);
+    const resultNew = estimateJobDuration({ ...input, bushesCount: 3 }, []);
+
+    expect(resultNew.minutes).toBe(resultOld.minutes);
+  });
+
+  it("bushesCount takes priority over bushes_count when both provided", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultPriority = estimateJobDuration({ ...input, bushes_count: 2, bushesCount: 5 }, []);
+    const resultExpected = estimateJobDuration({ ...input, bushesCount: 5 }, []);
+
+    // With 5 bushes instead of 2, result should be different
+    // 5*6=30 vs 2*6=12, difference of 18 before tidy
+    expect(resultPriority.minutes).toBe(resultExpected.minutes);
+    // And different from the old-only result
+    const resultOld = estimateJobDuration({ ...input, bushes_count: 2 }, []);
+    expect(resultPriority.minutes).not.toBe(resultOld.minutes);
+  });
+
+  it("falls back to bushes_count when bushesCount is undefined", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultWithBushesCount = estimateJobDuration({ ...input, bushes_count: 4 }, []);
+    const resultFallback = estimateJobDuration({ ...input, bushes_count: 4, bushesCount: undefined }, []);
+
+    expect(resultFallback.minutes).toBe(resultWithBushesCount.minutes);
+  });
+});
+
+describe("extrasText field", () => {
+
+  it("extrasText with 'piscine' adds 30 minutes", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultBase = estimateJobDuration(input, []);
+    const resultPool = estimateJobDuration({ ...input, extrasText: "piscine" }, []);
+
+    // Base: 40*0.9 + 20setup = 36+20=56, tidy=55
+    // With piscine: 36+30+20=86, tidy=85
+    expect(resultBase.minutes).toBe(55);
+    expect(resultPool.minutes).toBe(85);
+  });
+
+  it("extrasText with 'fil' adds 20 minutes", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultBase = estimateJobDuration(input, []);
+    const resultFil = estimateJobDuration({ ...input, extrasText: "fil" }, []);
+
+    // With fil: 36+20+20=76, tidy=75
+    expect(resultFil.minutes).toBe(75);
+  });
+
+  it("extrasText with 'cabanon' adds 25 minutes", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultCabanon = estimateJobDuration({ ...input, extrasText: "cabanon" }, []);
+    // With cabanon: 36+25+20=81, tidy=80
+    expect(resultCabanon.minutes).toBe(80);
+  });
+
+  it("extrasText with multiple keywords sums their minutes", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultMulti = estimateJobDuration({ ...input, extrasText: "piscine, fil" }, []);
+    // piscine=30, fil=20, total=50: 36+50+20=106, tidy=105
+    expect(resultMulti.minutes).toBe(105);
+  });
+
+  it("extrasText with three keywords sums all minutes", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultMulti = estimateJobDuration({ ...input, extrasText: "piscine, cabanon, fil" }, []);
+    // piscine=30, cabanon=25, fil=20, total=75: 36+75+20=131, tidy=130
+    expect(resultMulti.minutes).toBe(130);
+  });
+
+  it("extrasText with unknown keyword adds defaultExtraMinutes (10)", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultOther = estimateJobDuration({ ...input, extrasText: "autre chose" }, []);
+    // default=10: 36+10+20=66, tidy=65
+    expect(resultOther.minutes).toBe(65);
+  });
+
+  it("extrasText falls back to extras_count when undefined", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+      extras_count: 2,
+    };
+
+    const resultWithExtras = estimateJobDuration(input, []);
+    const resultFallback = estimateJobDuration({ ...input, extrasText: undefined }, []);
+
+    // extras_count=2: 36+20+20=76, tidy=75
+    expect(resultWithExtras.minutes).toBe(resultFallback.minutes);
+    expect(resultWithExtras.minutes).toBe(75);
+  });
+
+  it("extrasText takes priority over extras_count when both provided", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+      extras_count: 5, // would add 50 minutes
+      extrasText: "piscine", // but this should take priority (30)
+    };
+
+    const result = estimateJobDuration(input, []);
+    // piscine=30: 36+30+20=86, tidy=85
+    expect(result.minutes).toBe(85);
+  });
+
+  it("empty extrasText falls back to extras_count", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+      extras_count: 1,
+      extrasText: "",
+    };
+
+    const resultEmpty = estimateJobDuration(input, []);
+    const resultExpected = estimateJobDuration({ ...input, extrasText: undefined }, []);
+    // extras_count=1: 36+10+20=66, tidy=65
+    expect(resultEmpty.minutes).toBe(resultExpected.minutes);
+    expect(resultEmpty.minutes).toBe(65);
+  });
+});
+
+describe("combination of new factors", () => {
+
+  it("combines employeeCount, twoSides, maxHeightFeet, bushesCount, extrasText", () => {
+    const input: MeasurementInput = {
+      cut_type: "trim",
+      facade: 40,
+      height_global: 4,
+      height_mode: "global",
+      width: 2,
+    };
+
+    const resultSimple = estimateJobDuration(input, []);
+    const resultCombined = estimateJobDuration({
+      ...input,
+      employeeCount: 2,
+      twoSides: true,
+      maxHeightFeet: 7,
+      bushesCount: 3,
+      extrasText: "piscine, cabanon",
+    }, []);
+
+    // Simple: 55
+    // Combined - let's compute step by step:
+    // cutting = 40*0.9*1*1 = 36
+    // bushes = 3*6 = 18
+    // extras = 30+25 = 55
+    // base = 36+18+55+20 = 129
+    // twoSides: 129*1.35 = 174.15
+    // tallSetup: 174.15+15 = 189.15
+    // employee: 189.15*(3/2) = 283.725
+    // tidy: round(283.725/5)*5 = 57*5 = 285
+    expect(resultCombined.minutes).toBe(285);
+    expect(resultCombined.minutes).toBeGreaterThan(resultSimple.minutes);
+  });
+
+  it("works with per_side height and new fields", () => {
+    const input: MeasurementInput = {
+      cut_type: "levelling",
+      facade: 20,
+      height_mode: "per_side",
+      height_facade: 7,
+      height_left: 3,
+      height_right: 4,
+      height_back: 5,
+      width: 2,
+      employeeCount: 2,
+      twoSides: true,
+      bushesCount: 2,
+      extrasText: "fil",
+    };
+    const result = estimateJobDuration(input, []);
+    // Effective height = max(7,3,4,5,0,0,1) = 7 -> heightBoost=1.35 (>5)
+    // linearFeet = 20
+    // minPerFoot = 1.6 (levelling)
+    // cutting = 20*1.6*1.35*1 = 43.2
+    // bushes = 2*6 = 12
+    // extras = 20 (fil)
+    // setup = 20
+    // total = 43.2+12+20+20 = 95.2
+    // twoSides: 95.2*1.35 = 128.52
+    // tallSetup: 128.52+0 = 128.52 (maxHeightFeet is undefined, using effectiveHeight=7>6, so YES +15)
+    // Actually wait, if I use effectiveHeight as fallback for maxHeightFeet...
+    // Let me check: if maxHeightFeet is undefined but effectiveHeight is 7 (>6), then tallSetup is triggered
+    // So: 128.52+15 = 143.52
+    // employee: 143.52*(3/2) = 215.28
+    // tidy: round(215.28/5)*5 = 43*5 = 215
+    expect(result.minutes).toBe(215);
+  });
+});
