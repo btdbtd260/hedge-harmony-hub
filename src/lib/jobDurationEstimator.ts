@@ -114,12 +114,15 @@ export function getPausesFromJob(job: DbJob | null | undefined): PauseInterval[]
 export function measurementsFromJob(job: DbJob): MeasurementInput {
   const s = (job.measurement_snapshot ?? {}) as any;
   // --- Compute derived new fields from snapshot ---
-  // twoSides: true when any side in the two_sides object is true
+  // twoSides: true when any side in the two_sides object is true,
+  //           OR when two_sides is a simple boolean true (from analytics)
   const twoSidesObj = s.two_sides;
-  const hasTwoSides =
-    twoSidesObj && typeof twoSidesObj === "object"
-      ? Object.values(twoSidesObj).some((v) => v === true)
-      : false;
+  let hasTwoSides = false;
+  if (typeof twoSidesObj === "boolean") {
+    hasTwoSides = twoSidesObj;
+  } else if (twoSidesObj && typeof twoSidesObj === "object") {
+    hasTwoSides = Object.values(twoSidesObj).some((v) => v === true);
+  }
   // maxHeightFeet: maximum of all available height values (> 0)
   const heights = [
     num(s.heightGlobal ?? s.height_global),

@@ -1894,3 +1894,174 @@ describe("combination of new factors", () => {
     expect(result.minutes).toBe(215);
   });
 });
+
+// ================================================================
+// REGRESSION TESTS — Verify new factors actually change duration
+// ================================================================
+// These tests prove that the new analytics fields (employeeCount,
+// twoSides, maxHeightFeet, bushesCount, extrasText) actually affect
+// the final estimated duration — not just the explanatory breakdown.
+
+describe("regression: new factors change estimated duration", () => {
+
+  // ── Helper to build a DbJob with a controlled measurement_snapshot ──
+  const BASE_SNAPSHOT = {
+    facade_length: 40,
+    left_length: 25,
+    right_length: 25,
+    back_length: 30,
+    height_mode: "global" as const,
+    height_global: 4,
+    width: 2,
+  };
+
+  function makeRegressionJob(overrides: Record<string, any> = {}): DbJob {
+    return {
+      id: "reg-j1",
+      client_id: "c1",
+      estimation_id: "e1",
+      cut_type: "trim",
+      status: "scheduled",
+      scheduled_date: "2026-06-08",
+      start_time: "08:00",
+      end_time: null,
+      total_duration_minutes: null,
+      estimated_duration_minutes: null,
+      estimated_profit: 540,
+      real_profit: null,
+      before_photos: [],
+      after_photos: [],
+      measurement_snapshot: {
+        ...BASE_SNAPSHOT,
+        ...overrides,
+      },
+    } as any as DbJob;
+  }
+
+  // ── 1. two_sides=true changes final duration ──
+  it("two_sides=true in snapshot changes estimated duration vs no two_sides", () => {
+    const jobWithout = makeRegressionJob(); // no two_sides
+    const jobWith = makeRegressionJob({
+      two_sides: { facade: true, left: false, right: false, back: false },
+    });
+
+    const mWithout = measurementsFromJob(jobWithout);
+    const mWith = measurementsFromJob(jobWith);
+
+    expect(mWithout.twoSides).toBeUndefined();
+    expect(mWith.twoSides).toBe(true);
+
+    const resultWithout = estimateJobDuration(mWithout, []);
+    const resultWith = estimateJobDuration(mWith, []);
+
+    // twoSides multiplier (1.35) should increase duration
+    expect(resultWith.minutes).toBeGreaterThan(resultWithout.minutes);
+  });
+
+  // ── 2. employeeCount < 3 changes final duration ──
+  it("employeeCount < 3 increases estimated duration vs reference (3)", () => {
+    const job = makeRegressionJob();
+    const m = measurementsFromJob(job);
+
+    const resultRef = estimateJobDuration({ ...m, employeeCount: 3 }, []);
+    const resultFewer = estimateJobDuration({ ...m, employeeCount: 2 }, []);
+
+    // Fewer employees → longer duration (factor = 3/2 = 1.5x)
+    expect(resultFewer.minutes).toBeGreaterThan(resultRef.minutes);
+  });
+
+  // ── 3. extrasText containing "piscine" changes final duration ──
+  it("extrasText with piscine increases estimated duration", () => {
+    const job = makeRegressionJob();
+    const m = measurementsFromJob(job);
+
+    const resultBase = estimateJobDuration(m, []);
+    const resultWithPool = estimateJobDuration({ ...m, extrasText: "piscine" }, []);
+
+    // "piscine" = 30 extra minutes
+    expect(resultWithPool.minutes).not.toBe(resultBase.minutes);
+    expect(resultWithPool.minutes).toBeGreaterThan(resultBase.minutes);
+  });
+
+  // ── 4. Full DbJob → measurementsFromJob → estimateJobDuration pipeline ──
+  it("full pipeline: DbJob with all new fields produces different duration than baseline", () => {
+    const baselineJob = makeRegressionJob();
+    const baselineM = measurementsFromJob(baselineJob);
+    const baselineResult = estimateJobDuration(baselineM, []);
+
+    const enrichedJob = makeRegressionJob({
+      two_sides: { facade: true },
+      bushItems: [
+        { id: "b1", description: "Thuja", count: 3, price: 40 },
+      ],
+      extras: [
+        { id: "e1", description: "piscine", price: 30 },
+        { id: "e2", description: "cabanon", price: 25 },
+      ],
+    });
+    const enrichedM = measurementsFromJob(enrichedJob);
+    const enrichedInput = { ...enrichedM, employeeCount: 2 };
+    const enrichedResult = estimateJobDuration(enrichedInput, []);
+
+    expect(enrichedResult.minutes).toBeGreaterThan(baselineResult.minutes);
+    // Verify all factors are actually present in the extracted measurement
+    expect(enrichedInput.twoSides).toBe(true);
+    expect(enrichedInput.bushesCount).toBe(3);
+    expect(enrichedInput.extrasText).toContain("piscine");
+    expect(enrichedInput.employeeCount).toBe(2);
+  });
+
+  // ── 5. two_sides as simple boolean (analytics may write `two_sides: true`) ──
+  it("handles two_sides as simple boolean true from analytics", () => {
+    // The analytics may write two_sides as a boolean rather than an object
+    const job = makeRegressionJob({
+      two_sides: true,
+    });
+    const m = measurementsFromJob(job);
+    // THIS IS THE KEY ASSERTION — if the analytics writes `two_sides: true`,
+    // the extraction must still detect it:
+    expect(m.twoSides).toBe(true);
+
+    const result = estimateJobDuration(m, []);
+    expect(result.minutes).toBeGreaterThan(0);
+  });
+
+  // ── 6. two_sides as simple boolean false should NOT affect duration ──
+  it("handles two_sides as simple boolean false correctly", () => {
+    const job = makeRegressionJob({
+      two_sides: false,
+    });
+    const m = measurementsFromJob(job);
+    expect(m.twoSides).toBeUndefined();
+  });
+
+  // ── 7. height_global / maxHeightFeet affects twoSides tall setup ──
+  it("maxHeightFeet > 6 with twoSides adds tall setup minutes", () => {
+    const jobTall = makeRegressionJob({
+      two_sides: true,
+      height_global: 8,
+    });
+    const jobShort = makeRegressionJob({
+      two_sides: true,
+      height_global: 4,
+    });
+
+    const mTall = measurementsFromJob(jobTall);
+    const mShort = measurementsFromJob(jobShort);
+
+    // Both have twoSides
+    expect(mTall.twoSides).toBe(true);
+    expect(mShort.twoSides).toBe(true);
+
+    // Tall job should have maxHeightFeet > 6, short <= 6
+    expect(mTall.maxHeightFeet).toBeGreaterThan(6);
+    expect(mShort.maxHeightFeet).toBeLessThanOrEqual(6);
+
+    const resultTall = estimateJobDuration(mTall, []);
+    const resultShort = estimateJobDuration(mShort, []);
+
+    // Tall should be longer due to extra setup minutes
+    const diff = resultTall.minutes - resultShort.minutes;
+    expect(diff).toBeGreaterThanOrEqual(10); // at least 15 before tidy rounding
+  });
+});
