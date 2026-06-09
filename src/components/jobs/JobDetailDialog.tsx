@@ -190,7 +190,8 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [job?.id]);
 
-  const storedEstimate = job?.estimated_duration_minutes ?? estimation?.minutes ?? null;
+  // Use recalculated estimate (includes active factors) with fallback to persisted value
+  const storedEstimate = estimation?.minutes ?? job?.estimated_duration_minutes ?? null;
   const projectedEnd =
     job?.status === "scheduled" && job.start_time && storedEstimate
       ? addMinutesToTime(job.start_time, storedEstimate)
@@ -525,20 +526,22 @@ export function JobDetailDialog({ job, onOpenChange }: Props) {
                       </>
                     );
                   })()}
-                  {job.estimated_duration_minutes && (
+                  {storedEstimate && storedEstimate > 0 && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Durée estimée</span>
-                      <span>{formatDurationMinutes(job.estimated_duration_minutes)}</span>
+                      <span>{formatDurationMinutes(storedEstimate)}</span>
                     </div>
                   )}
-                  {typeof job.duration_variance_minutes === "number" && (
+                  {storedEstimate &&
+                    storedEstimate > 0 &&
+                    typeof job.total_duration_minutes === "number" && (
                     <div className="flex justify-between text-sm">
                       <span className="text-muted-foreground">Écart vs estimation</span>
                       <span className={cn(
                         "font-semibold",
-                        job.duration_variance_minutes > 0 ? "text-cut-levelling" : "text-cut-trim",
+                        (job.total_duration_minutes - storedEstimate) > 0 ? "text-cut-levelling" : "text-cut-trim",
                       )}>
-                        {job.duration_variance_minutes > 0 ? "+" : ""}{formatDurationMinutes(Math.abs(job.duration_variance_minutes))}
+                        {(job.total_duration_minutes - storedEstimate) > 0 ? "+" : ""}{formatDurationMinutes(Math.abs(job.total_duration_minutes - storedEstimate))}
                       </span>
                     </div>
                   )}

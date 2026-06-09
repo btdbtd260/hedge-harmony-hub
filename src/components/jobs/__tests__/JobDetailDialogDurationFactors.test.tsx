@@ -275,4 +275,88 @@ describe("JobDetailDialog — duration factors display", () => {
     expect(screen.getByText("Mesures")).toBeInTheDocument();
     expect(screen.getByText("Facteurs de durée")).toBeInTheDocument();
   });
+
+  // ── Recalculated duration display ──
+
+  it("shows recalculated duration not old persisted value when factors are active (scheduled)", () => {
+    // Job has old persisted estimate=400min (6h40m) but active factors (twoSides, bushes)
+    // should cause the engine to recalculate a different duration
+    const job = makeJob({
+      estimated_duration_minutes: 400,
+      measurement_snapshot: makeSnapshot({
+        two_sides: { facade: true } as TwoSidesObj,
+        bushItems: [
+          { id: "b1", description: "Thuja", count: 3, price: 40 },
+        ],
+      }),
+    });
+    renderDialog(job);
+
+    // The "Durée estimée" line should be visible
+    expect(screen.getByText("Durée estimée")).toBeInTheDocument();
+
+    // It must NOT show the old persisted value ~6h 40m
+    expect(screen.queryByText("~6h 40m")).not.toBeInTheDocument();
+
+    // It must show a ~ prefixed duration different from the old one
+    const durLine = screen.getByText("Durée estimée").closest("div");
+    expect(durLine?.textContent).toContain("~");
+    // Should NOT contain the old persisted value
+    expect(durLine?.textContent).not.toContain("6h 40m");
+  });
+
+  it("shows recalculated duration for completed jobs, not old persisted estimated_duration_minutes", () => {
+    const job = makeJob({
+      status: "completed",
+      estimated_duration_minutes: 400, // old persisted value
+      total_duration_minutes: 240,
+      duration_variance_minutes: -160, // 240 - 400 = -160
+      end_time: "12:00:00",
+      measurement_snapshot: makeSnapshot({
+        two_sides: { facade: true } as TwoSidesObj,
+        bushItems: [
+          { id: "b1", description: "Thuja", count: 3, price: 40 },
+        ],
+      }),
+    });
+    renderDialog(job);
+
+    // The "Durée estimée" line should be visible
+    expect(screen.getByText("Durée estimée")).toBeInTheDocument();
+
+    // Must NOT show the old persisted value 6h 40m
+    expect(screen.queryByText("6h 40m")).not.toBeInTheDocument();
+
+    // Should show a different duration (recalculated with factors)
+    const durLine = screen.getByText("Durée estimée").closest("div");
+    expect(durLine?.textContent).not.toContain("6h 40m");
+  });
+
+  it("uses recalculated duration for 'Écart vs estimation' on completed jobs", () => {
+    const job = makeJob({
+      status: "completed",
+      estimated_duration_minutes: 400, // old value
+      total_duration_minutes: 300,     // actual worked
+      duration_variance_minutes: -100, // old variance = 300 - 400 = -100
+      end_time: "13:00:00",
+      measurement_snapshot: makeSnapshot({
+        two_sides: { facade: true } as TwoSidesObj,
+        bushItems: [
+          { id: "b1", description: "Thuja", count: 3, price: 40 },
+        ],
+      }),
+    });
+    renderDialog(job);
+
+    // "Écart vs estimation" section should exist
+    expect(screen.getByText("Écart vs estimation")).toBeInTheDocument();
+
+    // The displayed variance should be the new recalculated one, not the old -100
+    // We can't check the exact value without duplicating the formula, but we can
+    // verify it's different from the old stored variance
+    const ecartLine = screen.getByText("Écart vs estimation").closest("div");
+    // Old would have been "1h 40m" (|-100| = 100 min). With recalculated estimate
+    // (which is higher due to factors), the variance should be different.
+    expect(ecartLine?.textContent).not.toContain("1h 40m");
+  });
 });
