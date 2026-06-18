@@ -42,3 +42,5 @@ coverage/
 supabase-current-schema.sql
 
 import-data-ntyuyupbvsilnedjwgmv.sql
+.vercel
+.env*
