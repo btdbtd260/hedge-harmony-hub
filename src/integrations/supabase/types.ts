@@ -647,6 +647,7 @@ export type Database = {
           company_email: string
           company_logo_url: string | null
           company_name: string
+          company_number: string
           company_phone: string
           company_website: string
           height_multiplier: number
@@ -673,6 +674,7 @@ export type Database = {
           company_email?: string
           company_logo_url?: string | null
           company_name?: string
+          company_number?: string
           company_phone?: string
           company_website?: string
           height_multiplier?: number
@@ -699,6 +701,7 @@ export type Database = {
           company_email?: string
           company_logo_url?: string | null
           company_name?: string
+          company_number?: string
           company_phone?: string
           company_website?: string
           height_multiplier?: number

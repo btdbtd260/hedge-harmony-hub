@@ -65,6 +65,7 @@ const BASE_JOB = {
 
 const BASE_PARAMS: Record<string, any> = {
   company_name: "HedgePro Inc.",
+  company_number: "",
   company_phone: "+1-888-555-0199",
   company_email: "info@hedgepro.com",
   company_logo_url: null,

@@ -17,6 +17,7 @@ const mockDbParams = vi.hoisted(() => ({
   company_address: "123 Rue Principale",
   company_phone: "514-555-0100",
   company_email: "info@macompagnie.ca",
+  company_number: "",
   company_website: "https://macompagnie.ca",
   company_logo_url: null,
   price_per_foot_trim: 3.5,
@@ -39,11 +40,12 @@ const mockDbParams = vi.hoisted(() => ({
 }));
 
 const mockMutateAsync = vi.hoisted(() => vi.fn());
+const mockUseParameters = vi.hoisted(() => vi.fn(() => ({ data: mockDbParams, isLoading: false })));
 
 // ─── Mocks ───
 
 vi.mock("@/hooks/useSupabaseData", () => ({
-  useParameters: () => ({ data: mockDbParams, isLoading: false }),
+  useParameters: mockUseParameters,
   useUpdateParameters: () => ({ mutateAsync: mockMutateAsync, isPending: false }),
 }));
 
@@ -182,5 +184,34 @@ describe("Settings — show_taxes toggle", () => {
         expect.objectContaining({ show_taxes: true })
       );
     });
+  });
+
+  it("form does NOT reset after dbParams refetch (save bug fix)", async () => {
+    // Simulate refetch: useParameters returns a fresh object (new reference)
+    mockUseParameters.mockReturnValue({
+      data: { ...mockDbParams },
+      isLoading: false,
+    });
+
+    const user = userEvent.setup();
+    render(<Settings />);
+
+    await goToTemplateTab(user);
+
+    // Change the company name
+    const nameInput = screen.getByDisplayValue("Ma Compagnie");
+    await user.clear(nameInput);
+    await user.type(nameInput, "Nouveau Nom");
+
+    // Force a "refetch" — new dbParams reference (same values, new object)
+    mockUseParameters.mockReturnValue({
+      data: { ...mockDbParams },
+      isLoading: false,
+    });
+    render(<Settings />);
+
+    // Form should still show the user's edit, not the original value
+    const input = screen.getByDisplayValue("Nouveau Nom");
+    expect(input).toBeInTheDocument();
   });
 });

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -20,9 +20,13 @@ const Settings = () => {
 
   const [form, setForm] = useState<Record<string, any>>({});
   const [uploadingLogo, setUploadingLogo] = useState(false);
+  const initialLoadDone = useRef(false);
 
   useEffect(() => {
-    if (dbParams) setForm({ ...dbParams });
+    if (dbParams && !initialLoadDone.current) {
+      setForm({ ...dbParams });
+      initialLoadDone.current = true;
+    }
   }, [dbParams]);
 
   const updateField = (key: string, value: any) => setForm((prev) => ({ ...prev, [key]: value }));
@@ -160,6 +164,7 @@ const Settings = () => {
                 <div className="space-y-2"><Label>Adresse</Label><Input value={form.company_address ?? ""} onChange={(e) => updateField("company_address", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Téléphone</Label><Input value={form.company_phone ?? ""} onChange={(e) => updateField("company_phone", e.target.value)} /></div>
                 <div className="space-y-2"><Label>Email</Label><Input value={form.company_email ?? ""} onChange={(e) => updateField("company_email", e.target.value)} /></div>
+                <div className="space-y-2"><Label>Numéro Entreprise</Label><Input value={form.company_number ?? ""} onChange={(e) => updateField("company_number", e.target.value)} placeholder="NEQ / N° d'entreprise" /></div>
                 <div className="space-y-2 md:col-span-2"><Label>Site web</Label><Input placeholder="https://exemple.com" value={form.company_website ?? ""} onChange={(e) => updateField("company_website", e.target.value)} /></div>
               </div>
             </CardContent>

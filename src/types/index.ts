@@ -185,6 +185,7 @@ export interface Parameters {
   companyAddress: string;
   companyPhone: string;
   companyEmail: string;
+  companyNumber: string;
   socialLinks: { platform: string; url: string }[];
 
   // Reminder

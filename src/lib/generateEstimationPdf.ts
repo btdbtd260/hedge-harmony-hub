@@ -84,6 +84,7 @@ export async function generateEstimationPdf(data: EstimationPdfData): Promise<js
   const companyLines: string[] = [];
   if (params?.company_phone) companyLines.push(`Tél: ${params.company_phone}`);
   if (params?.company_email) companyLines.push(params.company_email);
+  if (params?.company_number) companyLines.push(`Nº entreprise: ${params.company_number}`);
 
   // ── Right block: title + number + date ──
   // Pre-measure to get the actual width needed; left block adapts dynamically.
