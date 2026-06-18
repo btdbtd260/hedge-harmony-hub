@@ -27,6 +27,7 @@ import EstimationHistory from "@/components/estimation/EstimationHistory";
 import { downloadEstimationPdf, getEstimationNumber, type EstimationPdfData } from "@/lib/generateEstimationPdf";
 import { applyTotalRounding } from "@/lib/roundingTotal";
 import { formatPhoneLive } from "@/lib/phoneFormat";
+import { AddressAutocomplete } from "@/components/clients/AddressAutocomplete";
 
 interface BushItem {
   id: string;
@@ -849,7 +850,7 @@ const EstimationPage = () => {
             <div className="space-y-1"><Label>Nom *</Label><Input value={newClientName} onChange={(e) => setNewClientName(e.target.value)} placeholder="Nom complet" /></div>
             <div className="space-y-1"><Label>Téléphone</Label><Input value={newClientPhone} onChange={(e) => setNewClientPhone(formatPhoneLive(e.target.value))} placeholder="514-555-0000" inputMode="tel" maxLength={12} /></div>
             <div className="space-y-1"><Label>Email</Label><Input value={newClientEmail} onChange={(e) => setNewClientEmail(e.target.value)} placeholder="email@exemple.com" /></div>
-            <div className="space-y-1"><Label>Adresse</Label><Input value={newClientAddress} onChange={(e) => setNewClientAddress(e.target.value)} placeholder="123 Rue Exemple" /></div>
+            <div className="space-y-1"><Label>Adresse</Label><AddressAutocomplete value={newClientAddress} onChange={setNewClientAddress} placeholder="123 Rue Exemple" /></div>
           </div>
           <DialogFooter>
             <Button variant="outline" onClick={() => setShowNewClientDialog(false)}>Annuler</Button>
