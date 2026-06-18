@@ -1,9 +1,11 @@
 import { useState } from "react";
-import { Card, CardContent } from "@/components/ui/card";
-import { useInvoices, useExpenses, useCustomers, useEmployees, useEmployeeJobs, useJobs } from "@/hooks/useSupabaseData";
 import { CollapsibleCard } from "@/components/ui/collapsible-card";
+import { useInvoices, useExpenses, useCustomers, useEmployees, useEmployeeJobs, useJobs } from "@/hooks/useSupabaseData";
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from "recharts";
-import { TrendingUp, TrendingDown, DollarSign } from "lucide-react";
+import { TrendingUp, TrendingDown, DollarSign, Calendar } from "lucide-react";
+import { StatCard } from "@/components/ui/stat-card";
+import { PageHeader } from "@/components/ui/page-header";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 
 type FilterMode = "daily" | "weekly" | "yearly";
 
@@ -58,7 +60,11 @@ const FinanceApercu = () => {
   const filteredExpenses = expenseList.filter((e) => filterByDate(e.date));
   const totalExpenses = filteredExpenses.reduce((s, e) => s + e.amount, 0) + normalLaborCost;
   const netProfit = totalProfit - totalExpenses;
-  const chartData = [{ name: "Revenus", profit: totalProfit, expenses: totalExpenses, net: netProfit }];
+  const chartData = [
+    { name: "Profit", montant: totalProfit },
+    { name: "Dépenses", montant: totalExpenses },
+    { name: "Net", montant: netProfit },
+  ];
 
   const filterLabel: Record<FilterMode, string> = { daily: "Quotidien", weekly: "Hebdo", yearly: "Annuel" };
 
@@ -72,39 +78,61 @@ const FinanceApercu = () => {
   };
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center gap-2">
-        <select
-          value={filter}
-          onChange={(e) => setFilter(e.target.value as FilterMode)}
-          className="flex h-10 w-32 rounded-md border border-input bg-background px-3 py-2 text-sm"
-        >
-          <option value="daily">Quotidien</option>
-          <option value="weekly">Hebdo</option>
-          <option value="yearly">Annuel</option>
-        </select>
-        <span className="text-sm text-muted-foreground">Période : {filterLabel[filter]}</span>
-      </div>
-
-      <p className="text-sm text-muted-foreground">Période : {formatDateRange()}</p>
+    <div className="space-y-6 animate-fade-in-up">
+      <PageHeader
+        title="Aperçu financier"
+        description={`Période : ${formatDateRange()}`}
+        actions={
+          <Select value={filter} onValueChange={(v) => setFilter(v as FilterMode)}>
+            <SelectTrigger className="w-36">
+              <Calendar className="h-4 w-4 mr-1.5" />
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="daily">Quotidien</SelectItem>
+              <SelectItem value="weekly">Hebdo</SelectItem>
+              <SelectItem value="yearly">Annuel</SelectItem>
+            </SelectContent>
+          </Select>
+        }
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card><CardContent className="p-4"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-lg bg-emerald-100 flex items-center justify-center"><TrendingUp className="h-5 w-5 text-emerald-600" /></div><div><p className="text-sm text-muted-foreground">Profit ({filterLabel[filter]})</p><p className="text-2xl font-bold text-emerald-600">${totalProfit.toFixed(2)}</p></div></div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-lg bg-red-100 flex items-center justify-center"><TrendingDown className="h-5 w-5 text-red-600" /></div><div><p className="text-sm text-muted-foreground">Dépenses ({filterLabel[filter]})</p><p className="text-2xl font-bold text-red-600">${totalExpenses.toFixed(2)}</p></div></div></CardContent></Card>
-        <Card><CardContent className="p-4"><div className="flex items-center gap-3"><div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><DollarSign className="h-5 w-5 text-primary" /></div><div><p className="text-sm text-muted-foreground">Net Profit ({filterLabel[filter]})</p><p className="text-2xl font-bold">${netProfit.toFixed(2)}</p></div></div></CardContent></Card>
+        <StatCard
+          title={`Profit (${filterLabel[filter]})`}
+          value={`$${totalProfit.toFixed(2)}`}
+          icon={TrendingUp}
+          accent="green"
+        />
+        <StatCard
+          title={`Dépenses (${filterLabel[filter]})`}
+          value={`$${totalExpenses.toFixed(2)}`}
+          icon={TrendingDown}
+          accent="red"
+        />
+        <StatCard
+          title={`Net (${filterLabel[filter]})`}
+          value={`$${netProfit.toFixed(2)}`}
+          icon={DollarSign}
+          accent={netProfit >= 0 ? "green" : "red"}
+        />
       </div>
 
       <CollapsibleCard title="Aperçu">
         <div className="h-64">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={chartData}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="name" />
-              <YAxis />
-              <Tooltip />
-              <Bar dataKey="profit" fill="hsl(152, 60%, 40%)" name="Profit" />
-              <Bar dataKey="expenses" fill="hsl(0, 72%, 51%)" name="Dépenses" />
-              <Bar dataKey="net" fill="hsl(152, 45%, 36%)" name="Net" />
+              <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+              <XAxis dataKey="name" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip
+                contentStyle={{
+                  borderRadius: "var(--radius)",
+                  border: "1px solid hsl(var(--border))",
+                  backgroundColor: "hsl(var(--card))",
+                }}
+              />
+              <Bar dataKey="montant" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
             </BarChart>
           </ResponsiveContainer>
         </div>

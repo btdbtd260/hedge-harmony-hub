@@ -5,6 +5,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/ui/page-header";
 import { useParameters, useUpdateParameters } from "@/hooks/useSupabaseData";
 import { Calculator, FileText, Bell, Save, Upload, Lock } from "lucide-react";
 import { toast } from "sonner";
@@ -71,13 +72,13 @@ const Settings = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Paramètres</h1>
-          <p className="text-muted-foreground">Configuration centrale du système</p>
-        </div>
-        <Button onClick={handleSave} disabled={updateParams.isPending}><Save className="h-4 w-4 mr-1" /> Sauvegarder</Button>
-      </div>
+      <PageHeader
+        title="Paramètres"
+        description="Configuration centrale du système"
+        actions={<>
+          <Button onClick={handleSave} disabled={updateParams.isPending}><Save className="h-4 w-4 mr-1" /> Sauvegarder</Button>
+        </>}
+      />
 
       <Tabs defaultValue="estimation">
         <TabsList className={`grid ${isAdmin ? "grid-cols-4" : "grid-cols-3"} w-full max-w-2xl`}>

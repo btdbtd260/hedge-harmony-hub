@@ -6,6 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { PageHeader } from "@/components/ui/page-header";
 import { useReminders, useInsertReminder, useUpdateReminder, useCustomers, getClientNameFromList } from "@/hooks/useSupabaseData";
 import { Bell, CheckCircle, Clock, Wrench, Plus } from "lucide-react";
 import { toast } from "sonner";
@@ -64,16 +65,14 @@ const Reminders = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Rappels</h1>
-          <p className="text-muted-foreground">Suivez vos rappels clients et maintenance (7 prochains jours)</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Rappels"
+        description="Suivez vos rappels clients et maintenance (7 prochains jours)"
+        actions={<>
           {activeReminders.length > 0 && <Badge variant="destructive" className="text-sm px-3 py-1"><Bell className="h-4 w-4 mr-1" /> {activeReminders.length} actif(s)</Badge>}
           <Button onClick={() => setShowAddDialog(true)}><Plus className="h-4 w-4 mr-1" /> Ajouter</Button>
-        </div>
-      </div>
+        </>}
+      />
 
       <Card>
         <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" /> Rappels clients</CardTitle></CardHeader>

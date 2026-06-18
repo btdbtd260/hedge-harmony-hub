@@ -18,11 +18,16 @@ import {
 import { Search, Mail, FileDown, CheckCircle, Receipt, History, Loader2 } from "lucide-react";
 import { toast } from "sonner";
 import { downloadInvoicePdf, getInvoiceNumber, type InvoicePdfData } from "@/lib/generateInvoicePdf";
+import { PageHeader } from "@/components/ui/page-header";
 import { formatDurationMinutes } from "@/lib/jobDurationEstimator";
 
-const statusColor: Record<string, string> = {
-  unpaid: "bg-amber-100 text-amber-700",
-  paid: "bg-emerald-100 text-emerald-700",
+const statusVariant: Record<string, "warning" | "success" | "outline"> = {
+  unpaid: "warning",
+  paid: "success",
+};
+const statusLabel: Record<string, string> = {
+  unpaid: "Impayée",
+  paid: "Payée",
 };
 
 const Invoices = () => {
@@ -202,17 +207,17 @@ const Invoices = () => {
       </div>
       <div className="text-right space-y-1">
         <p className="font-semibold">${Number(inv.amount).toFixed(2)}</p>
-        <Badge className={statusColor[inv.status]}>{inv.status === "paid" ? "Payée" : "Impayée"}</Badge>
+        <Badge variant={statusVariant[inv.status] ?? "outline"}>{statusLabel[inv.status] ?? inv.status}</Badge>
       </div>
     </div>
   );
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-foreground">Facturation</h1>
-        <p className="text-muted-foreground">Gérez vos factures et relevés</p>
-      </div>
+      <PageHeader
+        title="Facturation"
+        description="Gérez vos factures et relevés"
+      />
 
       <div className="relative max-w-sm">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
@@ -282,7 +287,7 @@ const Invoices = () => {
                           <TableCell>{getClientNameFromList(customers, inv.client_id)}</TableCell>
                           <TableCell className="text-muted-foreground">{formatDateQC(inv.issued_at)}</TableCell>
                           <TableCell className="text-right font-semibold">${Number(inv.amount).toFixed(2)}</TableCell>
-                          <TableCell><Badge className={statusColor[inv.status]}>{inv.status === "paid" ? "Payée" : "Impayée"}</Badge></TableCell>
+                          <TableCell><Badge variant={statusVariant[inv.status] ?? "outline"}>{statusLabel[inv.status] ?? inv.status}</Badge></TableCell>
                           <TableCell className="text-right">
                             <div className="flex justify-end gap-1" onClick={(e) => e.stopPropagation()}>
                               <Button variant="ghost" size="icon" onClick={() => handleDownloadPdf(inv)} title="Télécharger PDF"><FileDown className="h-4 w-4" /></Button>
@@ -370,7 +375,7 @@ const Invoices = () => {
                 <DialogHeader>
                   <DialogTitle className="flex items-center gap-2">
                     <span className="font-mono">{invoiceNumberMap.get(selectedInvoice.id)}</span>
-                    <Badge className={statusColor[selectedInvoice.status]}>{selectedInvoice.status === "paid" ? "Payée" : "Impayée"}</Badge>
+                    <Badge variant={statusVariant[selectedInvoice.status] ?? "outline"}>{statusLabel[selectedInvoice.status] ?? selectedInvoice.status}</Badge>
                   </DialogTitle>
                 </DialogHeader>
 

@@ -27,6 +27,7 @@ import {
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
 import { EstimationRequestDialog } from "@/components/calendar/EstimationRequestDialog";
 import { addMinutesToTime, computeRealDuration, computeTotalPauseMinutes, getPausesFromJob } from "@/lib/jobDurationEstimator";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 import { toast } from "sonner";
 
@@ -231,22 +232,18 @@ const CalendarPage = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between flex-wrap gap-3">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground flex items-center gap-2">
-            <CalendarDays className="h-6 w-6" /> Calendrier
-          </h1>
-          <p className="text-muted-foreground">Vue agenda des jobs planifiés</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Calendrier"
+        description="Vue agenda des jobs planifiés"
+        actions={<>
           <Tabs value={view} onValueChange={(v) => setView(v as ViewMode)}>
             <TabsList>
               <TabsTrigger value="month">Mois</TabsTrigger>
               <TabsTrigger value="week">Semaine</TabsTrigger>
             </TabsList>
           </Tabs>
-        </div>
-      </div>
+        </>}
+      />
 
       {unseenRequests.length > 0 && (
         <div className="rounded-lg border-l-4 border-estimation-request bg-estimation-request/10 p-4 flex items-start gap-3">

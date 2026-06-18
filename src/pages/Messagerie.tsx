@@ -6,6 +6,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/ui/page-header";
 import { cn } from "@/lib/utils";
 import { useCustomers } from "@/hooks/useSupabaseData";
 import { useMessages, useUnreadMessages } from "@/hooks/useMessages";
@@ -113,10 +114,10 @@ export default function Messagerie() {
   return (
     <div className="flex flex-col h-full min-h-0">
       <div className="px-6 py-4 border-b shrink-0">
-        <h1 className="text-2xl font-bold">Messagerie</h1>
-        <p className="text-sm text-muted-foreground">
-          Envoyez et recevez des SMS avec vos clients
-        </p>
+        <PageHeader
+          title="Messagerie"
+          description="Envoyez et recevez des SMS avec vos clients"
+        />
       </div>
 
       <Tabs defaultValue="conversations" className="flex-1 flex flex-col min-h-0">

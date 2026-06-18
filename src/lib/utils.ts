@@ -44,5 +44,28 @@ export function formatDateOnly(dateStr: string | null | undefined): string {
   const parsed = new Date(dateStr);
   if (isNaN(parsed.getTime())) return "—";
 
-  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${pad(parsed.getDate())}`;
+  return `${parsed.getFullYear()}-${pad(parsed.getMonth() + 1)}-${parsed.getDate()}`;
+}
+
+/**
+ * Format a number as CAD currency.
+ * Returns "—" for null/undefined/NaN values.
+ */
+export function formatCurrency(
+  value: number | null | undefined,
+  options?: { decimals?: number; symbol?: string },
+): string {
+  if (value === null || value === undefined || isNaN(value)) return "—";
+  const { decimals = 2, symbol = "$" } = options ?? {};
+  return `${symbol}${value.toFixed(decimals).replace(/\B(?=(\d{3})+(?!\d))/g, " ")}`;
+}
+
+/**
+ * Format a number with optional suffix (e.g. "1.2k").
+ */
+export function formatCompact(value: number | null | undefined): string {
+  if (value === null || value === undefined || isNaN(value)) return "—";
+  if (Math.abs(value) >= 1_000_000) return `${(value / 1_000_000).toFixed(1)}M`;
+  if (Math.abs(value) >= 1_000) return `${(value / 1_000).toFixed(1)}k`;
+  return String(value);
 }

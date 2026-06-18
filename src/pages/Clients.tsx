@@ -14,17 +14,24 @@ import { Search, Eye, EyeOff, Plus, Trash2, RotateCcw, AlertTriangle, Pencil, Ca
 import { toast } from "sonner";
 import { formatPhone, formatPhoneLive } from "@/lib/phoneFormat";
 import { resolveBillingInfo } from "@/lib/billingInfo";
+import { PageHeader } from "@/components/ui/page-header";
 import type { BillingInfo } from "@/types";
 
 // Technical archive customer used to preserve Finance history.
 // Hidden from every list — never editable from the UI.
 const ARCHIVE_CUSTOMER_ID = "00000000-0000-0000-0000-0000000d3137";
 
-const statusColor: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-700",
-  scheduled: "bg-blue-100 text-blue-700",
-  completed: "bg-emerald-100 text-emerald-700",
-  next_year: "bg-purple-100 text-purple-700",
+const statusVariant: Record<string, "warning" | "info" | "success" | "outline"> = {
+  pending: "warning",
+  scheduled: "info",
+  completed: "success",
+  next_year: "outline",
+};
+const statusLabel: Record<string, string> = {
+  pending: "En attente",
+  scheduled: "Planifié",
+  completed: "Complété",
+  next_year: "Année prochaine",
 };
 
 const Clients = () => {
@@ -200,13 +207,15 @@ const Clients = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Clients</h1>
-          <p className="text-muted-foreground">Gérez votre liste de clients</p>
-        </div>
-        <Button onClick={() => setShowAddDialog(true)}><Plus className="h-4 w-4 mr-1" /> Nouveau client</Button>
-      </div>
+      <PageHeader
+        title="Clients"
+        description="Gérez votre liste de clients"
+        actions={
+          <Button onClick={() => setShowAddDialog(true)}>
+            <Plus className="h-4 w-4 mr-1.5" /> Nouveau client
+          </Button>
+        }
+      />
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
@@ -242,7 +251,7 @@ const Clients = () => {
                   <p className="text-xs text-muted-foreground mt-1">{jobs.filter((j) => j.client_id === c.id).length} job(s)</p>
                 </div>
                 <div className="flex items-center gap-2">
-                  <Badge className={statusColor[c.status]}>{c.status}</Badge>
+                  <Badge variant={statusVariant[c.status] ?? "secondary"}>{statusLabel[c.status] ?? c.status}</Badge>
                   {c.hidden && (
                     <Button variant="outline" size="sm" className="h-8 text-xs" onClick={(e) => { e.stopPropagation(); handleRestoreClient(c); }}>
                       <RotateCcw className="h-3 w-3 mr-1" /> Restaurer
@@ -290,7 +299,7 @@ const Clients = () => {
                 <p className="font-medium">{c.name}</p>
                 <p className="text-sm text-muted-foreground">{c.address}</p>
               </div>
-              <Badge className={statusColor.next_year}>année prochaine</Badge>
+              <Badge variant="outline">Année prochaine</Badge>
             </div>
           ))}
         </CollapsibleCard>
@@ -310,7 +319,7 @@ const Clients = () => {
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Téléphone</span><span>{formatPhone(liveSelectedClient.phone)}</span></div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Email</span><span>{liveSelectedClient.email}</span></div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Adresse</span><span>{liveSelectedClient.address}</span></div>
-                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Statut</span><Badge className={statusColor[liveSelectedClient.status]}>{liveSelectedClient.status}</Badge></div>
+                <div className="flex justify-between text-sm"><span className="text-muted-foreground">Statut</span><Badge variant={statusVariant[liveSelectedClient.status] ?? "secondary"}>{statusLabel[liveSelectedClient.status] ?? liveSelectedClient.status}</Badge></div>
                 <div className="flex justify-between text-sm"><span className="text-muted-foreground">Année active</span><span>{liveSelectedClient.active_year}</span></div>
                 <div className="border-t pt-3">
                   <p className="text-sm font-medium mb-2">Historique des jobs ({clientJobs.length})</p>
@@ -321,7 +330,7 @@ const Clients = () => {
                       <span>{j.cut_type} · {j.scheduled_date}</span>
                       <div className="flex items-center gap-2">
                         <span>${j.estimated_profit}</span>
-                        <Badge className={`text-xs ${statusColor[j.status] || ""}`}>{j.status}</Badge>
+                        <Badge variant={statusVariant[j.status] ?? "secondary"} className="text-xs">{statusLabel[j.status] ?? j.status}</Badge>
                       </div>
                     </div>
                   ))}

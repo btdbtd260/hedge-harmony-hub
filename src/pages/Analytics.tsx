@@ -1,6 +1,7 @@
 import { useMemo, useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/ui/page-header";
 import { Badge } from "@/components/ui/badge";
 import { useJobs, useCustomers, getClientNameFromList } from "@/hooks/useSupabaseData";
 import {
@@ -123,30 +124,28 @@ export default function Analytics() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Analytics</h1>
-          <p className="text-sm text-muted-foreground">
-            Précision des estimations de durée — comparaison entre temps prévu et temps réel.
-          </p>
-        </div>
-        <Tabs value={cutFilter} onValueChange={(v) => setCutFilter(v as CutFilter)}>
-          <TabsList>
-            <TabsTrigger value="all">
-              Tous <Badge variant="secondary" className="ml-2">{counts.all}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="trim">
-              Taillage <Badge variant="secondary" className="ml-2">{counts.trim}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="levelling">
-              Nivelage <Badge variant="secondary" className="ml-2">{counts.levelling}</Badge>
-            </TabsTrigger>
-            <TabsTrigger value="restoration">
-              Restauration <Badge variant="secondary" className="ml-2">{counts.restoration}</Badge>
-            </TabsTrigger>
-          </TabsList>
-        </Tabs>
-      </div>
+      <PageHeader
+        title="Analytics"
+        description="Précision des estimations de durée — comparaison entre temps prévu et temps réel."
+        actions={<>
+          <Tabs value={cutFilter} onValueChange={(v) => setCutFilter(v as CutFilter)}>
+            <TabsList>
+              <TabsTrigger value="all">
+                Tous <Badge variant="secondary" className="ml-2">{counts.all}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="trim">
+                Taillage <Badge variant="secondary" className="ml-2">{counts.trim}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="levelling">
+                Nivelage <Badge variant="secondary" className="ml-2">{counts.levelling}</Badge>
+              </TabsTrigger>
+              <TabsTrigger value="restoration">
+                Restauration <Badge variant="secondary" className="ml-2">{counts.restoration}</Badge>
+              </TabsTrigger>
+            </TabsList>
+          </Tabs>
+        </>}
+      />
 
       {cutFilter === "all" && (counts.trim > 0 ? 1 : 0) + (counts.levelling > 0 ? 1 : 0) + (counts.restoration > 0 ? 1 : 0) > 1 && (
         <p className="text-xs text-muted-foreground -mt-2">

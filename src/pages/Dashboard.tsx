@@ -1,16 +1,24 @@
 import { useState, useMemo } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardHover } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, CalendarDays, Users, FileText, Plus, Clock, DollarSign, Briefcase, Bell, ClipboardList } from "lucide-react";
+import { Calendar, CalendarDays, Users, FileText, Plus, Clock, Briefcase, Bell, ClipboardList, DollarSign } from "lucide-react";
 import { useCustomers, useJobs, useInvoices, useReminders, useEstimationRequests, useExpenses, useEmployees, useEmployeeJobs, getClientNameFromList } from "@/hooks/useSupabaseData";
 import { useNavigate } from "react-router-dom";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
+import { StatCard } from "@/components/ui/stat-card";
+import { PageHeader } from "@/components/ui/page-header";
 
-const statusColor: Record<string, string> = {
-  scheduled: "bg-blue-100 text-blue-700",
-  pending: "bg-amber-100 text-amber-700",
-  completed: "bg-emerald-100 text-emerald-700",
+const statusVariant: Record<string, "info" | "warning" | "success"> = {
+  scheduled: "info",
+  pending: "warning",
+  completed: "success",
+};
+
+const statusLabel: Record<string, string> = {
+  scheduled: "Planifié",
+  pending: "En attente",
+  completed: "Complété",
 };
 
 const Dashboard = () => {
@@ -35,7 +43,7 @@ const Dashboard = () => {
   const todayJobs = jobs.filter((j) => j.scheduled_date === today);
   const scheduledJobCount = jobs.filter((j) => j.status === "scheduled").length;
   const completedJobCount = jobs.filter((j) => j.status === "completed").length;
-  // Prochains jobs: tous les jobs planifiés entre aujourd'hui et +7 jours
+
   const upcomingJobs = jobs
     .filter(
       (j) =>
@@ -79,14 +87,10 @@ const Dashboard = () => {
 
   const netProfit = useMemo(() => Math.round(totalProfit - totalExpenses), [totalProfit, totalExpenses]);
 
-  // Estimations restantes à faire = demandes non traitées (status === "pending", non masquées)
-  // useEstimationRequests filtre déjà hidden = false
   const pendingEstimations = estimationRequests.filter((r) => r.status === "pending").length;
 
-  // Only count reminders due within next 7 days
   const activeReminders = reminders.filter((r) => !r.is_completed && r.due_date <= inOneWeekStr).length;
 
-  // Set of client IDs that have at least one job scheduled or completed ("active" clients)
   const realClientIds = useMemo(() => {
     const ids = new Set<string>();
     jobs.forEach((j) => {
@@ -96,71 +100,101 @@ const Dashboard = () => {
   }, [jobs]);
 
   return (
-    <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Tableau de bord</h1>
-          <p className="text-muted-foreground">Vue d'ensemble de vos opérations</p>
-        </div>
-        <div className="flex gap-2">
-          <Button size="sm" onClick={() => navigate("/clients")}><Plus className="h-4 w-4 mr-1" /> Client</Button>
-          <Button size="sm" variant="outline" onClick={() => navigate("/estimation")}><FileText className="h-4 w-4 mr-1" /> Estimation</Button>
-        </div>
-      </div>
+    <div className="space-y-6 animate-fade-in-up">
+      <PageHeader
+        title="Tableau de bord"
+        description="Vue d'ensemble de vos opérations"
+        actions={
+          <>
+            <Button size="sm" onClick={() => navigate("/clients")}>
+              <Plus className="h-4 w-4 mr-1.5" /> Client
+            </Button>
+            <Button size="sm" variant="outline" onClick={() => navigate("/estimation")}>
+              <FileText className="h-4 w-4 mr-1.5" /> Estimation
+            </Button>
+          </>
+        }
+      />
 
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-4">
-        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/clients")}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Users className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-sm text-muted-foreground">Clients</p><p className="text-2xl font-bold">{customers.filter(c => !c.hidden && realClientIds.has(c.id)).length}</p></div>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/jobs")}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Briefcase className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-sm text-muted-foreground">Jobs complétés</p><p className="text-2xl font-bold">{completedJobCount}</p></div>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/calendar")}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><CalendarDays className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-sm text-muted-foreground">Planifiés</p><p className="text-2xl font-bold">{scheduledJobCount}</p></div>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/calendar")}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><ClipboardList className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-sm text-muted-foreground">Estimations à faire</p><p className="text-2xl font-bold">{pendingEstimations}</p></div>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/finance")}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><DollarSign className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-sm text-muted-foreground">Revenu</p><p className="text-2xl font-bold">${netProfit}</p></div>
-          </CardContent>
-        </Card>
-        <Card className="cursor-pointer hover:bg-accent/50 hover:shadow-md transition-all" onClick={() => navigate("/reminders")}>
-          <CardContent className="p-4 flex items-center gap-4">
-            <div className="h-10 w-10 rounded-lg bg-primary/10 flex items-center justify-center"><Bell className="h-5 w-5 text-primary" /></div>
-            <div><p className="text-sm text-muted-foreground">Rappels</p><p className="text-2xl font-bold">{activeReminders}</p></div>
-          </CardContent>
-        </Card>
+        <div onClick={() => navigate("/clients")} className="cursor-pointer">
+          <StatCard
+            title="Clients actifs"
+            value={customers.filter((c) => !c.hidden && realClientIds.has(c.id)).length}
+            icon={Users}
+            accent="green"
+          />
+        </div>
+        <div onClick={() => navigate("/jobs")} className="cursor-pointer">
+          <StatCard
+            title="Complétés"
+            value={completedJobCount}
+            icon={Briefcase}
+            accent="blue"
+          />
+        </div>
+        <div onClick={() => navigate("/calendar")} className="cursor-pointer">
+          <StatCard
+            title="Planifiés"
+            value={scheduledJobCount}
+            icon={CalendarDays}
+            accent="amber"
+          />
+        </div>
+        <div onClick={() => navigate("/calendar")} className="cursor-pointer">
+          <StatCard
+            title="Estim. à faire"
+            value={pendingEstimations}
+            icon={ClipboardList}
+            accent="purple"
+          />
+        </div>
+        <div onClick={() => navigate("/finance")} className="cursor-pointer">
+          <StatCard
+            title="Revenu net"
+            value={`$${netProfit.toLocaleString()}`}
+            icon={DollarSign}
+            accent={netProfit >= 0 ? "green" : "red"}
+          />
+        </div>
+        <div onClick={() => navigate("/reminders")} className="cursor-pointer">
+          <StatCard
+            title="Rappels"
+            value={activeReminders}
+            icon={Bell}
+            accent="red"
+          />
+        </div>
       </div>
 
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Clock className="h-5 w-5" /> Jobs aujourd'hui</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Clock className="h-4 w-4 text-muted-foreground" />
+            Jobs d'aujourd'hui
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           {todayJobs.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Aucun job planifié pour aujourd'hui.</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">Aucun job planifié pour aujourd'hui.</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {todayJobs.map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedJobId(job.id)}>
-                  <div>
-                    <p className="font-medium">{getClientNameFromList(customers, job.client_id)}</p>
-                    <p className="text-sm text-muted-foreground">{job.cut_type}</p>
+                <div
+                  key={job.id}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/40 hover:shadow-sm transition-all cursor-pointer"
+                  onClick={() => setSelectedJobId(job.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-2 w-2 rounded-full bg-primary/60" />
+                    <div>
+                      <p className="text-sm font-medium">{getClientNameFromList(customers, job.client_id)}</p>
+                      <p className="text-xs text-muted-foreground">{job.cut_type}</p>
+                    </div>
                   </div>
-                  <Badge className={statusColor[job.status]}>{job.status}</Badge>
+                  <Badge variant={statusVariant[job.status] ?? "secondary"}>
+                    {statusLabel[job.status] ?? job.status}
+                  </Badge>
                 </div>
               ))}
             </div>
@@ -169,26 +203,44 @@ const Dashboard = () => {
       </Card>
 
       <Card>
-        <CardHeader><CardTitle className="flex items-center gap-2"><Calendar className="h-5 w-5" /> Prochains jobs (7 prochains jours)</CardTitle></CardHeader>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Calendar className="h-4 w-4 text-muted-foreground" />
+            Prochains jobs (7 jours)
+          </CardTitle>
+        </CardHeader>
         <CardContent>
           {upcomingJobs.length === 0 ? (
-            <p className="text-muted-foreground text-sm">Aucun job prévu dans les 7 prochains jours.</p>
+            <p className="text-sm text-muted-foreground py-4 text-center">Aucun job prévu dans les 7 prochains jours.</p>
           ) : (
-            <div className="space-y-3">
+            <div className="space-y-2">
               {upcomingJobs.map((job) => (
-                <div key={job.id} className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={() => setSelectedJobId(job.id)}>
-                  <div>
-                    <p className="font-medium">{getClientNameFromList(customers, job.client_id)}</p>
-                    <p className="text-sm text-muted-foreground">{job.scheduled_date} · {job.cut_type}</p>
+                <div
+                  key={job.id}
+                  className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/40 hover:shadow-sm transition-all cursor-pointer"
+                  onClick={() => setSelectedJobId(job.id)}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="h-2 w-2 rounded-full bg-amber-400" />
+                    <div>
+                      <p className="text-sm font-medium">{getClientNameFromList(customers, job.client_id)}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {job.scheduled_date} · {job.cut_type}
+                      </p>
+                    </div>
                   </div>
-                  <Badge variant="outline">{job.status}</Badge>
+                  <Badge variant="outline">{statusLabel[job.status] ?? job.status}</Badge>
                 </div>
               ))}
             </div>
           )}
         </CardContent>
       </Card>
-      <JobDetailDialog job={selectedJob} onOpenChange={(open) => !open && setSelectedJobId(null)} />
+
+      <JobDetailDialog
+        job={selectedJob}
+        onOpenChange={(open) => !open && setSelectedJobId(null)}
+      />
     </div>
   );
 };

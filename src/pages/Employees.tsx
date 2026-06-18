@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { PageHeader } from "@/components/ui/page-header";
 import {
   useEmployees,
   useInsertEmployee,
@@ -68,18 +69,16 @@ const Employees = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Employés</h1>
-          <p className="text-muted-foreground">Gestion de l'équipe et calcul des paies</p>
-        </div>
-        <div className="flex gap-2">
+      <PageHeader
+        title="Employés"
+        description="Gestion de l'équipe et calcul des paies"
+        actions={<>
           <Button variant={showInactive ? "default" : "outline"} size="sm" onClick={() => setShowInactive(!showInactive)}>
             {showInactive ? "Masquer inactifs" : "Voir inactifs"}
           </Button>
           <Button onClick={openAdd}><Plus className="h-4 w-4 mr-1" /> Ajouter</Button>
-        </div>
-      </div>
+        </>}
+      />
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {sorted.map((emp) => {

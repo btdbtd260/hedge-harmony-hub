@@ -32,7 +32,9 @@
     --input: 150 10% 85%;
     --ring: 152 45% 36%;
 
-    --radius: 0.5rem;
+    --radius: 0.625rem;
+    --radius-sm: 0.375rem;
+    --radius-lg: 0.75rem;
 
     --sidebar-background: 150 12% 97%;
     --sidebar-foreground: 150 10% 25%;
@@ -43,15 +45,38 @@
     --sidebar-border: 150 10% 90%;
     --sidebar-ring: 152 45% 36%;
 
+    --sidebar-width: 16rem;
+    --sidebar-width-collapsed: 3rem;
+    --header-height: 3.5rem;
+
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
     --success: 152 60% 40%;
     --success-foreground: 0 0% 100%;
+    --info: 217 91% 55%;
+    --info-foreground: 0 0% 100%;
 
-    /* Cut type colors
-       - Taillage (trim) : green (kept — coherent with brand primary)
-       - Nivelage (levelling) : red
-       - Restauration (restoration) : orange */
+    /* Chart colors */
+    --chart-1: 152 55% 42%;
+    --chart-2: 217 91% 55%;
+    --chart-3: 38 92% 50%;
+    --chart-4: 280 65% 55%;
+    --chart-5: 0 72% 51%;
+
+    /* Card shadows */
+    --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.04), 0 1px 2px -1px rgb(0 0 0 / 0.04);
+    --card-shadow-hover: 0 4px 12px 0 rgb(0 0 0 / 0.06), 0 1px 3px 0 rgb(0 0 0 / 0.04);
+    --card-shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.08), 0 4px 10px -6px rgb(0 0 0 / 0.04);
+    --dialog-shadow: 0 20px 50px -12px rgb(0 0 0 / 0.15);
+
+    /* Accent colors for stat cards */
+    --accent-green: 152 55% 42%;
+    --accent-blue: 217 91% 55%;
+    --accent-amber: 38 92% 50%;
+    --accent-purple: 280 65% 55%;
+    --accent-red: 0 72% 51%;
+
+    /* Cut type colors */
     --cut-trim: 152 55% 42%;
     --cut-trim-foreground: 0 0% 100%;
     --cut-levelling: 0 72% 51%;
@@ -104,8 +129,27 @@
 
     --warning: 38 92% 50%;
     --warning-foreground: 0 0% 100%;
-    --success: 152 60% 40%;
+    --success: 152 60% 45%;
     --success-foreground: 0 0% 100%;
+    --info: 217 91% 60%;
+    --info-foreground: 0 0% 100%;
+
+    --chart-1: 152 55% 50%;
+    --chart-2: 217 91% 60%;
+    --chart-3: 38 92% 55%;
+    --chart-4: 280 65% 60%;
+    --chart-5: 0 72% 55%;
+
+    --card-shadow: 0 1px 3px 0 rgb(0 0 0 / 0.15), 0 1px 2px -1px rgb(0 0 0 / 0.15);
+    --card-shadow-hover: 0 4px 12px 0 rgb(0 0 0 / 0.25), 0 1px 3px 0 rgb(0 0 0 / 0.15);
+    --card-shadow-lg: 0 10px 25px -5px rgb(0 0 0 / 0.3), 0 4px 10px -6px rgb(0 0 0 / 0.2);
+    --dialog-shadow: 0 20px 50px -12px rgb(0 0 0 / 0.4);
+
+    --accent-green: 152 55% 50%;
+    --accent-blue: 217 91% 60%;
+    --accent-amber: 38 92% 55%;
+    --accent-purple: 280 65% 60%;
+    --accent-red: 0 72% 55%;
 
     --cut-trim: 152 55% 50%;
     --cut-trim-foreground: 0 0% 100%;
@@ -125,7 +169,27 @@
   }
 
   body {
-    @apply bg-background text-foreground;
+    @apply bg-background text-foreground antialiased;
+    font-feature-settings: "rlig" 1, "calt" 1;
+  }
+}
+
+@layer components {
+  /* Stat card gradient backgrounds */
+  .gradient-card-green {
+    background: linear-gradient(135deg, hsl(var(--accent-green) / 0.08), hsl(var(--accent-green) / 0.02));
+  }
+  .gradient-card-blue {
+    background: linear-gradient(135deg, hsl(var(--accent-blue) / 0.08), hsl(var(--accent-blue) / 0.02));
+  }
+  .gradient-card-amber {
+    background: linear-gradient(135deg, hsl(var(--accent-amber) / 0.08), hsl(var(--accent-amber) / 0.02));
+  }
+  .gradient-card-purple {
+    background: linear-gradient(135deg, hsl(var(--accent-purple) / 0.08), hsl(var(--accent-purple) / 0.02));
+  }
+  .gradient-card-red {
+    background: linear-gradient(135deg, hsl(var(--accent-red) / 0.08), hsl(var(--accent-red) / 0.02));
   }
 }
 
@@ -133,4 +197,9 @@
   /* Used by the time wheel picker — hide native scrollbars while keeping scroll */
   .no-scrollbar::-webkit-scrollbar { display: none; }
   .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+  /* Text balance for headings */
+  .text-balance {
+    text-wrap: balance;
+  }
 }

@@ -12,13 +12,20 @@ import { useJobs, useCustomers, useUpdateJob, useInsertInvoice, getClientNameFro
 import { Search, Calendar, FileDown } from "lucide-react";
 import { toast } from "sonner";
 import { JobDetailDialog } from "@/components/jobs/JobDetailDialog";
+import { PageHeader } from "@/components/ui/page-header";
 import { formatDurationMinutes } from "@/lib/jobDurationEstimator";
 
-const statusColor: Record<string, string> = {
-  pending: "bg-amber-100 text-amber-700",
-  scheduled: "bg-blue-100 text-blue-700",
-  completed: "bg-emerald-100 text-emerald-700",
-  hidden: "bg-gray-100 text-gray-500",
+const statusVariant: Record<string, "warning" | "info" | "success" | "outline"> = {
+  pending: "warning",
+  scheduled: "info",
+  completed: "success",
+  hidden: "outline",
+};
+const statusLabel: Record<string, string> = {
+  pending: "En attente",
+  scheduled: "Planifié",
+  completed: "Complété",
+  hidden: "Masqué",
 };
 
 const Jobs = () => {
@@ -96,15 +103,15 @@ const Jobs = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Jobs</h1>
-          <p className="text-muted-foreground">Gérez et suivez tous les jobs</p>
-        </div>
-        <Button onClick={() => setShowCreateInvoice(true)}>
-          <FileDown className="h-4 w-4 mr-1" />Créer une facture
-        </Button>
-      </div>
+      <PageHeader
+        title="Jobs"
+        description="Gérez et suivez tous les jobs"
+        actions={
+          <Button onClick={() => setShowCreateInvoice(true)}>
+            <FileDown className="h-4 w-4 mr-1.5" />Créer une facture
+          </Button>
+        }
+      />
 
       <div className="flex items-center gap-3">
         <div className="relative flex-1 max-w-sm">
@@ -244,24 +251,28 @@ function JobRow({ job, clientName, clientAddress, onClick, onStatusChange }: { j
       : job.scheduled_date
     : "—";
   return (
-    <div className="flex items-center justify-between p-3 rounded-lg border cursor-pointer hover:bg-accent/50 transition-colors" onClick={onClick}>
-      <div className="space-y-1">
-        <p className="font-medium">{clientName}</p>
-        {clientAddress && <p className="text-xs text-muted-foreground">{clientAddress}</p>}
-        <div className="flex gap-2 text-xs text-muted-foreground">
-          <span>{dateDisplay}</span><span>·</span><span>{job.cut_type}</span>
+    <div className="flex items-center justify-between p-3 rounded-lg border bg-card hover:bg-accent/30 hover:shadow-sm transition-all cursor-pointer" onClick={onClick}>
+      <div className="space-y-1 min-w-0 flex-1">
+        <p className="text-sm font-medium truncate">{clientName}</p>
+        {clientAddress && <p className="text-xs text-muted-foreground truncate">{clientAddress}</p>}
+        <div className="flex gap-2 text-xs text-muted-foreground flex-wrap">
+          <span>{dateDisplay}</span><span>·</span><span>{job.cut_type === "levelling" ? "Nivelage" : job.cut_type === "restoration" ? "Restauration" : "Taille"}</span>
           {job.total_duration_minutes && <><span>·</span><span>{formatDurationMinutes(job.total_duration_minutes)}</span></>}
         </div>
       </div>
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-3 shrink-0">
         <span className="text-sm font-semibold">${job.estimated_profit}</span>
         <div onClick={(e) => e.stopPropagation()}>
           <Select value={job.status} onValueChange={(val) => onStatusChange?.(job.id, val)}>
-            <SelectTrigger className="w-32 h-8 text-xs"><SelectValue /></SelectTrigger>
+            <SelectTrigger className="w-[120px] h-8 text-xs">
+              <Badge variant={statusVariant[job.status] ?? "outline"} className="text-[10px] font-normal">
+                {statusLabel[job.status] ?? job.status}
+              </Badge>
+            </SelectTrigger>
             <SelectContent>
-              <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="scheduled">Scheduled</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
+              <SelectItem value="pending">En attente</SelectItem>
+              <SelectItem value="scheduled">Planifié</SelectItem>
+              <SelectItem value="completed">Complété</SelectItem>
             </SelectContent>
           </Select>
         </div>

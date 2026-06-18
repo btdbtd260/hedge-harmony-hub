@@ -7,6 +7,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PageHeader } from "@/components/ui/page-header";
 import { useInvoices, useExpenses, useInsertExpense, useEmployees, useEmployeeJobs, useJobs } from "@/hooks/useSupabaseData";
 import { DollarSign, TrendingUp, TrendingDown, Plus, Camera, FileText, Fuel } from "lucide-react";
 import { toast } from "sonner";
@@ -113,12 +114,10 @@ const Finance = () => {
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Finance</h1>
-          <p className="text-muted-foreground">Suivi des revenus et dépenses</p>
-        </div>
-        <div className="flex items-center gap-2">
+      <PageHeader
+        title="Finance"
+        description="Suivi des revenus et dépenses"
+        actions={<>
           <Select value={filter} onValueChange={(v) => setFilter(v as FilterMode)}>
             <SelectTrigger className="w-32"><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -128,8 +127,8 @@ const Finance = () => {
             </SelectContent>
           </Select>
           <Button onClick={() => { setShowAddExpense(true); setAddMode("manual"); setOcrPreview(null); setExpDesc(""); setExpAmount(""); setExpCategory("other"); }}><Plus className="h-4 w-4 mr-1" /> Dépense</Button>
-        </div>
-      </div>
+        </>}
+      />
 
       <p className="text-sm text-muted-foreground">Période : {formatDateRange()}</p>
 
